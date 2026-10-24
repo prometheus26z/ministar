@@ -1,0 +1,30 @@
+
+> ministar@0.1.1 test
+> node --test tests/*.test.mjs
+
+✔ all three races expose 39 original buyable units (2.404954ms)
+✔ paired Zerg purchase and full refund restore budget and supply (0.374716ms)
+✔ budget, supply and cross-race purchases are enforced (3.724288ms)
+✔ all ten control groups assign, recall and reject empty overwrite at normal speed (1.61456ms)
+✔ opening menu immediately slows battle clock and targeting retains slow time (3.955086ms)
+✔ cancel and instant commands restore time and preserve selection (0.904647ms)
+✔ combat locks purchase, refund and deployment budget (0.359323ms)
+✔ ground path avoids obstacles while air path is direct (0.757795ms)
+✔ Move ignores nearby enemies and follows destination (2.189198ms)
+✔ projectiles and movement share slow simulation delta (2.287487ms)
+✔ shield absorption precedes armor-adjusted health damage (0.313134ms)
+✔ death prunes all control groups and loss clears slow state (0.374416ms)
+✔ objective destruction wins and freezes battle clock (0.312382ms)
+✔ lurker cannot attack while unburrowed and hidden units require a detector (0.26434ms)
+✔ all sprite, sound, portrait and offline manifest paths exist (9.347225ms)
+✔ PWA start, scope and image paths remain relative under repository prefix (0.299963ms)
+✔ server serves root and project-prefix pages, JavaScript and media ranges (43.589702ms)
+✔ attack-move resumes the original route after an encounter and reaches the objective (404.304254ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 570.427258
