@@ -60,9 +60,11 @@ document.addEventListener('visibilitychange',()=>{last=0;if(document.hidden)bgm?
 // Remove only MiniStar's retired offline storage; keep settings and battle records.
 async function retireOfflineStorage(){
  try{
-  const scope=new URL('./',location.href).href;
-  if('serviceWorker'in navigator){for(const registration of await navigator.serviceWorker.getRegistrations())if(registration.scope===scope)await registration.unregister()}
+  const scope=new URL('./',location.href).href;let retired=false;
+  if('serviceWorker'in navigator){for(const registration of await navigator.serviceWorker.getRegistrations())if(registration.scope===scope)retired=(await registration.unregister())||retired}
   if('caches'in window)await Promise.all((await caches.keys()).filter(key=>key.startsWith('ministar-')).map(key=>caches.delete(key)));
+  if(retired&&navigator.serviceWorker.controller){location.reload();return false}
  }catch(error){console.warn('Legacy game cache cleanup:',error)}
+ return true;
 }
-async function boot(){try{await retireOfflineStorage();enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
+async function boot(){try{if(!await retireOfflineStorage())return;enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
