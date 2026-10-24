@@ -1,6 +1,6 @@
 import {enhanceSelects,closeDropdown} from './ui.js?v=0.5.0';
 import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.5.0';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,WAVE_SECONDS,PRODUCTION_OFFSET} from './autobattle.js?v=0.5.0';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT} from './autobattle.js?v=0.5.0';
 import {researchAt} from './tech.js?v=0.5.0';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),mc=mini.getContext('2d');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};

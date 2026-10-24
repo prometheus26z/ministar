@@ -2,7 +2,7 @@ import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from 
 import {clamp,dist} from './core.js?v=0.5.0';
 import {BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,constructionSeconds,buildingCost} from './lane-rules.js?v=0.5.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
-export {WAVE_SECONDS,PRODUCTION_OFFSET};
+export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT};
 
 export class Battle extends EconomyBattle{
  constructor(data,options={}){
