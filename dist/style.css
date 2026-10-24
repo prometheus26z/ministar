@@ -114,3 +114,15 @@ body[data-space=production] #spaceToggle{left:auto;right:12px;border-color:#9ac1
 /* Dock the navigation tab flush to the viewport edge. */
 #spaceToggle{left:0!important;border-left:0;border-radius:0 7px 7px 0}
 body[data-space=production] #spaceToggle{left:auto!important;right:0!important;border-left:1px solid #9ac1d2;border-right:0;border-radius:7px 0 0 7px}
+
+/* Production waves are a read-only building summary. */
+#commandGrid .wave-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:92px;padding:8px 5px;border:1px solid #64745c;background:linear-gradient(#1a261d,#0a100c);text-align:center}
+#commandGrid .wave-card img{width:32px;height:28px;object-fit:contain}
+#commandGrid .wave-card b{font-size:11px;color:#d2e2c1}
+#commandGrid .wave-card span,#commandGrid .wave-empty,#commandGrid .wave-pending{font-size:9px;color:#9eae96;line-height:1.5}
+#commandGrid .wave-empty,#commandGrid .wave-pending{grid-column:1/-1;text-align:center;margin:8px 2px}
+#backgroundPause{position:fixed;inset:0;display:grid;place-items:center;padding:20px;background:#03070de8;z-index:21}
+#backgroundPause section{width:min(100%,360px);padding:24px 20px;border:1px solid #87916f;background:linear-gradient(#18231f,#080d0c);box-shadow:0 18px 60px #000b;text-align:center}
+#backgroundPause strong{display:block;color:#d5d1a8;font-size:17px}
+#backgroundPause p{font-size:11px;color:#9caa9c;line-height:1.6;margin:12px 0 18px}
+#resumeBattle{width:100%;min-height:44px}
