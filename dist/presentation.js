@@ -20,3 +20,8 @@ export function constructionVisual(unit,data){
  }
  return{image:208,warp:true,progress};
 }
+
+export function waveDescription(type,groups,data){
+ if(!groups?.length)return '출격 없음';
+ return groups.map(({unit,count})=>`${data.units[unit].name} ${Number(type)===142?'5~6':count}기`).join(' · ');
+}

@@ -17,11 +17,11 @@ async function testLegacyMigration(browser,direct=false){
    await caches.open('other-app-cache');
   },legacyHtml);
   await page.reload();assert.equal(await page.locator('#legacy').innerText(),'v0.1.1');
-  legacy=false;if(direct)await page.goto(url+'?v=0.9.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
+  legacy=false;if(direct)await page.goto(url+'?v=0.10.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
   await page.locator('#title').waitFor({state:'visible'});
-  assert.equal(await page.locator('.top small').innerText(),'v0.9.0');
+  assert.equal(await page.locator('.top small').innerText(),'v0.10.0');
   assert.equal(await page.locator('#offline').count(),0);
-  assert.equal(new URL(page.url()).searchParams.get('v'),'0.9.0');
+  assert.equal(new URL(page.url()).searchParams.get('v'),'0.10.0');
   assert.deepEqual(await page.evaluate(async()=>(await caches.keys()).sort()),['other-app-cache']);
   assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);
   assert.equal(await page.evaluate(()=>localStorage.getItem('ministar.records')),'[{"win":true}]');
@@ -72,7 +72,7 @@ assert.equal(await page.locator('#slow').isVisible(),false);
 await page.locator('#closeCommands').click();
 await page.locator('#commandButton').click();await page.locator('#commands').waitFor({state:'visible'});
 await page.waitForFunction(()=>Number(document.getElementById('money').textContent)>=330);const barracks=page.getByRole('button',{name:/배럭 건설/});await page.waitForFunction(()=>[...document.querySelectorAll('.command-card')].some(b=>b.textContent.includes('배럭')&&!b.disabled));assert.equal(await barracks.isDisabled(),false);assert.match(await barracks.innerText(),/330 미네랄/);assert.doesNotMatch(await barracks.innerText(),/●/);
-assert.match(await barracks.innerText(),/3초/);
+assert.match(await barracks.innerText(),/마린 6기/);assert.doesNotMatch(await barracks.innerText(),/3초/);assert.match(await page.getByRole('button',{name:/아카데미 건설/}).innerText(),/파이어뱃 1기.*메딕 1기/);
 await barracks.click();assert.equal(await page.locator('#target').isVisible(),true);
 assert.match(await page.locator('#targetText').innerText(),/배럭/);
 assert.equal(await page.locator('#confirmBuild').isDisabled(),true);
@@ -90,6 +90,20 @@ assert.notDeepEqual(middleConstruction,finishedConstruction,'completion must rep
 await page.keyboard.press('Space');
 await page.locator('#spaceToggle').click();
 assert.equal((await page.locator('#spaceToggle').boundingBox()).x,0);
+assert.equal(await page.locator('#productionButton').isDisabled(),false);
+await page.locator('#productionButton').click();await page.locator('#commands').waitFor({state:'visible'});
+assert.match(await page.locator('#commandGrid').innerText(),/마린/);assert.match(await page.locator('#commandGrid').innerText(),/6기/);
+await page.locator('#closeCommands').click();
+await page.locator('#map').click();const minimap=page.locator('#minimap'),miniBox=await minimap.boundingBox();
+await minimap.click({position:{x:miniBox.width/2,y:1}});await page.locator('#map').click();
+await page.locator('#field').click({position:{x:195,y:159}});await page.waitForTimeout(100);
+assert.equal(await page.locator('#unitName').innerText(),'커맨드 센터');
+assert.doesNotMatch(await page.locator('#toast').innerText(),/HP/);
+const enemyHealthPixels=await page.locator('#field').evaluate(canvas=>{
+ const dpr=canvas.width/innerWidth,c=canvas.getContext('2d'),pixels=c.getImageData(160*dpr,178*dpr,70*dpr,13*dpr).data;
+ let count=0;for(let i=0;i<pixels.length;i+=4)if((pixels[i]===143&&pixels[i+1]===219&&pixels[i+2]===131)||(pixels[i]===98&&pixels[i+1]===189&&pixels[i+2]===73)||(pixels[i]===55&&pixels[i+1]===147&&pixels[i+2]===42))count++;return count;
+});assert.ok(enemyHealthPixels>20,'enemy selection must draw the same health bar palette on the battlefield');
+
 await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
 await page.evaluate(()=>window.dispatchEvent(new Event('pageshow')));
 await page.locator('#backgroundPause').waitFor({state:'visible'});

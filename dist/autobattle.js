@@ -1,6 +1,6 @@
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.9.0';
-import {clamp,dist} from './core.js?v=0.9.0';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.9.0';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.10.0';
+import {clamp,dist} from './core.js?v=0.10.0';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.10.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 
@@ -33,7 +33,15 @@ export class Battle extends EconomyBattle{
  refreshSupply(){this.maxSupply=this.supplyCap(0)}
  canSee(){return true}
  updateVision(){this.fog.fill(1);this.explored.fill(1)}
- select(ids,voice=true){return super.select(ids.filter(id=>{const u=this.units.find(a=>a.id===id);return u?.alive&&u.team===0&&!u.hidden}),voice)}
+ get inspectedUnit(){return this.units.find(u=>u.id===this.inspectedId&&u.alive&&!u.hidden&&!u.loaded&&this.canSee(0,u))||null}
+ isHighlighted(u){return this.selection.includes(u.id)||this.inspectedUnit===u}
+ select(ids,voice=true){this.inspectedId=null;return super.select(ids.filter(id=>{const u=this.units.find(a=>a.id===id);return u?.alive&&u.team===0&&!u.hidden}),voice)}
+ inspect(unit){
+  if(!unit?.alive||unit.hidden||unit.loaded||!this.canSee(0,unit))return false;
+  this.select(unit.team===0?[unit.id]:[],false);
+  if(unit.team!==0){this.inspectedId=unit.id;this.emit('selection')}
+  return true;
+ }
  openMenu(mode='build'){
   if(this.phase!=='battle')return false;
   this.menuMode=mode;this.menuOpen=true;this.targeting=null;this.emit('menu');return true;
@@ -239,17 +247,26 @@ export class Battle extends EconomyBattle{
   while(this.waveClock<=0){this.spawnWave(0);this.spawnWave(1);this.waveClock+=WAVE_SECONDS;this.emit('wave')}
   this.botStep(dt);
  }
+ bunkerRange(type,weapon){
+  // OpenBW weapon_max_range: +64 from the loaded soldier's bounds, not the bunker hull.
+  // U-238 Shells is enabled in the original map's starting upgrade settings.
+  return weapon.range+64+(type===0&&DESERT_STRIKE.upgrades[16]?.initialLevel?32:0);
+ }
  fireBunkers(dt){
   for(const bunker of this.units.filter(u=>u.alive&&u.garrison?.length)){
-   bunker.garrisonClock=(bunker.garrisonClock||0)-dt;if(bunker.garrisonClock>0)continue;bunker.garrisonClock=.85;
-   const target=this.units.filter(u=>u.alive&&!u.productionOnly&&!u.hidden&&!u.loaded&&u.team!==bunker.team&&dist(u,bunker)<280).sort((a,b)=>dist(a,bunker)-dist(b,bunker))[0];if(!target)continue;
+   const cooldowns=bunker.garrisonCooldowns||=Array(bunker.garrison.length).fill(0);
    for(const [slot,id]of bunker.garrison.entries()){
-    const soldier=this.data.units[id],weaponId=target.def.air?soldier.airWeapon:soldier.groundWeapon,weapon=this.data.weapons[weaponId];
-    if(!weapon?.damage||target.def.air&&!weapon.air||!target.def.air&&!weapon.ground)continue;
-    const direction=(Math.round(Math.atan2(target.x-bunker.x,bunker.y-target.y)*16/Math.PI)+32)%32,angle=direction*Math.PI/16;
+    cooldowns[slot]=Math.max(0,(cooldowns[slot]||0)-dt);if(cooldowns[slot]>0)continue;
+    const soldier=this.data.units[id];if(!soldier)continue;
+    const weaponFor=target=>this.data.weapons[target.def.air?soldier.airWeapon:soldier.groundWeapon];
+    const target=this.units.filter(u=>{
+     if(!u.alive||u.productionOnly||u.hidden||u.loaded||u.team===bunker.team||!this.canSee(bunker.team,u))return false;
+     const w=weaponFor(u),distance=Math.max(0,dist(u,bunker)-(soldier.radius||10)-u.r);
+     return w?.damage&&(u.def.air?w.air:w.ground)&&distance<=this.bunkerRange(id,w)&&distance>=(w.minRange||0);
+    }).sort((a,b)=>dist(a,bunker)-dist(b,bunker))[0];if(!target)continue;
+    const weapon=weaponFor(target),direction=(Math.round(Math.atan2(target.x-bunker.x,bunker.y-target.y)*16/Math.PI)+32)%32,angle=direction*Math.PI/16;
     const x=bunker.x+Math.sin(angle)*30+(slot-1.5)*6,y=bunker.y-Math.cos(angle)*22;
-    const shooter={...bunker,type:id,def:soldier,x,y};
-    this.attack(shooter,target,weapon);
+    const shooter={...bunker,type:id,def:soldier,x,y};this.attack(shooter,target,weapon);cooldowns[slot]=weapon.cooldown;
     this.effects.push({x,y,image:id===32?421:527,team:bunker.team,direction,left:id===32?.45:.18,duration:id===32?.45:.18,kind:'bunker-shot'});
    }
   }
