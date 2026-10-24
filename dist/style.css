@@ -134,3 +134,5 @@ body[data-space=production] #spaceToggle{left:auto!important;right:0!important;b
 #backgroundPause strong{display:block;color:#d5d1a8;font-size:17px}
 #backgroundPause p{font-size:11px;color:#9caa9c;line-height:1.6;margin:12px 0 18px}
 #resumeBattle{width:100%;min-height:44px}
+
+#incomeStatus{position:absolute;right:10px;bottom:3px;font-size:10px;letter-spacing:0;color:#bfd09e;font-variant-numeric:tabular-nums}

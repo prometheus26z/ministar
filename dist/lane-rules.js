@@ -1,4 +1,7 @@
-export const WAVE_SECONDS=30;
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.9.0';
+export {DESERT_STRIKE};
+export const WAVE_SECONDS=DESERT_STRIKE.waveGameSeconds/1.5;
+export const INCOME_SECONDS=DESERT_STRIKE.incomeCycles*DESERT_STRIKE.hyperCycleSeconds;
 export const PRODUCTION_OFFSET=2304;
 export const PRODUCTION_HEIGHT=2048;
 export const PRODUCTION_GROUND_WIDTH=Math.round(1280*.8);
@@ -9,32 +12,8 @@ export const GAS_SLOT_Y=Math.ceil(PRODUCTION_GROUND_Y/32)*32+32;
 export const GAS_SLOT_X=Object.freeze([256,448,640,832,1024]);
 export const GAS_BUILDING=Object.freeze({terran:110,zerg:149,protoss:157});
 
-// A completed building always contributes this fixed unit group to the next wave.
-// Support, supply, research, defense and addon structures do not create units.
-export const BUILDING_WAVES=Object.freeze({
- 111:Object.freeze({unit:0,count:2}),
- 113:Object.freeze({unit:2,count:1}),
- 114:Object.freeze({unit:8,count:1}),
- 142:Object.freeze({unit:37,count:3}),
- 135:Object.freeze({unit:38,count:1}),
- 136:Object.freeze({unit:46,count:1}),
- 137:Object.freeze({unit:44,count:1}),
- 138:Object.freeze({unit:45,count:1}),
- 140:Object.freeze({unit:39,count:1}),
- 141:Object.freeze({unit:43,count:1}),
- 160:Object.freeze({unit:65,count:1}),
- 155:Object.freeze({unit:69,count:1}),
- 165:Object.freeze({unit:67,count:1}),
- 167:Object.freeze({unit:70,count:1})
-});
-
-export function constructionSeconds(data,type){
- const nativeSeconds=Number(data?.units?.[type]?.buildTime)||40;
- return Math.max(.2,nativeSeconds*.05);
-}
-
-export function buildingCost(race,type,data){
- if(Number(type)===GAS_BUILDING[race])return[500,0];
- const cost=data?.units?.[type]?.cost||[0,0];
- return[cost[0],cost[1]];
-}
+export const BUILDING_COSTS=Object.freeze(DESERT_STRIKE.costs);
+export const BUILDING_WAVES=Object.freeze(Object.fromEntries(Object.entries(DESERT_STRIKE.waves).map(([type,groups])=>[type,Object.freeze(groups.map(([unit,count])=>Object.freeze({unit,count})))])));
+export const TECH_IDS=Object.freeze({stim:0,lockdown:1,emp:2,mine:3,siege:5,irradiate:7,yamato:8,cloak:9,ghostCloak:10,burrow:11,broodlings:13,plague:15,consume:16,ensnare:17,storm:19,hallucinate:20,recall:21,stasis:22,restore:24,web:25,mind:27,flare:30,maelstrom:31,lurker:32});
+export function constructionSeconds(data,type){return Math.max(.2,(Number(data?.units?.[type]?.buildTime)||40)*.05)}
+export function buildingCost(race,type){const cost=BUILDING_COSTS[type];if(!cost)throw Error('Missing Desert Strike building cost: '+type);return [...cost]}

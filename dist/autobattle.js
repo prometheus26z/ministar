@@ -1,6 +1,6 @@
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.8.0';
-import {clamp,dist} from './core.js?v=0.8.0';
-import {BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.8.0';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.9.0';
+import {clamp,dist} from './core.js?v=0.9.0';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.9.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 
@@ -12,10 +12,10 @@ export class Battle extends EconomyBattle{
   this.phase='title';
   this.timeLimit=Infinity;
   this.waveClock=WAVE_SECONDS;
-  this.botMoney=200;
+  this.botMoney=DESERT_STRIKE.startingMinerals;
   this.botGas=0;
   this.builder=null;
-  this.outpostDefenses=[[],[]];this.outpostCleared=[false,false];
+  this.outpostDefenses=[[],[]];this.incomeRemaining=[INCOME_SECONDS,INCOME_SECONDS];this.gasInvestmentLevel=[0,0];
   this.menuMode='build';
   this.aiStep=0;
   this.aiPlans={
@@ -42,7 +42,7 @@ export class Battle extends EconomyBattle{
   if(this.phase!=='title')return false;
   this.phase='battle';this.paused=false;this.time=0;this.timeLeft=Infinity;
   this.units=[];this.projectiles=[];this.areas=[];this.effects=[];this.nodes=[];
-  this.money=200;this.gas=0;this.botMoney=200;this.botGas=0;this.maxSupply=200;
+  this.money=DESERT_STRIKE.startingMinerals;this.gas=0;this.botMoney=DESERT_STRIKE.startingMinerals;this.botGas=0;this.maxSupply=200;
   this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.waveClock=WAVE_SECONDS;
   const player=this.installSide(0),enemy=this.installSide(1);
   this.main=player.main;this.core=enemy.main;this.builder=this.create(WORKER[this.race],0,640,1930);this.builder.hidden=true;
@@ -50,7 +50,7 @@ export class Battle extends EconomyBattle{
   this.playerOutpost=player.outpost;this.enemyOutpost=enemy.outpost;
   for(const [team,xs]of[[0,GAS_SLOT_X],[1,[...GAS_SLOT_X].reverse()]])xs.forEach((x,slot)=>this.addGasNode(team,x,PRODUCTION_OFFSET+GAS_SLOT_Y,slot));
   this.installDefenses(0,player);this.installDefenses(1,enemy);
-  this.refreshSupply();this.updateVision();this.select([],false);this.emit('phase');this.emit('change');return true;
+  this.incomeRemaining=[INCOME_SECONDS,INCOME_SECONDS];this.gasInvestmentLevel=[0,0];for(const [key,id]of Object.entries(TECH_IDS))if(DESERT_STRIKE.technologies[id]?.researched)this.researched.add(key);this.refreshSupply();this.updateVision();this.select([],false);this.emit('phase');this.emit('change');return true;
  }
  installSide(team){
   const mainY=team?160:1888,outpostY=team?480:1568,baseType=BASE[this.race];
@@ -64,9 +64,25 @@ export class Battle extends EconomyBattle{
  waveUnitsForBuilding(type){return BUILDING_WAVES[type]||null}
  laneObjective(team){const enemy=1-team,outpost=this.outpostDefenses[enemy].find(u=>u.alive);return outpost?{id:`outpost-${enemy}`,x:640,y:outpost.y}:team===0?this.core:this.main}
  completedGasCount(team){return this.units.filter(u=>u.alive&&u.team===team&&u.gasNode&&this.ready(u)).length}
- waveIncome(team){const gasCount=this.completedGasCount(team),bonus=this.outpostCleared[team]?100:0;return{minerals:200+100*gasCount+bonus,gas:100*gasCount+bonus}}
- payWaveIncome(team){const income=this.waveIncome(team);if(team===0){this.money+=income.minerals;this.gas+=income.gas}else{this.botMoney+=income.minerals;this.botGas+=income.gas}return income}
- activeWave(team=0,buildingId=null){const counts=new Map();for(const u of this.units){if(!u.alive||u.team!==team||!u.productionOnly||!u.def.building||!this.ready(u)||buildingId!==null&&u.id!==buildingId)continue;const wave=this.waveUnitsForBuilding(u.type);if(!wave)continue;counts.set(wave.unit,(counts.get(wave.unit)||0)+wave.count)}return counts}
+ incomeAmount(team=0){return DESERT_STRIKE.income[Math.min(5,this.completedGasCount(team))]}
+ get incomePauseLeft(){return Math.max(0,this.incomeRemaining[0]-INCOME_SECONDS)}
+ tickIncome(dt){
+  for(const team of [0,1]){
+   const count=this.completedGasCount(team);
+   while(this.gasInvestmentLevel[team]<count){this.gasInvestmentLevel[team]++;this.incomeRemaining[team]+=DESERT_STRIKE.gasPenaltyCycles[this.gasInvestmentLevel[team]]*DESERT_STRIKE.hyperCycleSeconds}
+   this.incomeRemaining[team]-=dt;
+   while(this.incomeRemaining[team]<=1e-9){const amount=this.incomeAmount(team);if(team===0)this.money+=amount;else this.botMoney+=amount;this.incomeRemaining[team]+=INCOME_SECONDS;this.emit('income',{team,minerals:amount})}
+  }
+ }
+ waveProducers(team){return this.units.filter(u=>u.alive&&u.team===team&&u.productionOnly&&u.def.building&&this.ready(u)&&BUILDING_WAVES[u.type])}
+ waveGroups(producer,poolsRemaining=1){
+  if(producer.type===142&&poolsRemaining>=DESERT_STRIKE.poolBonusThreshold[producer.team])return[{unit:37,count:DESERT_STRIKE.poolBonusCount}];
+  return this.waveUnitsForBuilding(producer.type)||[];
+ }
+ activeWave(team=0,buildingId=null){
+  const counts=new Map(),producers=this.waveProducers(team);let poolsRemaining=producers.filter(u=>u.type===142).length;
+  for(const u of producers){const groups=this.waveGroups(u,poolsRemaining);if(u.type===142)poolsRemaining--;if(buildingId!==null&&u.id!==buildingId)continue;for(const {unit,count}of groups)counts.set(unit,(counts.get(unit)||0)+count)}return counts;
+ }
  releaseGasSlot(unit){const node=this.nodes.find(n=>n.id===unit?.gasNode);if(node?.occupiedBy===unit.id)node.occupiedBy=null}
  spawnLarva(){return null}
  productionOptions(unit){if(unit?.type===142)return[37];return super.productionOptions(unit).filter(type=>type!==WORKER[this.race])}
@@ -119,7 +135,8 @@ export class Battle extends EconomyBattle{
   u.parent='lane-builder';u.construction={time:0,total:this.constructionSeconds(type),builder:this.builder.id,started:true,cost:[...cost],original:null};
   u.gasNode=result.gasNode?.id;if(result.gasNode)result.gasNode.occupiedBy=u.id;this.closeMenu();this.emit('change');return true;
  }
- morph(unit,type){const ok=super.morph(unit,type);if(ok&&unit.construction){unit.construction.total=this.constructionSeconds(type);unit.construction.cost=this.buildingCost(type)}return ok}
+ morphReason(unit,type){const spec=BUILDINGS[type];if(!this.ready(unit)||spec?.morph!==unit.type||unit.team!==0)return '변태할 수 없습니다.';if(unit.queue.length)return '연구를 먼저 완료하세요.';const missing=this.prerequisites(spec.requires);return missing.length?'필요: '+missing.join(', '):this.costReason(this.buildingCost(type))}
+ morph(unit,type){type=Number(type);const reason=this.morphReason(unit,type);if(reason)return this.fail(reason);const cost=this.buildingCost(type);this.money-=cost[0];unit.construction={time:0,total:this.constructionSeconds(type),builder:null,started:true,cost,original:{type:unit.type,hp:unit.hp,shield:unit.shield},nextType:type};unit.completed=false;this.closeMenu();this.emit('change');return true}
  addonOptions(unit){return Object.keys(BUILDINGS).map(Number).filter(id=>BUILDINGS[id].addon===unit?.type)}
  addonReason(parent,type){
   const spec=BUILDINGS[type];if(!this.ready(parent)||parent.team!==0||!spec||spec.addon!==parent.type)return '부속 건물을 만들 수 없습니다.';
@@ -145,8 +162,9 @@ export class Battle extends EconomyBattle{
  trainReason(){return '유닛은 완성된 건물에 지정된 편성으로 출격합니다.'}
  train(){return this.fail('출격 편성은 건물에 따라 자동으로 정해집니다.')}
  setAutoProduction(){return this.fail('출격 유닛은 건물에 따라 자동으로 정해집니다.')}
- researchReason(unit,key){return super.researchReason(unit,key)}
- research(unit,key){return super.research(unit,key)}
+ researchOptions(){return []}
+ researchReason(unit,key){return this.researched.has(key)?'원본 맵에서 이미 연구된 기술입니다.':'원본 맵에서 사용할 수 없는 연구입니다.'}
+ research(unit,key){return this.fail(this.researchReason(unit,key))}
  formationGoal(u,objective){return{x:clamp(objective.x+(u.laneOffset||0),352,928),y:objective.y}}
  spawnUnit(type,team,index,total,origin,spacing=32){
   const def=this.data.units[type];if(!def)return null;
@@ -157,8 +175,7 @@ export class Battle extends EconomyBattle{
   if(team===0)this.produced++;return u;
  }
  spawnWave(team){
-  const producers=this.units.filter(u=>u.alive&&u.team===team&&u.productionOnly&&u.def.building&&this.ready(u)&&BUILDING_WAVES[u.type]),lineup=[];
-  for(const producer of producers){const {unit,count}=BUILDING_WAVES[producer.type];for(let i=0;i<count;i++)lineup.push(unit)}
+  const lineup=[];for(const [type,count]of this.activeWave(team))for(let i=0;i<count;i++)lineup.push(type);
   const origin={x:640,y:team?this.core.y:this.main.y},spacing=Math.max(32,...lineup.map(type=>(this.data.units[type]?.radius||10)*2.4));
   lineup.forEach((type,index)=>this.spawnUnit(type,team,index,lineup.length,origin,spacing));
  }
@@ -170,8 +187,8 @@ export class Battle extends EconomyBattle{
  }
  botBuildGas(){
   if(this.units.some(u=>u.alive&&u.team===1&&u.gasNode&&u.construction))return false;
-  const node=this.nodes.find(n=>n.team===1&&n.kind==='gas'&&!n.occupiedBy);if(!node||this.botMoney<500)return false;
-  const type=GAS_BUILDING[this.race],def=this.data.units[type],cost=this.buildingCost(type);if(!def)return false;
+  const node=this.nodes.find(n=>n.team===1&&n.kind==='gas'&&!n.occupiedBy);if(!node)return false;
+  const type=GAS_BUILDING[this.race],def=this.data.units[type],cost=this.buildingCost(type);if(!def||this.botMoney<cost[0])return false;
   this.botMoney-=cost[0];this.botGas-=cost[1];
   const u=this.create(type,1,node.x,node.y);u.productionOnly=true;u.completed=false;u.hp=Math.max(1,def.hp*.1);u.gasNode=node.id;u.parent='bot-builder';node.occupiedBy=u.id;
   u.construction={time:0,total:this.constructionSeconds(type),builder:null,started:true,cost:[...cost],original:null};return true;
@@ -217,9 +234,9 @@ export class Battle extends EconomyBattle{
  }
  step(dt){
   super.step(dt);if(this.phase!=='battle')return;
-  this.fireBunkers(dt);
+  this.fireBunkers(dt);this.tickIncome(dt);
   this.waveClock-=dt;
-  while(this.waveClock<=0){const playerIncome=this.payWaveIncome(0),enemyIncome=this.payWaveIncome(1);this.spawnWave(0);this.spawnWave(1);this.waveClock+=WAVE_SECONDS;this.emit('wave',{playerIncome,enemyIncome})}
+  while(this.waveClock<=0){this.spawnWave(0);this.spawnWave(1);this.waveClock+=WAVE_SECONDS;this.emit('wave')}
   this.botStep(dt);
  }
  fireBunkers(dt){
@@ -240,7 +257,7 @@ export class Battle extends EconomyBattle{
  die(u,team){
   if(!u.alive)return;const wasMain=u===this.main,wasCore=u===this.core;this.releaseGasSlot(u);
   if(u.garrison?.length){for(let i=0;i<u.garrison.length;i++){const type=u.garrison[i],crew=this.create(type,u.team,u.x+(i-1.5)*18,u.y),objective=this.laneObjective(u.team);crew.order='attackmove';crew.laneArmy=true;this.setGoal(crew,{x:objective.x,y:objective.y},'attackmove');crew.laneObjectiveId=objective.id}u.garrison=[]}
-  super.die(u,team);if(this.outpostDefenses[u.team].includes(u)&&this.outpostDefenses[u.team].every(defense=>!defense.alive))this.outpostCleared[1-u.team]=true;this.refreshSupply();this.emit('change');
+  super.die(u,team);this.refreshSupply();this.emit('change');
   if(this.phase==='battle'&&wasCore)this.finish(true,'상대 메인 기지를 함락했습니다.');
   else if(this.phase==='battle'&&wasMain)this.finish(false,'우리 메인 기지가 함락되었습니다.');
  }

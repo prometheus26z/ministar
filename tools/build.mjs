@@ -21,3 +21,10 @@ console.log('Restored 6 race-specific music cues.');
  while(offset<bytes.length){const length=bytes.readUInt16LE(offset),size=bytes.readUInt32LE(offset+2);offset+=6;const name=bytes.subarray(offset,offset+length).toString('utf8');offset+=length;const dest=path.resolve(root,'dist',name);if(!dest.startsWith(path.join(root,'dist/rts-assets')+path.sep)||offset+size>bytes.length)throw Error('Invalid RTS asset path');fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes.subarray(offset,offset+size));offset+=size;count++}
  if(count!==extra.files)throw Error('RTS asset count mismatch');console.log(`Restored ${count} RTS sprite sheets with verified SHA-256.`);
 }
+
+// One checked original-map snapshot supplies both browser and simulation rules.
+{
+ const rules=JSON.parse(fs.readFileSync(path.join(root,'resources/desert-strike-v1.json'),'utf8'));
+ fs.writeFileSync(path.join(root,'dist/desert-strike-data.js'),'// Extracted from original map sections; see resources/desert-strike-v1.json.\nexport const DESERT_STRIKE='+JSON.stringify(rules)+';\n');
+ console.log('Restored original Desert Strike economy and production data.');
+}
