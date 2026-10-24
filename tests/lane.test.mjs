@@ -19,6 +19,10 @@ test('all races begin with empty hidden production lanes and five horizontal gas
   assert.deepEqual(enemySlots.map(node=>node.x),[...GAS_SLOT_X].reverse());
   assert.equal(battle.units.filter(unit=>unit.team===0&&unit.productionOnly).length,0);
   assert.equal(battle.units.filter(unit=>unit.team===1&&unit.productionOnly).length,0);
+  assert.equal(battle.units.filter(unit=>unit.isMain).length,2);
+  assert.equal(battle.units.some(unit=>unit.isOutpost),false);
+  assert.equal(battle.outpostDefenses[0].length,race==='protoss'?3:2);
+  assert.equal(battle.outpostDefenses[1].length,race==='protoss'?3:2);
   assert.equal(battle.activeWave(0).size,0);
   assert.equal(battle.activeWave(1).size,0);
  }
@@ -87,6 +91,6 @@ test('the central water blocks both side bypasses and waves attack the outpost b
  assert.equal(battle.map.blocked(640,900),false);
  const marine=battle.spawnUnit(0,0,0,1,{x:640,y:battle.main.y});
  assert.equal(marine.goal.y,battle.enemyOutpost.y);
- battle.die(battle.enemyOutpost,0);battle.tickUnit(marine,.01);
+ for(const defense of [...battle.outpostDefenses[1]])battle.die(defense,0);battle.tickUnit(marine,.01);
  assert.equal(marine.goal.y,battle.core.y);
 });

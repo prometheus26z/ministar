@@ -114,6 +114,14 @@ body[data-space=production] #spaceToggle{left:auto;right:12px;border-color:#9ac1
 /* Dock the navigation tab flush to the viewport edge. */
 #spaceToggle{left:0!important;border-left:0;border-radius:0 7px 7px 0}
 body[data-space=production] #spaceToggle{left:auto!important;right:0!important;border-left:1px solid #9ac1d2;border-right:0;border-radius:7px 0 0 7px}
+/* Compact, edge-docked production/field tabs. */
+#spaceToggle{width:28px!important;height:84px!important;padding:4px 2px!important;font-size:11px!important;letter-spacing:.06em!important}
+@media(max-height:520px){#spaceToggle{width:22px!important;height:66px!important;padding:3px 1px!important;font-size:10px!important}}
+@media(max-width:380px){#spaceToggle{width:23px!important;height:69px!important;padding:3px 1px!important}}
+#target{gap:6px}
+#target button{flex:none;min-height:30px;padding:4px 10px;font-size:10px}
+#target #confirmBuild{border-color:#9baa74;background:linear-gradient(#687749,#354d32);font-weight:800}
+#target #confirmBuild:disabled{opacity:.42}
 
 /* Production waves are a read-only building summary. */
 #commandGrid .wave-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:92px;padding:8px 5px;border:1px solid #64745c;background:linear-gradient(#1a261d,#0a100c);text-align:center}

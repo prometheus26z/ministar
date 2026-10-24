@@ -1,5 +1,5 @@
-import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.5.0';
-import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.5.0';
+import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.6.0';
+import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.6.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export class Battle extends CombatBattle{
  constructor(data,options){super(data,options);this.money=50;this.gas=0;this.maxSupply=0;this.timeLimit=Infinity;this.nodes=[];this.researched=new Set();this.orderSerial=1;this.economyClock=0;this.lastError='';this.produced=0;

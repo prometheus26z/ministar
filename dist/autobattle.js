@@ -1,6 +1,6 @@
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.5.0';
-import {clamp,dist} from './core.js?v=0.5.0';
-import {BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,constructionSeconds,buildingCost} from './lane-rules.js?v=0.5.0';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.6.0';
+import {clamp,dist} from './core.js?v=0.6.0';
+import {BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,constructionSeconds,buildingCost} from './lane-rules.js?v=0.6.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT};
 
@@ -15,6 +15,7 @@ export class Battle extends EconomyBattle{
   this.botMoney=600;
   this.botGas=180;
   this.builder=null;
+  this.outpostDefenses=[[],[]];
   this.menuMode='build';
   this.aiStep=0;
   this.aiPlans={
@@ -32,7 +33,7 @@ export class Battle extends EconomyBattle{
  refreshSupply(){this.maxSupply=this.supplyCap(0)}
  canSee(){return true}
  updateVision(){this.fog.fill(1);this.explored.fill(1)}
- select(ids,voice=true){return super.select(ids.filter(id=>{const u=this.units.find(a=>a.id===id);return u?.def.building&&!u.hidden}),voice)}
+ select(ids,voice=true){return super.select(ids.filter(id=>{const u=this.units.find(a=>a.id===id);return u?.alive&&u.team===0&&!u.hidden}),voice)}
  openMenu(mode='build'){
   if(this.phase!=='battle')return false;
   this.menuMode=mode;this.menuOpen=true;this.targeting=null;this.emit('menu');return true;
@@ -54,14 +55,14 @@ export class Battle extends EconomyBattle{
  installSide(team){
   const mainY=team?160:1888,outpostY=team?590:1458,baseType=BASE[this.race];
   const main=this.create(baseType,team,640,mainY);main.isMain=true;main.order='hold';
-  const outpost=this.create(baseType,team,640,outpostY);outpost.isOutpost=true;outpost.order='hold';
+  const outpost={id:`outpost-${team}`,team,x:640,y:outpostY};
   return {main,outpost,team};
  }
  addGasNode(team,x,y,slot){this.nodes.push({id:`geyser-${team}-${slot}`,team,slot,x,y,r:36,kind:'gas',amount:5000,miner:null,occupiedBy:null})}
  buildingCost(type){return buildingCost(this.race,type,this.data)}
  constructionSeconds(type){return constructionSeconds(this.data,type)}
  waveUnitsForBuilding(type){return BUILDING_WAVES[type]||null}
- laneObjective(team){const outpost=team===0?this.enemyOutpost:this.playerOutpost;return outpost?.alive?outpost:team===0?this.core:this.main}
+ laneObjective(team){const enemy=1-team,outpost=this.outpostDefenses[enemy].find(u=>u.alive);return outpost?{id:`outpost-${enemy}`,x:640,y:outpost.y}:team===0?this.core:this.main}
  completedGasCount(team){return this.units.filter(u=>u.alive&&u.team===team&&u.gasNode&&this.ready(u)).length}
  waveIncome(team){const gasCount=this.completedGasCount(team);return{minerals:200+100*gasCount,gas:50*gasCount}}
  payWaveIncome(team){const income=this.waveIncome(team);if(team===0){this.money+=income.minerals;this.gas+=income.gas}else{this.botMoney+=income.minerals;this.botGas+=income.gas}return income}
@@ -72,14 +73,13 @@ export class Battle extends EconomyBattle{
  installDefenses(team,side){
   const y=side.outpost.y,baseY=side.main.y;
   if(this.race==='terran'){
-   for(const x of [510,770])this.makeBunker(team,x,y);
+   for(const x of [510,770])this.outpostDefenses[team].push(this.makeBunker(team,x,y));
    for(const x of [500,780])this.makeTower(team,124,x,baseY+(team?92:-92));
   }else if(this.race==='zerg'){
-   this.makeTower(team,146,550,y);this.makeTower(team,144,730,y);
+   this.outpostDefenses[team].push(this.makeTower(team,146,550,y),this.makeTower(team,144,730,y));
    this.makeTower(team,146,520,baseY+(team?92:-92));this.makeTower(team,144,760,baseY+(team?92:-92));
   }else{
-   this.makeTower(team,156,640,y+96);
-   this.makeTower(team,162,550,y);this.makeTower(team,162,730,y);
+   this.outpostDefenses[team].push(this.makeTower(team,156,640,y+96),this.makeTower(team,162,550,y),this.makeTower(team,162,730,y));
    this.makeTower(team,156,640,baseY+(team?148:-148));
    this.makeTower(team,162,550,baseY+(team?92:-92));this.makeTower(team,162,730,baseY+(team?92:-92));
   }
@@ -199,6 +199,7 @@ export class Battle extends EconomyBattle{
  }
  weapon(u,target){
   if(target.productionOnly||u.productionOnly||u.garrison)return null;
+  if(u.laneArmy&&!target.def.building&&Math.abs(target.x-640)>240&&dist(u,target)>96)return null;
   if(u.isFortification&&this.race==='terran'){
    const weapon=this.data.weapons[target.def.air?u.def.airWeapon:u.def.groundWeapon];
    return weapon&&weapon.damage&&(!target.def.air||weapon.air)&& (target.def.air||weapon.ground)?weapon:null;
@@ -223,8 +224,9 @@ export class Battle extends EconomyBattle{
   for(const bunker of this.units.filter(u=>u.alive&&u.garrison?.length)){
    bunker.garrisonClock=(bunker.garrisonClock||0)-dt;if(bunker.garrisonClock>0)continue;bunker.garrisonClock=.85;
    const target=this.units.filter(u=>u.alive&&!u.productionOnly&&!u.hidden&&!u.loaded&&u.team!==bunker.team&&dist(u,bunker)<280).sort((a,b)=>dist(a,bunker)-dist(b,bunker))[0];if(!target)continue;
-   for(const id of bunker.garrison){const soldier=this.data.units[id],weaponId=target.def.air?soldier.airWeapon:soldier.groundWeapon,weapon=this.data.weapons[weaponId];if(!weapon||!weapon.damage||target.def.air&&!weapon.air||!target.def.air&&!weapon.ground)continue;
-    if(weapon.behavior===2||weapon.range<40){this.hurt(target,weapon.damage,bunker.team,weapon.type||3);this.emit('beam',{from:{x:bunker.x,y:bunker.y},to:{x:target.x,y:target.y},team:bunker.team})}
+   let played=false;for(const id of bunker.garrison){const soldier=this.data.units[id],weaponId=target.def.air?soldier.airWeapon:soldier.groundWeapon,weapon=this.data.weapons[weaponId];if(!weapon||!weapon.damage||target.def.air&&!weapon.air||!target.def.air&&!weapon.ground)continue;
+    const sounds=this.data.graphics[soldier.image]?.tracks?.[target.def.air?'airAttack':'attack']?.sounds||[];if(!played&&sounds.length){this.emit('sfx',{id:sounds[Math.floor(Math.random()*sounds.length)]});played=true}
+    if(weapon.behavior===2||weapon.range<40)this.hurt(target,weapon.damage,bunker.team,weapon.type||3);
     else this.projectiles.push({x:bunker.x,y:bunker.y,endX:target.x,endY:target.y,target,source:bunker,team:bunker.team,image:weapon.image,elapsed:0,speed:Math.max(180,weapon.speed||400),damage:weapon.damage,type:weapon.type||3,splash:weapon.splash});
    }
   }

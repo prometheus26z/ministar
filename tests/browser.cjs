@@ -17,11 +17,11 @@ async function testLegacyMigration(browser,direct=false){
    await caches.open('other-app-cache');
   },legacyHtml);
   await page.reload();assert.equal(await page.locator('#legacy').innerText(),'v0.1.1');
-  legacy=false;if(direct)await page.goto(url+'?v=0.5.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
+  legacy=false;if(direct)await page.goto(url+'?v=0.6.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
   await page.locator('#title').waitFor({state:'visible'});
-  assert.equal(await page.locator('.top small').innerText(),'v0.5.0');
+  assert.equal(await page.locator('.top small').innerText(),'v0.6.0');
   assert.equal(await page.locator('#offline').count(),0);
-  assert.equal(new URL(page.url()).searchParams.get('v'),'0.5.0');
+  assert.equal(new URL(page.url()).searchParams.get('v'),'0.6.0');
   assert.deepEqual(await page.evaluate(async()=>(await caches.keys()).sort()),['other-app-cache']);
   assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);
   assert.equal(await page.evaluate(()=>localStorage.getItem('ministar.records')),'[{"win":true}]');
@@ -75,7 +75,11 @@ const barracks=page.getByRole('button',{name:/배럭 건설/});assert.equal(awai
 assert.match(await barracks.innerText(),/3초/);
 await barracks.click();assert.equal(await page.locator('#target').isVisible(),true);
 assert.match(await page.locator('#targetText').innerText(),/배럭/);
-await page.locator('#cancel').click();assert.equal(await page.locator('#target').isVisible(),false);
+assert.equal(await page.locator('#confirmBuild').isDisabled(),true);
+await page.locator('#field').click({position:{x:195,y:400}});
+assert.equal(await page.locator('#confirmBuild').isDisabled(),false);
+await page.locator('#confirmBuild').click();assert.equal(await page.locator('#target').isVisible(),false);
+assert.equal(await page.locator('#money').innerText(),'450');
 await page.locator('#spaceToggle').click();
 assert.equal((await page.locator('#spaceToggle').boundingBox()).x,0);
 await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
