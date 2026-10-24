@@ -104,3 +104,9 @@ body[data-panel=min] #productionQueue{display:none}
 #slow{display:none!important}
 #mapWrap{bottom:calc(var(--panel) + 8px)}
 @media(max-width:380px){#panel{padding-inline:5px}.panel-main{gap:3px!important}#panel .unit-info{max-width:29vw}#commandButton,#productionButton,#researchButton{padding-inline:5px;font-size:9px}.lane-views{gap:3px}}
+
+#spaceToggle{position:fixed;left:12px;right:auto;top:50%;transform:translateY(-50%);z-index:8;width:56px;height:168px;padding:12px 6px;border:1px solid #b9c58b;border-radius:8px;background:linear-gradient(#536548ef,#1d342df0);box-shadow:0 5px 22px #050a0bcc;color:#f2e9bc;font-size:14px;font-weight:900;letter-spacing:.18em;writing-mode:vertical-rl;text-orientation:upright}
+#spaceToggle:active{background:#718956}
+body[data-space=production] #spaceToggle{left:auto;right:12px;border-color:#9ac1d2;background:linear-gradient(#446574ef,#1a3540f0);color:#e3f2f4}
+@media(max-height:520px){#spaceToggle{width:44px;height:132px;padding:8px 4px;font-size:12px}}
+@media(max-width:380px){#spaceToggle{left:6px;width:46px;height:138px}body[data-space=production] #spaceToggle{left:auto;right:6px}}
