@@ -71,3 +71,19 @@ button:active{background:#283722}button.active,button[aria-pressed=true]{color:#
 @media(max-height:760px){.race-visual video{width:auto;max-width:100%;object-fit:contain}}
 #title{line-height:1.3}
 @media(max-height:650px){#title .footnote{display:none}}
+/* Unit-context production replaces the pre-battle shop. */
+#commands{max-height:calc(100dvh - var(--panel) - 130px);bottom:calc(var(--panel) + 12px)}
+#commandGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+#commandGrid .command-card{min-height:92px;padding:8px 5px;justify-content:flex-start;gap:4px}
+#commandGrid .command-card small{white-space:normal;line-height:1.35;letter-spacing:0;color:#a4b5a1;font-size:9px}
+#commandGrid .command-card b{line-height:1.35;word-break:keep-all}
+#commandGrid .command-card:disabled{opacity:.5}
+#commandHint{font-size:10px;color:#8d9b96;line-height:1.5;margin:0 0 10px}
+#productionQueue{max-width:100%;margin-top:5px}
+.production-progress{position:relative;background:#060d09;border:1px solid #536850;min-height:19px;overflow:hidden}
+.production-progress>span{position:relative;z-index:1;display:block;font-size:9px;color:#cae4b8;line-height:17px;text-align:center;white-space:nowrap}
+.production-progress>i{position:absolute;inset:0 auto 0 0;background:#34522b}
+.production-slots{display:flex;gap:3px;overflow:auto;max-width:100%;margin-top:3px}
+.production-slots button{font-size:8px;min-height:23px;padding:3px 5px;white-space:nowrap}
+body[data-panel=min] #productionQueue{display:none}
+#commandButton{white-space:nowrap;padding-inline:10px}
