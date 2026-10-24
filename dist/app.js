@@ -64,7 +64,7 @@ function selectionUI(){
  const portrait=$('portrait'),url=units.length===1?units[0].def.portrait:null;portrait.hidden=!url;if(url&&portrait.getAttribute('src')!==url){portrait.src=url;portrait.play().catch(()=>{})}if(!url)portrait.pause();
  const types=new Map();for(const u of units)types.set(u.type,(types.get(u.type)||0)+1);$('chips').replaceChildren();for(const [type,n] of types){const b=document.createElement('button');b.innerHTML=`<img src="${icon(type)}" alt="">${n}`;b.title=data.units[type].name;b.onclick=()=>battle.select(units.filter(u=>u.type===type).map(u=>u.id));$('chips').append(b)}hudUI();productionUI()
 }
-function groupsUI(){if(!battle)return;$('ctrl').setAttribute('aria-pressed',ctrl);for(let i=0;i<10;i++){const b=$('group'+i),g=battle.groups[i];b.classList.toggle('occupied',!!g.length);b.classList.toggle('selected',!!g.length&&g.length===battle.selection.length&&g.every(id=>battle.selection.includes(id)));b.setAttribute('aria-label',(i===9?0:i+1)+'번 부대 '+g.length+'기')}}
+function groupsUI(){if(!battle||battle.laneMode)return;$('ctrl').setAttribute('aria-pressed',ctrl);for(let i=0;i<10;i++){const b=$('group'+i),g=battle.groups[i];b.classList.toggle('occupied',!!g.length);b.classList.toggle('selected',!!g.length&&g.length===battle.selection.length&&g.every(id=>battle.selection.includes(id)));b.setAttribute('aria-label',(i===9?0:i+1)+'번 부대 '+g.length+'기')}}
 $('ctrl').onclick=()=>{ctrl=!ctrl;groupsUI()};
 function openMenu(mode='build'){if(battle.menuOpen){if(battle.menuMode!==mode){battle.menuMode=mode;menuUI()}else battle.closeMenu();return}if(battle.openMenu(mode)){history.pushState({command:true},'');historyMenu=true}}
 function actionCard(name,id,cost,reason,click,detail=''){
