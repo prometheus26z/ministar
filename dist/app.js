@@ -57,7 +57,7 @@ function selectionUI(){
  if(battle.laneMode){
   const unit=units[0];$('unitName').textContent=unit?unit.def.name+(unit.isMain?' · 메인 기지':unit.isOutpost?' · 전초기지':''): '기지 운영';
   $('order').textContent=unit?.construction?'건설 중':unit?.autoType?'매 '+WAVE_SECONDS+'초마다 '+data.units[unit.autoType].name+' 출격':unit?.def.building?'생산 건물 · 자동 생산 설정 가능':'생산 건물을 선택하세요';
-  $('portrait').hidden=true;$('chips').replaceChildren();hudUI();productionUI();return;
+  $('chips').replaceChildren();hudUI();productionUI();return;
  }
  $('unitName').textContent=units.length===1?units[0].def.name:units.length?units.length+'기 선택됨':'본진 또는 일꾼을 선택하세요';
  if(!units.length){for(const id of ['hp','shields','energy'])$(id).textContent='';$('order').textContent=box?'범위 선택 모드 활성화':'길게 누르고 드래그하면 범위 선택'}
