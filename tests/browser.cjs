@@ -31,7 +31,7 @@ async function testLegacyMigration(browser,direct=false){
 for(const viewport of [{width:405,height:594},{width:390,height:600},{width:360,height:640},{width:412,height:740},{width:390,height:844},{width:320,height:568},{width:844,height:390},{width:1280,height:800}]){
  await page.setViewportSize(viewport);
  if(viewport.height>viewport.width){
-  const landing=await page.locator('#title').evaluate(el=>({height:el.clientHeight,content:el.scrollHeight,bottom:document.querySelector('.footnote').getBoundingClientRect().bottom}));
+  const landing=await page.locator('#title').evaluate(el=>({height:el.clientHeight,content:el.scrollHeight,bottom:document.querySelector('.title-links').getBoundingClientRect().bottom}));
   assert.ok(landing.content<=landing.height+1,JSON.stringify({viewport,landing}));
   assert.ok(landing.bottom<=viewport.height,JSON.stringify({viewport,landing}));
  }
