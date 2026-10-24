@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {Battle} from '../dist/autobattle.js';
-import {GAS_BUILDING,GAS_SLOT_X,PRODUCTION_OFFSET,BUILDING_WAVES,constructionSeconds} from '../dist/lane-rules.js';
+import {GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,PRODUCTION_GROUND_Y,PRODUCTION_OFFSET,BUILDING_WAVES,WAVE_SECONDS,constructionSeconds} from '../dist/lane-rules.js';
+import {constructionVisual,healthBarPixels} from '../dist/presentation.js';
 import {RESEARCH} from '../dist/tech.js';
 
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
@@ -11,10 +12,75 @@ Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics
 for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);
 const fresh=(race='terran',difficulty='normal')=>{const battle=new Battle(data,{race,difficulty});battle.begin();return battle};
 
+test('eight Marines form a horizontal rank across producers and keep separate advance lanes',()=>{
+ for(const team of [0,1]){
+  const battle=fresh();
+  for(let i=0;i<4;i++){const producer=battle.create(111,team,320+i*160,PRODUCTION_OFFSET+900);producer.productionOnly=true;producer.completed=true}
+  battle.spawnWave(team);
+  const marines=battle.units.filter(u=>u.laneArmy&&u.team===team);
+  assert.equal(marines.length,8);assert.equal(new Set(marines.map(u=>u.x)).size,8);
+  assert.equal(new Set(marines.map(u=>u.y)).size,1);
+  assert.equal(Math.max(...marines.map(u=>u.x))-Math.min(...marines.map(u=>u.x)),224);
+  for(const u of marines)assert.equal(u.goal.x,u.x);
+  for(let i=0;i<40;i++)for(const u of marines)battle.tickUnit(u,.05);
+  assert.ok(Math.max(...marines.map(u=>u.x))-Math.min(...marines.map(u=>u.x))>=200);
+ }
+});
+
+test('extra wave members spawn in following ranks without overlapping the first eight',()=>{
+ const battle=fresh();for(let i=0;i<6;i++){const b=battle.create(111,0,200+i*150,PRODUCTION_OFFSET+900);b.productionOnly=true;b.completed=true}
+ battle.spawnWave(0);const army=battle.units.filter(u=>u.laneArmy);
+ assert.equal(new Set(army.map(u=>`${u.x},${u.y}`)).size,12);
+ assert.equal(new Set(army.map(u=>u.y)).size,2);
+});
+
+test('income and deployment wait a full 30 seconds and outpost bonus persists on later waves',()=>{
+ const battle=fresh();battle.botStep=()=>{};
+ assert.equal(WAVE_SECONDS,30);assert.equal(battle.nextWave,30);
+ battle.step(29);assert.equal(battle.money,200);assert.equal(battle.gas,0);
+ battle.step(1);assert.equal(battle.money,400);assert.equal(battle.gas,0);
+ const defenses=battle.outpostDefenses[1];battle.die(defenses[0],0);
+ assert.deepEqual(battle.waveIncome(0),{minerals:200,gas:0});
+ for(const u of defenses.slice(1))battle.die(u,0);
+ assert.deepEqual(battle.waveIncome(0),{minerals:300,gas:100});
+ assert.deepEqual(battle.waveIncome(1),{minerals:200,gas:0});
+ battle.payWaveIncome(0);battle.payWaveIncome(0);assert.equal(battle.money,1000);assert.equal(battle.gas,200);
+});
+
+test('bunker garrison fire emits original effects, sound and functioning weapon impacts',()=>{
+ const battle=fresh(),bunker=battle.outpostDefenses[0][0];
+ for(const u of battle.units)if(u!==bunker&&u.garrison)u.garrison=[];
+ const target=battle.create(106,1,bunker.x,bunker.y-100),hp=target.hp,events=[];
+ battle.on(e=>events.push(e));battle.fireBunkers(.01);
+ assert.ok(target.hp<hp);assert.ok(events.some(e=>e.type==='sfx'&&data.audio[e.id]));
+ assert.equal(battle.effects.filter(e=>e.kind==='bunker-shot').length,4);
+ assert.ok(battle.effects.some(e=>e.image===421));
+ for(const p of battle.projectiles)assert.ok(p.weapon);
+});
+
+test('construction chooses original stages for all races and gas footprints touch the top land boundary',()=>{
+ const graphics=JSON.parse(fs.readFileSync(new URL('../dist/construction-data.json',import.meta.url)));
+ for(const [race,type]of [['terran',111],['zerg',142],['protoss',160]]){
+  const battle=fresh(race),u=battle.create(type,0,640,PRODUCTION_OFFSET+900);
+  u.construction={time:0,total:10,started:true};
+  const start=constructionVisual(u,data);u.construction.time=5;const middle=constructionVisual(u,data);
+  assert.ok(graphics[start.image]);
+  if(race!=='protoss')assert.notDeepEqual(start,middle);else assert.equal(start.warp,true);
+  u.construction=null;assert.equal(constructionVisual(u,data),null);
+ }
+ for(const race of ['terran','zerg','protoss']){
+  const battle=fresh(race),type=GAS_BUILDING[race],node=battle.nodes.find(n=>n.team===0);battle.money=500;
+  assert.equal(battle.placement(battle.builder,type,node).reason,'');
+  assert.ok(GAS_SLOT_Y-battle.footprint(type)[1]/2>=PRODUCTION_GROUND_Y);
+  assert.ok(GAS_SLOT_Y-battle.footprint(type)[1]/2-PRODUCTION_GROUND_Y<32);
+ }
+ assert.equal(healthBarPixels(81),Math.round(79*.85));
+});
+
 test('all races begin with empty hidden production lanes and five horizontal gas slots per side',()=>{
  for(const race of ['terran','zerg','protoss']){
   const battle=fresh(race),playerSlots=battle.nodes.filter(node=>node.team===0&&node.kind==='gas'),enemySlots=battle.nodes.filter(node=>node.team===1&&node.kind==='gas');
-  assert.equal(battle.money,600);assert.equal(battle.gas,180);
+  assert.equal(battle.money,200);assert.equal(battle.gas,0);
   assert.deepEqual(playerSlots.map(node=>node.x),GAS_SLOT_X);
   assert.deepEqual(enemySlots.map(node=>node.x),[...GAS_SLOT_X].reverse());
   assert.equal(battle.units.filter(unit=>unit.team===0&&unit.productionOnly).length,0);
@@ -70,7 +136,7 @@ test('completed production buildings always spawn their fixed wave, including un
  assert.equal(BUILDING_WAVES[111].unit,0);
 });
 
-test('each wave pays 200 minerals plus 100 minerals and 50 gas per completed refinery',()=>{
+test('each wave pays 200 minerals plus 100 minerals and 100 gas per completed refinery',()=>{
  const battle=fresh('terran');battle.money=0;battle.gas=0;
  const addRefinery=(slot,completed=true)=>{
   const node=battle.nodes.find(entry=>entry.team===0&&entry.slot===slot),unit=battle.create(110,0,node.x,node.y);
@@ -79,9 +145,9 @@ test('each wave pays 200 minerals plus 100 minerals and 50 gas per completed ref
   return unit;
  };
  addRefinery(0,true);addRefinery(1,false);battle.waveClock=1;battle.step(1);
- assert.equal(battle.money,300);assert.equal(battle.gas,50);
+ assert.equal(battle.money,300);assert.equal(battle.gas,100);
  addRefinery(2,true);battle.waveClock=1;battle.step(1);
- assert.equal(battle.money,700);assert.equal(battle.gas,150);
+ assert.equal(battle.money,700);assert.equal(battle.gas,300);
 });
 
 test('the central water blocks both side bypasses and waves attack the outpost before the main',()=>{
