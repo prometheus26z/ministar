@@ -19,8 +19,8 @@ for(const viewport of [{width:390,height:844},{width:320,height:568},{width:844,
 await page.setViewportSize({width:390,height:844});
 await page.locator('#difficultyTrigger').click();await page.keyboard.press('Home');await page.keyboard.press('Enter');
 assert.equal(await page.locator('#difficulty').inputValue(),'easy');
-await page.locator('[data-race=zerg]').click();assert.equal(await page.locator('[data-race=zerg]').getAttribute('aria-pressed'),'true');
-await page.locator('[data-race=terran]').click();
+await page.locator('button[data-race=zerg]').click();assert.equal(await page.locator('button[data-race=zerg]').getAttribute('aria-pressed'),'true');
+await page.locator('button[data-race=terran]').click();
 await page.screenshot({path:'/tmp/ministar-title.png',fullPage:true});
 await page.locator('#deploy').click();await page.locator('#settings').click();
 await page.locator('#qualityTrigger').click();await page.getByRole('option',{name:'절전 · 낮은 해상도'}).click();
