@@ -110,3 +110,7 @@ body[data-panel=min] #productionQueue{display:none}
 body[data-space=production] #spaceToggle{left:auto;right:12px;border-color:#9ac1d2;background:linear-gradient(#446574ef,#1a3540f0);color:#e3f2f4}
 @media(max-height:520px){#spaceToggle{width:44px;height:132px;padding:8px 4px;font-size:12px}}
 @media(max-width:380px){#spaceToggle{left:6px;width:46px;height:138px}body[data-space=production] #spaceToggle{left:auto;right:6px}}
+
+/* Dock the navigation tab flush to the viewport edge. */
+#spaceToggle{left:0!important;border-left:0;border-radius:0 7px 7px 0}
+body[data-space=production] #spaceToggle{left:auto!important;right:0!important;border-left:1px solid #9ac1d2;border-right:0;border-radius:7px 0 0 7px}
