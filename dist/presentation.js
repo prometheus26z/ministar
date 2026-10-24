@@ -25,3 +25,9 @@ export function waveDescription(type,groups,data){
  if(!groups?.length)return '출격 없음';
  return groups.map(({unit,count})=>`${data.units[unit].name} ${Number(type)===142?'5~6':count}기`).join(' · ');
 }
+
+export function buildingDestruction(unit){
+ const [w,h]=unit.def.footprint||[64,64],large=w*h>=8192;
+ const race=unit.def.race;
+ return{explosion:race==='zerg'?60:race==='protoss'?215:334,rubble:race==='zerg'?(large?111:110):race==='protoss'?(large?217:216):(large?336:335)};
+}
