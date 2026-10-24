@@ -17,11 +17,11 @@ async function testLegacyMigration(browser,direct=false){
    await caches.open('other-app-cache');
   },legacyHtml);
   await page.reload();assert.equal(await page.locator('#legacy').innerText(),'v0.1.1');
-  legacy=false;if(direct)await page.goto(url+'?v=0.11.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
+  legacy=false;if(direct)await page.goto(url+'?v=0.12.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
   await page.locator('#title').waitFor({state:'visible'});
-  assert.equal(await page.locator('.top small').innerText(),'v0.11.0');
+  assert.equal(await page.locator('.top small').innerText(),'v0.12.0');
   assert.equal(await page.locator('#offline').count(),0);
-  assert.equal(new URL(page.url()).searchParams.get('v'),'0.11.0');
+  assert.equal(new URL(page.url()).searchParams.get('v'),'0.12.0');
   assert.deepEqual(await page.evaluate(async()=>(await caches.keys()).sort()),['other-app-cache']);
   assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);
   assert.equal(await page.evaluate(()=>localStorage.getItem('ministar.records')),'[{"win":true}]');
@@ -57,7 +57,7 @@ await page.locator('button[data-race=terran]').click();
 await page.screenshot({path:'/tmp/ministar-title.png',fullPage:true});
 await page.locator('#deploy').click();
 assert.equal(await page.locator('#shop').count(),0);assert.equal(await page.locator('#prep').count(),0);
-assert.equal(await page.locator('#unitName').innerText(),'자동 전선');
+assert.equal(await page.locator('#unitName').innerText(),'');
 assert.ok(Number(await page.locator('#money').innerText())>=300);assert.equal(await page.locator('#gas').isVisible(),false);assert.match(await page.locator('#incomeStatus').innerText(),/1.34초/);
 assert.equal(await page.locator('#slow').isVisible(),false);await page.waitForFunction(()=>[...window.__spriteDraws].some(url=>url.includes('turret-assets/297-')));
 await page.locator('#spaceToggle').click();
@@ -65,7 +65,7 @@ const productionToggle=await page.locator('#spaceToggle').boundingBox();
 assert.equal(productionToggle.x,390-productionToggle.width);
 await page.locator('#productionButton').click();await page.locator('#commands').waitFor({state:'visible'});
 assert.equal(await page.locator('#commandTitle').innerText(),'출격 현황');
-assert.match(await page.locator('#commandGrid').innerText(),/완성된 출격 생산 건물이 없습니다/);
+assert.equal(await page.locator('#commandGrid').innerText(),'');
 assert.equal(await page.locator('#commandGrid button').count(),0);
 assert.equal(await page.getByText('적 생산 구역').count(),0);
 assert.equal(await page.locator('#slow').isVisible(),false);
@@ -98,11 +98,9 @@ await page.locator('#map').click();const minimap=page.locator('#minimap'),miniBo
 await minimap.click({position:{x:miniBox.width/2,y:1}});await page.locator('#map').click();
 await page.locator('#field').click({position:{x:195,y:159}});await page.waitForTimeout(100);
 assert.equal(await page.locator('#unitName').innerText(),'커맨드 센터');
-assert.doesNotMatch(await page.locator('#toast').innerText(),/HP/);
-const enemyHealthPixels=await page.locator('#field').evaluate(canvas=>{
- const dpr=canvas.width/innerWidth,c=canvas.getContext('2d'),pixels=c.getImageData(160*dpr,178*dpr,70*dpr,13*dpr).data;
- let count=0;for(let i=0;i<pixels.length;i+=4)if((pixels[i]===143&&pixels[i+1]===219&&pixels[i+2]===131)||(pixels[i]===98&&pixels[i+1]===189&&pixels[i+2]===73)||(pixels[i]===55&&pixels[i+1]===147&&pixels[i+2]===42))count++;return count;
-});assert.ok(enemyHealthPixels>20,'enemy selection must draw the same health bar palette on the battlefield');
+assert.doesNotMatch(await page.locator('#toast').innerText(),/HP/);assert.equal(await page.locator('.vitals').isVisible(),true);assert.ok((await page.locator('#hp').innerText()).startsWith('HP '));assert.match(await page.locator('#groundAttack').innerText(),/지상/);assert.match(await page.locator('#armor').innerText(),/방어/);
+const enemyHealth=await page.evaluate(()=>{const b=window.__visualTest.battle,u=b.units.find(u=>u.team===1&&u.alive&&!u.hidden&&!u.loaded);b.inspect(u);return `HP ${Math.ceil(u.hp)}/${Math.ceil(u.maxHp||u.def.hp)}`});await page.waitForFunction(expected=>document.getElementById('hp').textContent===expected,enemyHealth);assert.ok((await page.locator('#hp').innerText()).startsWith('HP '));assert.match(await page.locator('#groundAttack').innerText(),/지상/);assert.match(await page.locator('#armor').innerText(),/방어/);
+const damagedEnemyHealth=await page.evaluate(()=>{const b=window.__visualTest.battle,u=b.inspectedUnit;u.hp=Math.max(1,u.hp-37);return `HP ${Math.ceil(u.hp)}/${Math.ceil(u.maxHp||u.def.hp)}`});await page.waitForFunction(expected=>document.getElementById('hp').textContent===expected,damagedEnemyHealth);
 
 await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
 await page.evaluate(()=>window.dispatchEvent(new Event('pageshow')));

@@ -1,9 +1,9 @@
-import {constructionVisual,healthBarPixels,waveDescription} from './presentation.js?v=0.11.0';
-import {enhanceSelects,closeDropdown} from './ui.js?v=0.11.0';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.11.0';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.11.0';
-import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS} from './lane-rules.js?v=0.11.0';
-import {researchAt} from './tech.js?v=0.11.0';
+import {constructionVisual,healthBarPixels,waveDescription} from './presentation.js?v=0.12.0';
+import {enhanceSelects,closeDropdown} from './ui.js?v=0.12.0';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.12.0';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.12.0';
+import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS} from './lane-rules.js?v=0.12.0';
+import {researchAt} from './tech.js?v=0.12.0';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),mc=mini.getContext('2d');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';
@@ -58,22 +58,42 @@ function hudUI(){
   const producer=units.length===1?units[0]:null;
   $('productionButton').disabled=battle.phase!=='battle';
   $('researchButton').disabled=viewMode!=='production'||!producer||!producer.productionOnly||!producer.def.building||!battle.researchOptions(producer).length;
-  if(producer){$('hp').textContent='HP '+Math.ceil(producer.hp)+'/'+Math.ceil(producer.maxHp||producer.def.hp);$('shields').textContent=producer.def.shield?'S '+Math.ceil(producer.shield):'';$('energy').textContent=''}else for(const id of ['hp','shields','energy'])$(id).textContent='';
   return;
  }
  const seconds=Math.floor(battle.time);$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');$('phase').textContent=battle.paused?'PAUSED':'BATTLE';
  $('money').textContent=Math.floor(battle.money).toLocaleString();$('gas').textContent=Math.floor(battle.gas).toLocaleString();$('gas').parentElement.hidden=!!battle.laneMode;if(battle.laneMode)$('incomeStatus').textContent=battle.incomePauseLeft>0?`수입 중단 ${Math.ceil(battle.incomePauseLeft)}초`:`시설 ${battle.completedGasCount(0)}/5 · +${battle.incomeAmount()} / ${INCOME_SECONDS.toFixed(2)}초`;$('supply').textContent=Number(battle.supply.toFixed(1))+'/'+battle.maxSupply;$('slow').hidden=true;
  $('commandButton').disabled=!battle.selected.length||battle.phase!=='battle';
 }
+function clearVitals(){for(const id of ['hp','shields','energy','groundAttack','airAttack','armor'])$(id).textContent=''}
+function meter(id,label,current,max){const el=$(id),ratio=max>0?clamp(current/max,0,1):0;el.innerHTML=`${label} ${Math.ceil(current)}/${Math.ceil(max)}<i style="width:${Math.round(ratio*100)}%"></i>`}
+function attackValue(u,air){
+ const target={def:{air}},weapon=battle.weapon(u,target);if(!weapon)return null;if(u.hallucination)return '0';
+ const hits=air?u.def.airHits||1:u.def.groundHits||1,mult=(u.type===125||u.type===72)?4:1;
+ return `${Math.round(weapon.damage*(weapon.factor||1)*mult)}${hits>1?`×${hits}`:''}`;
+}
+function showVitals(units){
+ clearVitals();document.body.dataset.inspect=units.length?'yes':'no';if(!units.length)return;
+ const hp=units.reduce((n,u)=>n+Math.max(0,u.hp),0),maxHp=units.reduce((n,u)=>n+(u.maxHp||u.def.hp),0);
+ meter('hp','HP',hp,maxHp);
+ const shieldUnits=units.filter(u=>u.def.shield>0);if(shieldUnits.length)meter('shields','실드',shieldUnits.reduce((n,u)=>n+u.shield,0),shieldUnits.reduce((n,u)=>n+u.def.shield,0));
+ const energyUnits=units.filter(u=>u.def.energy>0);if(energyUnits.length)meter('energy','마나',energyUnits.reduce((n,u)=>n+u.energy,0),energyUnits.reduce((n,u)=>n+u.def.energy,0));
+ const weaponSummary=(air)=>{const rows=new Map();for(const u of units){let value;if(u.garrison?.length){const crew=new Map();for(const id of u.garrison){const d=data.units[id];if(!d)continue;const wid=air?d.airWeapon:d.groundWeapon,w=data.weapons[wid];if(!w?.damage||!(air?w.air:w.ground))continue;const hits=air?d.airHits||1:d.groundHits||1,key=`${d.name} ${Math.round(w.damage*(w.factor||1))}${hits>1?`×${hits}`:''}`;crew.set(key,(crew.get(key)||0)+1)}value=[...crew].map(([name,count])=>`${name}${count>1?` ×${count}`:''}`).join(' · ')}
+   else value=attackValue(u,air);if(!value)continue;const key=units.length===1?value:`${data.units[u.type]?.name||u.def.name} ${value}`;rows.set(key,(rows.get(key)||0)+1)}
+  return [...rows].map(([name,count])=>count>1?`${name}×${count}`:name).join(' / ')||'—'};
+ $('groundAttack').textContent=`지상 ${weaponSummary(false)}`;$('airAttack').textContent=`공중 ${weaponSummary(true)}`;
+ const armor=units.length===1?String(units[0].def.armor):`${Math.min(...units.map(u=>u.def.armor))}–${Math.max(...units.map(u=>u.def.armor))}`;$('armor').textContent=`방어 ${armor}`;
+}
+function refreshVitals(){if(!battle)return;const selected=battle.selected,unit=battle.laneMode?(selected[0]||battle.inspectedUnit):null;showVitals(battle.laneMode?(unit?[unit]:[]):selected)}
 function selectionUI(){
  if(!battle)return;const units=battle.selected;
  if(battle.laneMode){
-  const unit=units[0]||battle.inspectedUnit,entries=unit?.productionOnly?battle.activeWave(0,unit.id):new Map(),lineup=[...entries].map(([type,count])=>`${data.units[type].name} ${count}기`).join(' · ');$('unitName').textContent=unit?unit.def.name:'자동 전선';document.querySelector('.unit-info').style.setProperty('--unit-icon',`url("${icon(unit?.type??BASE[race])}")`);
-  $('order').textContent=viewMode==='field'?'자동 전투':unit?.garrison?'수비 병력 · 마린 3기 · 파이어뱃 1기':unit?.construction?'건설 중':unit?.productionOnly&&lineup?`매 ${Math.round(WAVE_SECONDS)}초 자동 출격 · ${lineup}`:unit?.productionOnly&&unit?.def.building?'완성되면 해당 건물의 병력이 자동 출격합니다.':unit?.def.building?'전장 방어 시설':'완성된 생산 건물이 없습니다.';
+  const unit=units[0]||battle.inspectedUnit,entries=unit?.productionOnly?battle.activeWave(0,unit.id):new Map(),lineup=[...entries].map(([type,count])=>`${data.units[type].name} ${count}기`).join(' · ');$('unitName').textContent=unit?unit.def.name:'';document.querySelector('.unit-info').style.setProperty('--unit-icon',`url("${icon(unit?.type??BASE[race])}")`);
+  showVitals(unit?[unit]:[]);
+  $('order').textContent=unit?.garrison?.length?'수비 병력':unit?.construction?'건설 중':unit?.productionOnly&&lineup?`매 ${Math.round(WAVE_SECONDS)}초 자동 출격 · ${lineup}`:unit?.productionOnly&&unit?.def.building?'완성되면 해당 건물의 병력이 자동 출격합니다.':unit?.def.building?'전장 방어 시설':'';
   $('chips').replaceChildren();hudUI();productionUI();return;
  }
- $('unitName').textContent=units.length===1?units[0].def.name:units.length?units.length+'기 선택됨' :'전장 유닛을 선택하세요';
- if(!units.length){for(const id of ['hp','shields','energy'])$(id).textContent='';$('order').textContent=box?'범위 선택 모드 활성화':'길게 누르고 드래그하면 범위 선택'}
+ $('unitName').textContent=units.length===1?units[0].def.name:units.length?units.length+'기 선택됨' :'';showVitals(units);
+ if(!units.length){$('order').textContent=box?'범위 선택 모드 활성화':''}
  const portrait=$('portrait'),url=units.length===1?units[0].def.portrait:null;portrait.hidden=!url;if(url&&portrait.getAttribute('src')!==url){portrait.src=url;portrait.play().catch(()=>{})}if(!url)portrait.pause();
  const types=new Map();for(const u of units)types.set(u.type,(types.get(u.type)||0)+1);$('chips').replaceChildren();for(const [type,n] of types){const b=document.createElement('button');b.innerHTML=`<img src="${icon(type)}" alt="">${n}`;b.title=data.units[type].name;b.onclick=()=>battle.select(units.filter(u=>u.type===type).map(u=>u.id));$('chips').append(b)}hudUI();productionUI()
 }
@@ -104,7 +124,7 @@ function menuUI(){
   const scoped=unit?.team===0&&unit.productionOnly&&unit.def.building?unit:null,counts=battle.activeWave(0,scoped?.id??null);
   $('commandHint').textContent='';
   for(const [type,count]of counts){const card=document.createElement('div');card.className='wave-card';card.innerHTML=`<img src="${icon(type)}" alt=""><b>${data.units[type].name}</b><span>${count}기 · 매 ${Math.round(WAVE_SECONDS)}초</span>`;$('commandGrid').append(card)}
-  if(!counts.size){const empty=document.createElement('p');empty.className='wave-empty';empty.textContent=scoped?'이 건물은 현재 출격 유닛을 생성하지 않습니다.':'완성된 출격 생산 건물이 없습니다.';$('commandGrid').append(empty)}
+  if(!counts.size&&scoped){const empty=document.createElement('p');empty.className='wave-empty';empty.textContent='이 건물은 현재 출격 유닛을 생성하지 않습니다.';$('commandGrid').append(empty)}
  }else{
   if(!unit||!unit.productionOnly||!unit.def.building){$('commandHint').textContent='생산 공간에서 연구할 건물을 선택하세요.';return}
   $('commandHint').textContent='';
@@ -177,7 +197,8 @@ function unit(u){
  const g=data.graphics[u.def.image];if(g&&u.alive)for(const sh of g.shadows||[])sprite(sh,0,u.x+2,u.y+3,'idle',u.animTime,u.direction,.35);
  if(!drawConstruction(u,alpha))sprite(u.egg?(u.type===43?11:u.type===38?914:21):u.def.image,u.team,u.x,u.y,u.type===124?'idle':u.action,u.animTime,u.direction,alpha);
  const sub=u.def.subunit!==null?data.units[u.def.subunit]:null;if(sub&&u.alive)sprite(sub.image,u.team,u.x,u.y,u.action,u.animTime,u.direction,alpha);
- if(u.type===124&&u.alive&&!u.construction)sprite(297,u.team,u.x,u.y,u.action,u.animTime,u.action==='idle'?Math.floor(u.animTime*3)%32:u.direction,alpha);
+ if(u.type===124&&u.alive&&!u.construction)sprite(297,u.team,u.x,u.y,u.action,u.animTime,u.action==='idle'?Math.floor(u.animTime*16)%32:u.direction,alpha);
+ if(u.alive&&u.def.building&&u.def.race==='terran'&&!u.construction)drawBuildingFire(u);
  if(selected&&u.alive)drawHealthBar(u);
  if(u.matrix>0||u.buffs.stasis>0||u.buffs.lockdown>0){ctx.strokeStyle=u.matrix>0?'#c3e9a388':u.buffs.stasis>0?'#b7deea':'#e9ca64';ctx.lineWidth=1.5;ctx.strokeRect(u.x-u.r-3,u.y-u.r-3,u.r*2+6,u.r*2+6)}
 }
@@ -234,14 +255,27 @@ function drawEconomy(){
 function drawWrecks(){
  for(const wreck of battle.wrecks||[])if(!!wreck.productionOnly===(viewMode==='production')&&(viewMode!=='production'||wreck.team===0))sprite(wreck.image,wreck.team,wreck.x,wreck.y,'idle',0,0,1,new Set(),wreck.variant);
 }
+function drawBuildingFire(u){
+ const ratio=u.hp/Math.max(1,u.maxHp||u.def.hp);if(ratio>=2/3)return;
+ const stage=ratio<=1/3?2:1,[fw,fh]=u.def.footprint||[64,64],count=stage===2?5:2,t=battle.time;
+ for(let i=0;i<count;i++){
+  const along=(i+.5)/count,phase=t*8+u.id*1.7+i*2.4,wave=Math.sin(phase),x=u.x+(along-.5)*fw*.74+wave*3,y=u.y-fh*.22-Math.abs(Math.cos(phase*1.15))*fh*.1;
+  const size=(stage===2?11:7)+Math.abs(Math.sin(phase))*(stage===2?10:5),height=size*(1.1+Math.abs(Math.cos(phase))*.7);
+  ctx.save();ctx.globalAlpha=stage===2?.82:.57;ctx.shadowColor='#ff5318';ctx.shadowBlur=size*.8;
+  const flame=ctx.createLinearGradient(x,y-height,x,y);flame.addColorStop(0,'#fff0a0');flame.addColorStop(.25,'#ffb83e');flame.addColorStop(1,'#e74716');ctx.fillStyle=flame;ctx.beginPath();ctx.moveTo(x-size*.4,y);ctx.quadraticCurveTo(x-size*.5,y-height*.36,x+wave*size*.25,y-height);ctx.quadraticCurveTo(x+size*.85,y-height*.4,x+size*.38,y);ctx.closePath();ctx.fill();ctx.restore();
+ }
+}
 function drawBattleEffects(){
  for(const f of battle.effects){
   if(!!f.productionOnly!==(viewMode==='production'))continue;
+  if(f.kind==='hit'){
+   const progress=1-f.left/Math.max(.01,f.duration),radius=5+progress*12,alpha=Math.max(0,1-progress),barrier=f.hitType==='shield'||f.hitType==='matrix';ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=barrier?'#8cddff':'#ffe8a1';ctx.lineWidth=2;ctx.beginPath();ctx.arc(f.x,f.y,radius,0,Math.PI*2);ctx.stroke();ctx.fillStyle=barrier?'#46a9e5':'#ff6842';ctx.beginPath();ctx.arc(f.x,f.y,2.5*(1-progress)+1,0,Math.PI*2);ctx.fill();ctx.restore();continue;
+  }
   const death=f.kind==='building-death',g=data.graphics[f.image],time=death?(f.duration-f.left)/f.duration*(g?.tracks?.idle?.ticks||24)/24:(f.duration-f.left)*1.1;
   sprite(f.image,f.team||0,f.x,f.y,'idle',time,f.direction||0,death?1:Math.min(1,f.left*8));
  }
 }
-function render(now){const realDt=last?Math.min(.15,(now-last)/1000):1/60;last=now;const dt=document.hidden||backgroundPauseRequired?0:realDt;battle.update(dt);hudTime+=realDt;if(hudTime>.15){hudTime=0;hudUI();productionUI();if(map)minimap()}ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#10191c';ctx.fillRect(0,0,W,H);limitCamera();ctx.save();ctx.translate(W/2,cy());ctx.scale(camera.zoom,camera.zoom);ctx.translate(-camera.x,-camera.y);if(viewMode==='production'){drawProductionBoard();drawEconomy();drawWrecks();for(const u of battle.units.filter(u=>u.productionOnly&&u.team===0))unit(u);drawBattleEffects();ctx.restore();requestAnimationFrame(render);return}const a=toWorld(0,0),b=toWorld(W,H),x0=Math.max(0,Math.floor(a.x/32)),x1=Math.min(40,Math.ceil(b.x/32)),y0=Math.max(0,Math.floor(a.y/32)),y1=Math.min(64,Math.ceil(b.y/32));drawRelief();drawEconomy();drawWrecks();for(const area of battle.areas){ctx.save();ctx.globalAlpha=Math.min(.3,area.left*.6);ctx.fillStyle={storm:'#89b8f7',swarm:'#ccad50',web:'#dce6e9',plague:'#ae3840',ensnare:'#94c45f',stasis:'#bce0ed'}[area.kind]||'#9bbed2';ctx.beginPath();ctx.arc(area.x,area.y,area.r,0,Math.PI*2);ctx.fill();ctx.restore();if(area.kind==='storm')sprite(525,0,area.x,area.y,'idle',area.duration-area.left)}for(const u of [...battle.units].sort((a,b)=>Number(a.def.air)-Number(b.def.air)||a.y-b.y))unit(u);for(const p of battle.projectiles){const dir=(Math.round(Math.atan2(p.endX-p.x,p.y-p.endY)*16/Math.PI)+32)%32;if(!sprite(p.image,p.team,p.x,p.y,'idle',p.elapsed,dir)){ctx.fillStyle=p.spell?'#ffe39b':'#b1d9e6';ctx.beginPath();ctx.arc(p.x,p.y,p.spell?4:2,0,Math.PI*2);ctx.fill()}}drawBattleEffects();if(battle.phase!=='title'&&!battle.laneMode)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(!battle.fog[y*40+x]){ctx.fillStyle=battle.explored[y*40+x]?'#030c10a9':'#030a10e8';ctx.fillRect(x*32,y*32,32.5,32.5)}if(battle.core?.alive){ctx.save();ctx.translate(battle.core.x,battle.core.y-85);ctx.rotate(Math.PI/4);ctx.fillStyle='#e2c587';ctx.fillRect(-5,-5,10,10);ctx.restore()}if(gesture?.kind==='box'){const s=gesture.world,e=toWorld(gesture.current.x,gesture.current.y);ctx.fillStyle='#83e7921c';ctx.strokeStyle='#9ef69a';ctx.lineWidth=1/camera.zoom;ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y)}ctx.restore();if(battle.paused&&battle.phase==='battle'&&$('modal').hidden){ctx.fillStyle='#07151aa9';ctx.fillRect(0,0,W,H);ctx.fillStyle='#deddbb';ctx.font='bold 20px system-ui';ctx.textAlign='center';ctx.fillText('일시 정지',W/2,cy())}requestAnimationFrame(render)}
+function render(now){const realDt=last?Math.min(.15,(now-last)/1000):1/60;last=now;const dt=document.hidden||backgroundPauseRequired?0:realDt;battle.update(dt);hudTime+=realDt;if(hudTime>.15){hudTime=0;hudUI();refreshVitals();productionUI();if(map)minimap()}ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#10191c';ctx.fillRect(0,0,W,H);limitCamera();ctx.save();ctx.translate(W/2,cy());ctx.scale(camera.zoom,camera.zoom);ctx.translate(-camera.x,-camera.y);if(viewMode==='production'){drawProductionBoard();drawEconomy();drawWrecks();for(const u of battle.units.filter(u=>u.productionOnly&&u.team===0))unit(u);drawBattleEffects();ctx.restore();requestAnimationFrame(render);return}const a=toWorld(0,0),b=toWorld(W,H),x0=Math.max(0,Math.floor(a.x/32)),x1=Math.min(40,Math.ceil(b.x/32)),y0=Math.max(0,Math.floor(a.y/32)),y1=Math.min(64,Math.ceil(b.y/32));drawRelief();drawEconomy();drawWrecks();for(const area of battle.areas){ctx.save();ctx.globalAlpha=Math.min(.3,area.left*.6);ctx.fillStyle={storm:'#89b8f7',swarm:'#ccad50',web:'#dce6e9',plague:'#ae3840',ensnare:'#94c45f',stasis:'#bce0ed'}[area.kind]||'#9bbed2';ctx.beginPath();ctx.arc(area.x,area.y,area.r,0,Math.PI*2);ctx.fill();ctx.restore();if(area.kind==='storm')sprite(525,0,area.x,area.y,'idle',area.duration-area.left)}for(const u of [...battle.units].sort((a,b)=>Number(a.def.air)-Number(b.def.air)||a.y-b.y))unit(u);for(const p of battle.projectiles){const dir=(Math.round(Math.atan2(p.endX-p.x,p.y-p.endY)*16/Math.PI)+32)%32;if(!sprite(p.image,p.team,p.x,p.y,'idle',p.elapsed,dir)){ctx.fillStyle=p.spell?'#ffe39b':'#b1d9e6';ctx.beginPath();ctx.arc(p.x,p.y,p.spell?4:2,0,Math.PI*2);ctx.fill()}}drawBattleEffects();if(battle.phase!=='title'&&!battle.laneMode)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(!battle.fog[y*40+x]){ctx.fillStyle=battle.explored[y*40+x]?'#030c10a9':'#030a10e8';ctx.fillRect(x*32,y*32,32.5,32.5)}if(battle.core?.alive){ctx.save();ctx.translate(battle.core.x,battle.core.y-85);ctx.rotate(Math.PI/4);ctx.fillStyle='#e2c587';ctx.fillRect(-5,-5,10,10);ctx.restore()}if(gesture?.kind==='box'){const s=gesture.world,e=toWorld(gesture.current.x,gesture.current.y);ctx.fillStyle='#83e7921c';ctx.strokeStyle='#9ef69a';ctx.lineWidth=1/camera.zoom;ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y)}ctx.restore();if(battle.paused&&battle.phase==='battle'&&$('modal').hidden){ctx.fillStyle='#07151aa9';ctx.fillRect(0,0,W,H);ctx.fillStyle='#deddbb';ctx.font='bold 20px system-ui';ctx.textAlign='center';ctx.fillText('일시 정지',W/2,cy())}requestAnimationFrame(render)}
 function modal(kind,html){closeDropdown();if(battle?.menuOpen)battle.closeMenu();pausedBefore=battle?.paused||false;if(battle?.phase==='battle')battle.paused=true;syncAudioPause();modalKind=kind;$('modalContent').innerHTML=html;enhanceSelects($('modalContent'));$('modal').hidden=false}
 function closeModal(){closeDropdown();if(modalKind==='result')return;$('modal').hidden=true;if(battle?.phase==='battle')battle.paused=pausedBefore;modalKind='';syncAudioPause()}$('closeModal').onclick=closeModal;
 function help(){modal('help',`<div class="eyebrow">FIELD MANUAL</div><h2>자동 전선 작전</h2><ul><li><b>건물 건설</b>: 하단 버튼을 누르고 테크 조건에 맞는 건물을 선택한 뒤 아군 생산 구역에 배치합니다.</li><li><b>출격 현황</b>: 완성된 건물에 따라 다음 웨이브에 나갈 병력을 확인합니다. 건물은 고정 병력을 자동으로 보냅니다.</li><li><b>기술</b>: 원본 맵에서 연구 완료된 기술은 시작부터 사용하며, 유닛이 전투 중 자동으로 사용합니다.</li><li><b>전장 보기</b>: 넓은 중앙 언덕 입구를 지나 전초기지를 먼저 공격하고, 전초기지가 무너지면 상대 본진으로 진격합니다.</li><li><b>고지 전투</b>: 언덕 아래 지상 원거리 공격은 위쪽 적에게 빗나갈 수 있습니다. 근접·공중 공격은 고지 회피 판정을 받지 않습니다.</li><li><b>카메라</b>: 지도 스와이프로 이동하고 두 손가락으로 확대·축소합니다. 하단 버튼으로 본진과 전선을 빠르게 볼 수 있습니다.</li><li><b>자원</b>: 미네랄 300으로 시작하고 약 1.34초마다 수입을 받습니다. 가스 시설 0~5개 수입은 10·12·15·18·22·26입니다. 가스 시설은 테란·프로토스 600, 저그 500 미네랄이며, 두 번째부터 투자 단계에 따라 수입이 잠시 중단됩니다. 출격과 자원 수입은 독립적으로 진행됩니다.</li></ul><p>전투와 출격은 자동으로 진행됩니다. 생산 공간에서 건물을 배치하고 테크를 올리세요. 앱을 백그라운드로 보내면 전투가 멈추며, 돌아와서 전장 재개를 눌러 이어갑니다.</p><button class="primary" id="helpDone">확인</button>`);$('helpDone').onclick=closeModal}$('help').onclick=help;
@@ -266,5 +300,5 @@ async function retireOfflineStorage(){
  }catch(error){console.warn('Legacy game cache cleanup:',error)}
  return true;
 }
-async function boot(){try{if(!await retireOfflineStorage())return;enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});clearMediaSession();const extra=await fetch('rts-data.json?v=0.11.0').then(r=>{if(!r.ok)throw Error('생산 데이터를 읽을 수 없습니다.');return r.json()});Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);const constructionGraphics=await fetch('construction-data.json?v=0.11.0').then(r=>{if(!r.ok)throw Error('건설 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,constructionGraphics);const turretGraphics=await fetch('turret-data.json?v=0.11.0').then(r=>{if(!r.ok)throw Error('포탑 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,turretGraphics);const destructionGraphics=await fetch('destruction-data.json?v=0.11.0').then(r=>{if(!r.ok)throw Error('건물 파괴 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,destructionGraphics);await Promise.all([...Object.values(destructionGraphics),data.graphics[215]].map(g=>loadImage(g.images.blue)));await Promise.all(Object.values(turretGraphics).flatMap(g=>Object.values(g.images)).map(loadImage));await Promise.all(Object.values(constructionGraphics).map(g=>loadImage(g.images.blue)));for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
+async function boot(){try{if(!await retireOfflineStorage())return;enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});clearMediaSession();const extra=await fetch('rts-data.json?v=0.12.0').then(r=>{if(!r.ok)throw Error('생산 데이터를 읽을 수 없습니다.');return r.json()});Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);const constructionGraphics=await fetch('construction-data.json?v=0.12.0').then(r=>{if(!r.ok)throw Error('건설 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,constructionGraphics);const turretGraphics=await fetch('turret-data.json?v=0.12.0').then(r=>{if(!r.ok)throw Error('포탑 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,turretGraphics);const destructionGraphics=await fetch('destruction-data.json?v=0.12.0').then(r=>{if(!r.ok)throw Error('건물 파괴 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,destructionGraphics);await Promise.all([...Object.values(destructionGraphics),data.graphics[215]].map(g=>loadImage(g.images.blue)));await Promise.all(Object.values(turretGraphics).flatMap(g=>Object.values(g.images)).map(loadImage));await Promise.all(Object.values(constructionGraphics).map(g=>loadImage(g.images.blue)));for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
 

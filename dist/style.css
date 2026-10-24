@@ -90,7 +90,7 @@ body[data-panel=min] #productionQueue{display:none}
 
 
 :root{--panel:100px}
-#panel .group-row,#panel .panel-tools,#panel .vitals,#portrait,#chips{display:none!important}
+#panel .group-row,#panel .panel-tools,#portrait,#chips{display:none!important}
 #panel .panel-main{gap:5px;min-height:40px}
 #panel .unit-info{max-width:34vw}
 #panel .unit-info strong{font-size:11px}
@@ -174,3 +174,17 @@ body[data-race=protoss]{--builder-art:url('assets/icons/064.png');--army-art:url
 @media(min-width:700px){#panel{padding-inline:max(12px,calc((100vw - 670px)/2))}}
 @media(max-width:350px){#hud{padding-inline:7px}.resources>span{min-width:61px;padding-inline:4px}.resources b{font-size:13px}#panel{padding-inline:6px}#panel .unit-info{padding-left:30px}#panel .unit-info::before{width:23px;height:24px;left:1px}#panel .unit-info strong{font-size:10px}.lane-views button{padding-inline:7px}.lane-views span{font-size:7px}}
 @media(max-height:520px){:root{--panel:98px}#panel .panel-main{min-height:48px}#panel .unit-info,#commandButton,#productionButton,#researchButton{min-height:48px}#panel .unit-info{padding-block:4px}#commandButton::before,#productionButton::before,#researchButton::before{height:19px;width:22px}#panel{padding-top:7px;padding-bottom:4px}.lane-views{margin-top:3px;padding-top:3px}.lane-views button{min-height:24px}}
+
+/* Compact StarCraft-style inspection console: unit vitals and weapons share a two-row strip. */
+:root{--panel:132px}
+#panel .vitals{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 5px;margin:2px 0 0;padding:4px 6px;border-top:1px solid #3c4548;background:linear-gradient(#080d0edb,#10171bdd);font:8px ui-monospace,monospace;color:#aee48b;min-height:34px}
+#panel .vitals span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:12px}
+#panel #shields{color:#9dc8e5}#panel #energy{color:#d1ace7}#panel #groundAttack,#panel #airAttack{color:#d6d0ad}#panel #armor{color:#b9c1c0}
+body[data-inspect=no] #panel .vitals{display:none!important}
+body[data-inspect=no] #panel .unit-info::before{display:none}
+#panel .panel-main{min-height:38px}
+#panel .unit-info{max-width:30vw}
+@media(max-height:520px){:root{--panel:120px}#panel .vitals{grid-template-columns:repeat(6,minmax(0,1fr));min-height:19px;padding:2px 4px;font-size:7px}#panel .panel-main{min-height:40px}}
+@media(max-width:350px){#panel .vitals{gap:1px 3px;padding-inline:3px;font-size:7px}#panel .unit-info{max-width:27vw}}
+
+#panel .vitals span{position:relative;z-index:0;padding-bottom:3px}#panel .vitals span::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:#30383c}#panel .vitals span i{position:absolute;left:0;bottom:0;height:2px;z-index:1;background:#65b54a;box-shadow:0 0 4px #68c45188}#panel #shields i{background:#549dc9}#panel #energy i{background:#9f73b7}
