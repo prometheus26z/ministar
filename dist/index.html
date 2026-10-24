@@ -1,5 +1,20 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10191c"><title>MINISTAR · 모바일 전술 RTS</title><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="assets/icon-192.png"><link rel="stylesheet" href="./style.css"></head><body data-panel="normal"><canvas id="field" aria-label="전장"></canvas>
-<section id="title" hidden><div class="top"><span>OPERATION 01 / JUNGLE BREACH</span><small>v0.1.1</small></div><p class="eyebrow">지휘는 당신의 몫.</p><h1>MINI<span>STAR</span></h1><p class="intro">병력을 편성하고, 시간을 늦추고,<br>적의 방어선을 돌파하세요.</p><div class="races"><button data-race="terran"><img src="assets/icons/000.png" alt="마린"><b>테란</b><small>TERRAN</small></button><button data-race="zerg"><img src="assets/icons/037.png" alt="저글링"><b>저그</b><small>ZERG</small></button><button data-race="protoss"><img src="assets/icons/065.png" alt="질럿"><b>프로토스</b><small>PROTOSS</small></button></div><label class="difficulty">작전 난이도<select id="difficulty"><option value="easy">쉬움 · 첫 출전</option><option value="normal" selected>보통 · 전술 돌파</option><option value="hard">어려움 · 강화 방어선</option></select></label><button id="deploy" class="primary">병력 편성 시작 <span>→</span></button><div class="title-links"><button id="help">조작 방법</button><button id="offline">오프라인 준비</button><button id="records">전투 기록</button></div><p id="offlineStatus" class="footnote">원작 리마스터 그래픽 · 싱글플레이</p></section>
+<section id="title" hidden>
+<div class="command-shell">
+<div class="top"><span><i class="status-light"></i> COMMAND UPLINK</span><small>v0.1.2</small></div>
+<header class="title-brand"><p class="eyebrow">MOBILE TACTICAL COMBAT</p><h1>MINI<span>STAR</span></h1><div class="brand-rule"><span>미 니 스 타</span></div></header>
+<div class="screen-heading"><span>싱글 플레이어</span><small>SELECT YOUR RACE</small></div>
+<div class="races" aria-label="종족 선택">
+<button data-race="terran" aria-pressed="false"><span class="race-visual"><video autoplay muted loop playsinline preload="auto" src="assets/portraits/0.webm" aria-hidden="true"></video><i></i></span><b>테란</b><small>TERRAN</small></button>
+<button data-race="zerg" aria-pressed="false"><span class="race-visual"><video autoplay muted loop playsinline preload="auto" src="assets/portraits/37.webm" aria-hidden="true"></video><i></i></span><b>저그</b><small>ZERG</small></button>
+<button data-race="protoss" aria-pressed="false"><span class="race-visual"><video autoplay muted loop playsinline preload="auto" src="assets/portraits/65.webm" aria-hidden="true"></video><i></i></span><b>프로토스</b><small>PROTOSS</small></button>
+</div>
+<div class="briefing-screen"><div class="briefing-top"><span>MISSION BRIEFING</span><span>01 / JUNGLE BREACH</span></div><h2>정글 돌파 작전</h2><p id="raceBriefing">테란 원정대의 지휘권이 이양되었습니다.</p><p class="mission-goal"><span>작전 목표</span> 적 커맨드 센터를 파괴하십시오.</p><div class="difficulty"><span id="difficultyLabel">작전 난이도</span><select id="difficulty" aria-labelledby="difficultyLabel"><option value="easy">쉬움 · 첫 출전</option><option value="normal" selected>보통 · 전술 돌파</option><option value="hard">어려움 · 강화 방어선</option></select></div></div>
+<button id="deploy" class="primary"><span class="deploy-indicator">▶</span> 병력 편성 시작 <small>DEPLOY</small></button>
+<div class="title-links"><button id="help">조작 방법</button><button id="offline">오프라인 준비</button><button id="records">전투 기록</button></div>
+<p id="offlineStatus" class="footnote">원작 리마스터 그래픽 · 싱글플레이</p>
+<div class="console-bottom"><i></i><span>TACTICAL OPERATIONS TERMINAL</span><i></i></div>
+</div></section>
 <div id="hud" hidden><div class="timer"><small id="phase">DEPLOY</small><strong id="clock">01:00</strong></div><div class="resources"><span><img src="assets/icons/resource_000.png" alt="미네랄"><b id="money">1,200</b></span><span><img id="gasIcon" alt="가스"><b id="gas">600</b></span><span><img id="supplyIcon" alt="보급"><b id="supply">0/30</b></span></div></div>
 <div id="mission" hidden><span id="objective">적 커맨드 센터 파괴</span><button id="settings" aria-label="설정">⚙</button></div><div id="slow" hidden>TACTICAL <b>0.5×</b></div><div id="toast" role="status"></div>
 <div id="camera" hidden><button id="plus" aria-label="확대">＋</button><button id="minus" aria-label="축소">－</button><button id="home" aria-label="부대 위치">◎</button></div>
