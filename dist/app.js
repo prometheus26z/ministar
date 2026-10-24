@@ -1,5 +1,5 @@
-import {enhanceSelects,closeDropdown} from './ui.js?v=0.1.3';
-import {Battle,SPELLS,VERSION,dist,clamp} from './core.js?v=0.1.3';
+import {enhanceSelects,closeDropdown} from './ui.js?v=0.1.4';
+import {Battle,SPELLS,VERSION,dist,clamp} from './core.js?v=0.1.4';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),mc=mini.getContext('2d');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';

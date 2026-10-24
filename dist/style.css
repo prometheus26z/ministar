@@ -17,3 +17,55 @@ button:active{background:#283722}button.active,button[aria-pressed=true]{color:#
 @media(max-width:370px){#title{padding:10px}.command-shell{padding:20px 12px 12px;border-width:6px}.title-brand{padding-block:24px}.race-visual{height:88px}.briefing-screen{padding-inline:12px}.briefing-top{font-size:6px}.select-trigger{font-size:10px;padding-inline:8px}.title-links{gap:4px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 .briefing-screen{border:solid transparent;border-width:20px 12px 9px;border-image:url('assets/ui/console.png') 60 40 14 35 stretch;padding:6px 8px 10px}
+/* Keep the landing terminal within a phone's visible height. */
+#title{padding:12px max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+.command-shell{min-height:0;padding-top:16px;padding-bottom:10px}
+.title-brand{padding:14px 0 15px}
+.title-brand h1{font-size:clamp(40px,10.4vw,66px)}
+.title-brand .eyebrow{margin-bottom:7px}
+.brand-rule{margin-top:9px}
+@media(max-height:760px){
+ .command-shell{padding-top:12px;padding-bottom:9px}
+ .title-brand{padding:10px 0 12px}
+ .title-brand h1{font-size:clamp(36px,9.8vw,54px)}
+ .title-brand .eyebrow{font-size:7px;margin-bottom:6px}
+ .brand-rule{margin-top:7px;font-size:9px}
+ .races{margin:12px 0 14px}
+ .race-visual{height:clamp(68px,12dvh,90px);padding-top:6px}
+ .races button{padding-bottom:8px;gap:4px}
+ .briefing-top{margin-bottom:9px}
+ .briefing-screen h2{margin-bottom:7px}
+ .briefing-screen p{margin-bottom:8px}
+ .difficulty{margin-top:9px;padding-top:9px}
+ #deploy{margin-top:12px;min-height:44px}
+ .title-links{margin-top:9px}
+ .footnote{margin:9px 0 7px}
+ .console-bottom{padding-top:7px}
+}
+@media(max-height:650px){
+ #title{padding-top:9px;padding-bottom:max(9px,env(safe-area-inset-bottom))}
+ .command-shell{padding-top:10px;padding-bottom:8px}
+ .title-brand{padding:8px 0 10px}
+ .title-brand .eyebrow{display:none}
+ .title-brand h1{font-size:36px}
+ .brand-rule{margin-top:6px}
+ .races{margin:10px 0 12px}
+ .race-visual{height:68px}
+ .briefing-screen{padding-top:4px;padding-bottom:7px}
+ .briefing-screen h2{font-size:16px}
+ .briefing-top{margin-bottom:7px}
+ .briefing-screen p{margin-bottom:6px}
+ .difficulty{margin-top:7px;padding-top:7px}
+ .console-bottom{display:none}
+}
+@media(max-height:650px){
+ .command-shell{padding-top:8px;padding-bottom:6px}
+ .title-brand{padding:9px 0 12px}
+ .brand-rule{display:none}
+ .screen-heading{padding-block:6px}
+ .races{margin:8px 0 10px}
+ .footnote{margin-top:7px;margin-bottom:5px}
+}
+@media(max-height:600px){.race-visual{height:62px}.title-brand h1{font-size:34px}}
+@media(min-height:581px) and (max-height:650px){.race-visual{height:82px}}
+@media(max-height:760px){.race-visual video{width:auto;max-width:100%;object-fit:contain}}
