@@ -1,5 +1,15 @@
-const CACHE='ministar-pages-v0.1.2';const CORE=['./','index.html','style.css','app.js','core.js','ui.js','assets/ui/console.png','assets/portraits/0.webm','assets/portraits/37.webm','assets/portraits/65.webm','manifest.webmanifest','assets/data.json','assets/terrain.webp','assets/terrain.json','assets/icon-192.png','assets/icon-512.png','assets/icons/000.png','assets/icons/037.png','assets/icons/065.png','asset-list.json'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('ministar-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-async function range(req,res){const bytes=await res.arrayBuffer(),m=/bytes=(\d*)-(\d*)/.exec(req.headers.get('range'));if(!m)return res;const start=m[1]?Number(m[1]):Math.max(0,bytes.byteLength-Number(m[2])),end=m[1]&&m[2]?Math.min(Number(m[2]),bytes.byteLength-1):bytes.byteLength-1;if(start>end||start>=bytes.byteLength)return new Response(null,{status:416,headers:{'Content-Range':'bytes */'+bytes.byteLength}});const headers=new Headers(res.headers);headers.set('Content-Range',`bytes ${start}-${end}/${bytes.byteLength}`);headers.set('Content-Length',end-start+1);headers.set('Accept-Ranges','bytes');return new Response(bytes.slice(start,end+1),{status:206,headers})}
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET'||new URL(e.request.url).origin!==self.location.origin)return;e.respondWith((async()=>{const cache=await caches.open(CACHE),key=new Request(e.request.url),cached=await cache.match(key);if(cached)return e.request.headers.has('range')?range(e.request,cached):cached;try{const r=await fetch(e.request);if(r.status===200)cache.put(key,r.clone()).catch(()=>{});return r}catch{if(e.request.mode==='navigate')return await cache.match('index.html')||new Response('오프라인 준비를 먼저 완료하세요.',{status:503});return new Response('',{status:503})}})())});
-let busy=false;self.addEventListener('message',e=>{if(e.data?.type!=='CACHE_ALL'||busy)return;busy=true;e.waitUntil((async()=>{const post=async msg=>{for(const client of await self.clients.matchAll({includeUncontrolled:true}))client.postMessage(msg)};try{const urls=await fetch('asset-list.json').then(r=>r.json()),cache=await caches.open(CACHE);let done=0;for(let i=0;i<urls.length;i+=6){await Promise.all(urls.slice(i,i+6).map(async url=>{if(!await cache.match(url)){const r=await fetch(url);if(!r.ok)throw Error(url);await cache.put(url,r)}done++}));await post({type:'CACHE_PROGRESS',done,total:urls.length})}await post({type:'CACHE_DONE'})}catch(err){await post({type:'CACHE_ERROR',message:String(err)})}finally{busy=false}})())});
+// One-time migration for installed v0.1.1/v0.1.2 clients. No fetch handler or offline cache.
+self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{
+ await self.clients.claim();
+ await Promise.all((await caches.keys()).filter(key=>key.startsWith('ministar-')).map(key=>caches.delete(key)));
+ await self.registration.unregister();
+ const scope=new URL(self.registration.scope);
+ for(const client of await self.clients.matchAll({type:'window'})){
+  const url=new URL(client.url);
+  if(url.origin===scope.origin&&url.pathname.startsWith(scope.pathname)){
+   url.searchParams.set('v','0.1.3');
+   await client.navigate(url.href);
+  }
+ }
+})()));
