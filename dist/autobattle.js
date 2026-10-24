@@ -34,7 +34,7 @@ export class Battle extends EconomyBattle{
  canSee(){return true}
  updateVision(){this.fog.fill(1);this.explored.fill(1)}
  get inspectedUnit(){return this.units.find(u=>u.id===this.inspectedId&&u.alive&&!u.hidden&&!u.loaded&&this.canSee(0,u))||null}
- isHighlighted(u){return this.selection.includes(u.id)||this.inspectedUnit===u}
+ isHighlighted(u){return this.selection.includes(u.id)||this.inspectedId===u.id&&this.inspectedUnit===u}
  select(ids,voice=true){this.inspectedId=null;return super.select(ids.filter(id=>{const u=this.units.find(a=>a.id===id);return u?.alive&&u.team===0&&!u.hidden}),voice)}
  inspect(unit){
   if(!unit?.alive||unit.hidden||unit.loaded||!this.canSee(0,unit))return false;
