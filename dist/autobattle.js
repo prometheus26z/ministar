@@ -1,14 +1,14 @@
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.6.0';
-import {clamp,dist} from './core.js?v=0.6.0';
-import {BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,constructionSeconds,buildingCost} from './lane-rules.js?v=0.6.0';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.7.0';
+import {clamp,dist} from './core.js?v=0.7.0';
+import {BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.7.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
-export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT};
+export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 
 export class Battle extends EconomyBattle{
  constructor(data,options={}){
   super(data,options);
   this.laneMode=true;
-  this.map.rocks=[{x:0,y:640,w:320,h:768},{x:960,y:640,w:320,h:768}];
+  this.map.elevation=true;this.map.rocks=[];this.map.water=[{x:0,y:640,w:320,h:768},{x:960,y:640,w:320,h:768}];
   this.phase='title';
   this.timeLimit=Infinity;
   this.waveClock=WAVE_SECONDS;
@@ -53,7 +53,7 @@ export class Battle extends EconomyBattle{
   this.refreshSupply();this.updateVision();this.select([],false);this.emit('phase');this.emit('change');return true;
  }
  installSide(team){
-  const mainY=team?160:1888,outpostY=team?590:1458,baseType=BASE[this.race];
+  const mainY=team?160:1888,outpostY=team?480:1568,baseType=BASE[this.race];
   const main=this.create(baseType,team,640,mainY);main.isMain=true;main.order='hold';
   const outpost={id:`outpost-${team}`,team,x:640,y:outpostY};
   return {main,outpost,team};
@@ -100,14 +100,13 @@ export class Battle extends EconomyBattle{
   return this.costReason(this.buildingCost(type));
  }
  placement(worker,type,point){
-  type=Number(type);if(point.y<PRODUCTION_OFFSET+GAS_SLOT_Y-112||point.y>PRODUCTION_OFFSET+PRODUCTION_HEIGHT-80)return {point,reason:'생산 공간 안에 배치하세요.'};const spec=BUILDINGS[type],size=this.footprint(type),p={x:Math.round(point.x/32)*32,y:PRODUCTION_OFFSET+Math.round((point.y-PRODUCTION_OFFSET)/32)*32};
+  type=Number(type);const spec=BUILDINGS[type],size=this.footprint(type),p={x:Math.round((point.x-size[0]/2)/32)*32+size[0]/2,y:Math.round((point.y-PRODUCTION_OFFSET-size[1]/2)/32)*32+size[1]/2+PRODUCTION_OFFSET};
   const reason=this.buildReason(this.builder,type);if(reason)return {point:p,reason};
-  if(p.x-size[0]/2<16||p.x+size[0]/2>1264)return {point:p,reason:'생산 구역 안에 배치하세요.'};
-  if(p.y-size[1]/2<PRODUCTION_OFFSET+GAS_SLOT_Y-112||p.y+size[1]/2>PRODUCTION_OFFSET+PRODUCTION_HEIGHT-80)return {point:p,reason:'생산 구역 안에 배치하세요.'};
   let gasNode=null;if(spec?.gas){gasNode=this.nodes.find(n=>n.team===0&&n.kind==='gas'&&!n.occupiedBy&&dist(n,p)<100);if(gasNode){p.x=gasNode.x;p.y=gasNode.y}}
   if(spec?.gas&&!gasNode)return {point:p,reason:'비어 있는 가스 지점에 건설하세요.'};
-  for(const u of this.units.filter(u=>u.alive&&u.team===0&&u.productionOnly&&u.def.building)){const [w,h]=this.footprint(u.type);if(Math.abs(u.x-p.x)<(w+size[0])/2+6&&Math.abs(u.y-p.y)<(h+size[1])/2+6)return {point:p,reason:'건물이 겹칩니다.'}}
-  for(const node of this.nodes)if(node.team===0&&node!==gasNode&&node.amount>0&&Math.abs(node.x-p.x)<size[0]/2+node.r+6&&Math.abs(node.y-p.y)<size[1]/2+node.r+6)return {point:p,reason:'가스 지점과 겹칩니다.'};
+  if(p.x-size[0]/2<PRODUCTION_GROUND_X||p.x+size[0]/2>PRODUCTION_GROUND_X+PRODUCTION_GROUND_WIDTH||p.y-size[1]/2<PRODUCTION_OFFSET+PRODUCTION_GROUND_Y||p.y+size[1]/2>PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT)return {point:p,reason:'육지 안에 건물을 배치하세요.'};
+  for(const u of this.units.filter(u=>u.alive&&u.team===0&&u.productionOnly&&u.def.building)){const [w,h]=this.footprint(u.type);if(Math.abs(u.x-p.x)<(w+size[0])/2&&Math.abs(u.y-p.y)<(h+size[1])/2)return {point:p,reason:'건물이 겹칩니다.'}}
+  for(const node of this.nodes)if(node.team===0&&node!==gasNode&&node.amount>0&&Math.abs(node.x-p.x)<size[0]/2+node.r&&Math.abs(node.y-p.y)<size[1]/2+node.r)return {point:p,reason:'가스 지점과 겹칩니다.'};
   if(spec?.psi&&!this.units.some(u=>u.alive&&u.team===0&&u.type===156&&this.ready(u)&&this.inPsi(p,u)))return {point:p,reason:'파일런의 전력 범위 안에 배치하세요.'};
   return {point:p,reason:'',gasNode};
  }
@@ -128,8 +127,8 @@ export class Battle extends EconomyBattle{
   if(this.allies.some(u=>u.parent===parent.id))return '이미 부속 건물이 있습니다.';
   const missing=this.prerequisites(spec.requires);if(missing.length)return '필요: '+missing.join(', ');
   const parentSize=this.footprint(parent.type),size=this.footprint(type),p={x:parent.x+parentSize[0]/2+size[0]/2,y:parent.y};
-  if(p.x-size[0]/2<16||p.x+size[0]/2>1264||p.y-size[1]/2<PRODUCTION_OFFSET+GAS_SLOT_Y-112||p.y+size[1]/2>PRODUCTION_OFFSET+PRODUCTION_HEIGHT-80)return '생산 구역 안에 부착할 공간이 없습니다.';
-  for(const u of this.units.filter(u=>u.alive&&u.team===0&&u.productionOnly&&u.def.building&&u!==parent)){const other=this.footprint(u.type);if(Math.abs(u.x-p.x)<(other[0]+size[0])/2+6&&Math.abs(u.y-p.y)<(other[1]+size[1])/2+6)return '부속 건물을 만들 공간이 없습니다.'}
+  if(p.x-size[0]/2<PRODUCTION_GROUND_X||p.x+size[0]/2>PRODUCTION_GROUND_X+PRODUCTION_GROUND_WIDTH||p.y-size[1]/2<PRODUCTION_OFFSET+PRODUCTION_GROUND_Y||p.y+size[1]/2>PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT)return '육지 안에 부속 건물을 붙일 공간이 없습니다.';
+  for(const u of this.units.filter(u=>u.alive&&u.team===0&&u.productionOnly&&u.def.building&&u!==parent)){const other=this.footprint(u.type);if(Math.abs(u.x-p.x)<(other[0]+size[0])/2&&Math.abs(u.y-p.y)<(other[1]+size[1])/2)return '부속 건물이 겹칩니다.'}
   return this.costReason(this.buildingCost(type));
  }
  addon(parent,type){
@@ -163,7 +162,7 @@ export class Battle extends EconomyBattle{
  botBuild(plan){
   const def=this.data.units[plan.type],cost=this.buildingCost(plan.type);if(!def||this.botMoney<cost[0]||this.botGas<cost[1])return false;
   this.botMoney-=cost[0];this.botGas-=cost[1];
-  const u=this.create(plan.type,1,1280-plan.x,PRODUCTION_OFFSET+2048-plan.y);u.completed=false;u.hp=Math.max(1,def.hp*.1);u.parent='bot-builder';u.productionOnly=true;
+  const x=PRODUCTION_GROUND_X+plan.x/1280*PRODUCTION_GROUND_WIDTH,y=PRODUCTION_GROUND_Y+(1-plan.y/PRODUCTION_HEIGHT)*PRODUCTION_GROUND_HEIGHT,u=this.create(plan.type,1,1280-x,PRODUCTION_OFFSET+y);u.completed=false;u.hp=Math.max(1,def.hp*.1);u.parent='bot-builder';u.productionOnly=true;
   u.construction={time:0,total:this.constructionSeconds(plan.type),builder:null,started:true,cost:[...cost],original:null};return true;
  }
  botBuildGas(){

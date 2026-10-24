@@ -1,8 +1,12 @@
 export const WAVE_SECONDS=25;
 export const PRODUCTION_OFFSET=2304;
 export const PRODUCTION_HEIGHT=2048;
-export const GAS_SLOT_Y=256;
-export const GAS_SLOT_X=Object.freeze([128,384,640,896,1152]);
+export const PRODUCTION_GROUND_WIDTH=Math.round(1280*.8);
+export const PRODUCTION_GROUND_HEIGHT=Math.round(PRODUCTION_HEIGHT*.6);
+export const PRODUCTION_GROUND_X=Math.round((1280-PRODUCTION_GROUND_WIDTH)/2);
+export const PRODUCTION_GROUND_Y=Math.round((PRODUCTION_HEIGHT-PRODUCTION_GROUND_HEIGHT)/2);
+export const GAS_SLOT_Y=560;
+export const GAS_SLOT_X=Object.freeze([256,448,640,832,1024]);
 export const GAS_BUILDING=Object.freeze({terran:110,zerg:149,protoss:157});
 
 // A completed building always contributes this fixed unit group to the next wave.
