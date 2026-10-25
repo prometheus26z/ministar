@@ -1,0 +1,95 @@
+{
+  "reference": "PR #4 gameplay before the spatial/UI performance changes",
+  "runtime": "v24.22.1",
+  "simulationStepSeconds": 0.03333333333333333,
+  "warmupSteps": 10,
+  "measuredSteps": 60,
+  "referenceResults": [
+    {
+      "count": 120,
+      "scene": "march",
+      "medianMs": 3.218,
+      "p95Ms": 6.954,
+      "targetChecks": 1111040
+    },
+    {
+      "count": 120,
+      "scene": "contact",
+      "medianMs": 4.311,
+      "p95Ms": 13.02,
+      "targetChecks": 58670
+    },
+    {
+      "count": 360,
+      "scene": "march",
+      "medianMs": 29.344,
+      "p95Ms": 41.419,
+      "targetChecks": 9376640
+    },
+    {
+      "count": 360,
+      "scene": "contact",
+      "medianMs": 58.336,
+      "p95Ms": 127.365,
+      "targetChecks": 309537
+    },
+    {
+      "count": 600,
+      "scene": "march",
+      "medianMs": 79.682,
+      "p95Ms": 90.923,
+      "targetChecks": 25706240
+    },
+    {
+      "count": 600,
+      "scene": "contact",
+      "medianMs": 186.647,
+      "p95Ms": 305.789,
+      "targetChecks": 934987
+    }
+  ],
+  "releaseResults": [
+    {
+      "count": 120,
+      "scene": "march",
+      "medianMs": 2.89,
+      "p95Ms": 5.269,
+      "targetChecks": 555818
+    },
+    {
+      "count": 120,
+      "scene": "contact",
+      "medianMs": 2.516,
+      "p95Ms": 7.646,
+      "targetChecks": 41191
+    },
+    {
+      "count": 360,
+      "scene": "march",
+      "medianMs": 18.329,
+      "p95Ms": 31.416,
+      "targetChecks": 3692995
+    },
+    {
+      "count": 360,
+      "scene": "contact",
+      "medianMs": 20.508,
+      "p95Ms": 34.701,
+      "targetChecks": 246810
+    },
+    {
+      "count": 600,
+      "scene": "march",
+      "medianMs": 44.529,
+      "p95Ms": 53.436,
+      "targetChecks": 9001990
+    },
+    {
+      "count": 600,
+      "scene": "contact",
+      "medianMs": 72.181,
+      "p95Ms": 99.333,
+      "targetChecks": 811596
+    }
+  ]
+}

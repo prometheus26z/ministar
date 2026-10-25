@@ -1,5 +1,6 @@
-import {layeredActionSeconds} from './animation.js?v=0.16.8';
-export const VERSION='0.16.8';
+import {UnitGrid} from './spatial.js?v=0.16.9';
+import {layeredActionSeconds} from './animation.js?v=0.16.9';
+export const VERSION='0.16.9';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
@@ -19,7 +20,12 @@ export class Battle{
  constructor(data,{race='terran',difficulty='normal'}={}){this.data=data;this.race=race;this.difficulty=difficulty;this.phase='title';this.money=1200;this.gas=600;this.maxSupply=30;this.prepLeft=60;this.timeLeft=300;this.time=0;this.paused=false;this.menuOpen=false;this.targeting=null;this.selection=[];this.groups=Array.from({length:10},()=>[]);this.units=[];this.projectiles=[];this.areas=[];this.effects=[];this.map=new Battlefield();this.fog=new Uint8Array(2560);this.explored=new Uint8Array(2560);this.nextId=1;this.listeners=[];this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.visionTimer=0;this.result=null;}
  on(fn){this.listeners.push(fn);return()=>this.listeners=this.listeners.filter(x=>x!==fn)}emit(type,rest={}){for(const fn of this.listeners)fn({type,...rest})}
  get allies(){return this.units.filter(u=>u.team===0&&u.alive&&!u.refunded)}get selected(){return this.selection.map(id=>this.units.find(u=>u.id===id)).filter(u=>u?.alive&&!u.loaded)}get supply(){return this.allies.reduce((n,u)=>n+u.def.supply,0)}get battleTimeScale(){return this.phase==='battle'&&this.menuOpen?.5:1}get timeScale(){return this.battleTimeScale}
- create(type,team,x,y){const def=this.data.units[type];if(!def)return null;const u={id:this.nextId++,type:Number(type),def,team,x,y,r:def.radius||10,hp:def.hp,maxHp:def.hp,shield:def.shield,energy:def.energy?Math.min(200,def.energy):0,alive:true,loaded:null,passengers:[],cooldown:0,action:'idle',animTime:0,visualTime:0,direction:0,order:'stop',goal:null,path:[],anchor:{x,y},buffs:{},cloaked:!!def.cloak,burrowed:false,lurkerState:type===103?'ground':null,lurkerTransition:0,lurkerTransitionCount:0,lurkerSpines:[],sieged:false,matrix:0,mines:3,aiClock:0,target:null};this.units.push(u);return u;}
+ create(type,team,x,y){const def=this.data.units[type];if(!def)return null;const u={id:this.nextId++,type:Number(type),def,team,x,y,r:def.radius||10,hp:def.hp,maxHp:def.hp,shield:def.shield,energy:def.energy?Math.min(200,def.energy):0,alive:true,loaded:null,passengers:[],cooldown:0,action:'idle',animTime:0,visualTime:0,direction:0,order:'stop',goal:null,path:[],anchor:{x,y},buffs:{},cloaked:!!def.cloak,burrowed:false,lurkerState:type===103?'ground':null,lurkerTransition:0,lurkerTransitionCount:0,lurkerSpines:[],sieged:false,matrix:0,mines:3,aiClock:0,target:null};this.units.push(u);this.spatial?.add(u);return u;}
+ // The index lives only during a simulation step. External edits and UI queries
+ // use the authoritative array; every step rebuilds it before any unit acts.
+ nearby(point,radius){return this.spatial?this.spatial.query(point,radius,this.units):this.units}
+ findUnit(id){return this.spatial?this.spatial.byId.get(id):this.units.find(u=>u.id===id)}
+ spatialRange(radius,extent=false){return radius+(this.spatial?(extent?this.spatial.maxExtent:this.spatial.maxRadius):0)}
  begin(){if(this.phase!=='title')return false;this.phase='prep';this.setupEnemy();this.updateVision();this.emit('phase');return true}
  setupEnemy(){this.core=this.create(106,1,640,220);const factor=this.difficulty==='easy'?.65:this.difficulty==='hard'?1.3:1;this.core.hp=this.core.maxHp=this.core.def.hp*factor;for(const [t,x,y]of[[125,560,510],[124,760,480],[109,450,360],[109,850,360],[0,540,850],[0,700,850],[0,600,880],[0,740,920],[3,960,950],[5,320,720],[0,630,430],[0,690,420]]){const u=this.create(t,1,x,y);if(u.def.building)u.hp=u.maxHp=u.def.hp*factor;u.order='hold'}if(this.difficulty==='hard')for(let i=0;i<6;i++)this.create(i%2?3:0,1,500+i*45,570);}
  buy(type){type=Number(type);const d=this.data.units[type];if(this.phase!=='prep'||!d||!this.data.races[this.race].includes(type))return false;const q=d.qty||1;if(this.money<d.cost[0]||this.gas<d.cost[1]||this.supply+q*d.supply>30)return false;this.money-=d.cost[0];this.gas-=d.cost[1];const created=[];for(let i=0;i<q;i++){const n=this.allies.length,u=this.create(type,0,420+n%8*60,1810+Math.floor(n/8)*50);u.purchase={cost:d.cost.map(n=>n/q)};created.push(u)}this.produced+=q;this.select(created.map(u=>u.id),false);this.updateVision();this.emit('change');return true;}
@@ -63,10 +69,11 @@ export class Battle{
   else if(key==='recall'){for(const a of this.allies.filter(a=>dist(a,p)<110&&!a.def.building&&!a.loaded)){a.x=u.x+Math.random()*80-40;a.y=u.y+Math.random()*80-40;a.goal=null;a.path=[]}}
   else if(key==='emp'){for(const a of this.units.filter(a=>a.alive&&dist(a,p)<96)){a.shield=0;a.energy=0}}
   else{const durations={storm:3,swarm:30,web:20,plague:20,ensnare:30,stasis:15,maelstrom:12};this.areas.push({kind:key,x:p.x,y:p.y,r:key==='storm'?64:96,left:durations[key]||12,duration:durations[key]||12,team:u.team});}
+  if(key==='recall'||key==='unload')for(const a of this.units)this.spatial?.update(a);
   u.energy=Math.max(0,u.energy-s[2]);this.emit('change');return true;
  }
  detectedBy(team,u){
-  for(const detector of this.units){
+  for(const detector of this.nearby(u,(this.spatial?.maxSight||0)+u.r)){
    if(!detector.alive||detector.team!==team||!detector.def.detector||detector.loaded||detector.hidden||detector.productionOnly||detector.buffs?.stasis>0)continue;
    if(detector.construction&&!this.ready(detector))continue;
    if(detector.def.building&&typeof this.powered==='function'&&!this.powered(detector)&&!detector.isMain&&!detector.isOutpost)continue;
@@ -81,7 +88,7 @@ export class Battle{
  weapon(u,target){if(u.type===103?u.lurkerState!=='burrowed':u.burrowed)return null;const type=u.sieged?30:u.type,def=this.data.units[type]||u.def,w=this.data.weapons[target.def.air?def.airWeapon:def.groundWeapon];if(!w||!w.damage||target.def.air&&!w.air||!target.def.air&&!w.ground)return null;return w;}
  edgeDistance(a,b){if(b.def.building){const [w,h]=b.def.footprint||this.data.units[b.type]?.footprint||[64,64],dx=Math.max(0,Math.abs(a.x-b.x)-w/2),dy=Math.max(0,Math.abs(a.y-b.y)-h/2);return Math.max(0,Math.hypot(dx,dy)-(a.r||0))}return Math.max(0,dist(a,b)-(a.r||0)-(b.r||0))}
  canAttackTarget(u,t){return !!t&&t.alive&&!t.hidden&&!t.productionOnly&&!t.loaded&&t.team!==u.team&&this.canSee(u.team,t)&&!!this.weapon(u,t)&&!t.buffs?.stasis}
- approachPath(u,t,edgeRange){const [w,h]=t.def.building?(t.def.footprint||this.data.units[t.type]?.footprint||[64,64]):[0,0],angles=[0,Math.PI/4,Math.PI/2,Math.PI*3/4,Math.PI,-Math.PI*3/4,-Math.PI/2,-Math.PI/4],direct=[],blocked=(a,b)=>{if(u.def.air)return false;const steps=Math.ceil(dist(a,b)/20);for(let i=1;i<=steps;i++){const f=i/steps;if(this.map.blocked(a.x+(b.x-a.x)*f,a.y+(b.y-a.y)*f,u.r*.55))return true}return false},crowdAt=p=>this.units.reduce((n,a)=>n+(a!==u&&a.alive&&!a.hidden&&!a.productionOnly&&!a.loaded&&!a.def.building&&a.def.air===u.def.air&&dist(a,p)<u.r+a.r+10?Math.max(0,u.r+a.r+10-dist(a,p))*2:0),0),points=[];
+ approachPath(u,t,edgeRange){const [w,h]=t.def.building?(t.def.footprint||this.data.units[t.type]?.footprint||[64,64]):[0,0],angles=[0,Math.PI/4,Math.PI/2,Math.PI*3/4,Math.PI,-Math.PI*3/4,-Math.PI/2,-Math.PI/4],direct=[],blocked=(a,b)=>{if(u.def.air)return false;const steps=Math.ceil(dist(a,b)/20);for(let i=1;i<=steps;i++){const f=i/steps;if(this.map.blocked(a.x+(b.x-a.x)*f,a.y+(b.y-a.y)*f,u.r*.55))return true}return false},crowdAt=p=>this.nearby(p,this.spatialRange(u.r+10)).reduce((n,a)=>n+(a!==u&&a.alive&&!a.hidden&&!a.productionOnly&&!a.loaded&&!a.def.building&&a.def.air===u.def.air&&dist(a,p)<u.r+a.r+10?Math.max(0,u.r+a.r+10-dist(a,p))*2:0),0),points=[];
   for(const angle of angles){const dx=Math.cos(angle),dy=Math.sin(angle),boundary=t.def.building?Math.min(Math.abs(dx)>1e-4?w/2/Math.abs(dx):Infinity,Math.abs(dy)>1e-4?h/2/Math.abs(dy):Infinity):t.r,p={x:clamp(t.x+dx*(boundary+u.r+edgeRange),20,1260),y:clamp(t.y+dy*(boundary+u.r+edgeRange),20,2028)};if(!u.def.air&&this.map.blocked(p.x,p.y,u.r*.55))continue;points.push(p);if(!blocked(u,p))direct.push({path:[p],point:p,score:dist(u,p)+crowdAt(p)})}
   if(direct.length)return direct.sort((a,b)=>a.score-b.score)[0];const routed=[];for(const p of points){if(!u.def.air&&this.map.blocked(p.x,p.y,20))continue;const path=this.map.path(u,p,u.def.air);if(!path.length||dist(path[path.length-1],p)>36)continue;if(dist(path[path.length-1],p)>4){if(blocked(path[path.length-1],p))continue;path.push(p)}let length=dist(u,path[0]);for(let i=1;i<path.length;i++)length+=dist(path[i-1],path[i]);routed.push({path,point:p,score:length+crowdAt(p)})}return routed.sort((a,b)=>a.score-b.score)[0]||null;
  }
@@ -89,22 +96,22 @@ export class Battle{
  unitThreatens(attacker,target){if(!attacker?.alive||attacker.hidden||attacker.productionOnly||attacker.loaded||attacker.buffs.stasis>0||attacker.buffs.lockdown>0||attacker.buffs.maelstrom>0)return false;if(attacker.def.building&&typeof this.powered==='function'&&!this.powered(attacker))return false;if(attacker.garrison?.length)return attacker.garrison.some(id=>{const d=this.data.units[id],w=this.data.weapons[target.def.air?d?.airWeapon:d?.groundWeapon];return !!w?.damage&&(target.def.air?w.air:w.ground)});return !!this.weapon(attacker,target)}
  activelyAttacking(attacker,target){return !!attacker?.alive&&attacker.target===target&&['attack','airAttack'].includes(attacker.action)}
  betterTarget(u,current){
-  const aggro=this.units.find(t=>t.id===u.aggroTarget&&this.canAttackTarget(u,t));
+  const aggro=[this.findUnit(u.aggroTarget)].find(t=>this.canAttackTarget(u,t));
   if(u.order!=='focus'&&aggro&&u.aggroUntil>this.time){if(current===aggro)return aggro;if(this.activelyAttacking(current,u))return current;return aggro}
-  const cw=this.weapon(u,current),base=this.targetScore(u,current,cw),threats=this.units.filter(t=>t!==current&&this.canAttackTarget(u,t)&&dist(u,t)<=u.def.sight+u.r+t.r).map(t=>({t,w:this.weapon(u,t),edge:this.edgeDistance(u,t)})).filter(a=>a.edge<=a.w.range&&a.edge>=(a.w.minRange||0)).sort((a,b)=>this.targetScore(u,a.t,a.w)-this.targetScore(u,b.t,b.w));
+  const cw=this.weapon(u,current),base=this.targetScore(u,current,cw),threats=this.nearby(u,this.spatialRange(u.def.sight+u.r)).filter(t=>t!==current&&this.canAttackTarget(u,t)&&dist(u,t)<=u.def.sight+u.r+t.r).map(t=>({t,w:this.weapon(u,t),edge:this.edgeDistance(u,t)})).filter(a=>a.edge<=a.w.range&&a.edge>=(a.w.minRange||0)).sort((a,b)=>this.targetScore(u,a.t,a.w)-this.targetScore(u,b.t,b.w));
   return threats.length&&base-this.targetScore(u,threats[0].t,threats[0].w)>80?threats[0].t:current;
  }
- acquireTarget(u){const candidates=this.units.filter(t=>this.canAttackTarget(u,t)&&dist(u,t)<=u.def.sight+u.r+t.r);const unavailable=u.unreachableTargets||{};const source=this.units.find(t=>t.id===u.aggroTarget&&this.canAttackTarget(u,t));if(source&&u.aggroUntil>this.time&&(!unavailable[source.id]||unavailable[source.id]<=this.time)&&dist(u,source)<=u.def.sight+u.r+source.r){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
+ acquireTarget(u){const candidates=this.nearby(u,this.spatialRange(u.def.sight+u.r)).filter(t=>this.canAttackTarget(u,t)&&dist(u,t)<=u.def.sight+u.r+t.r);const unavailable=u.unreachableTargets||{};const source=[this.findUnit(u.aggroTarget)].find(t=>this.canAttackTarget(u,t));if(source&&u.aggroUntil>this.time&&(!unavailable[source.id]||unavailable[source.id]<=this.time)&&dist(u,source)<=u.def.sight+u.r+source.r){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
   const scored=candidates.filter(t=>!unavailable[t.id]||unavailable[t.id]<=this.time).map(t=>{const w=this.weapon(u,t),edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge);return{t,w,edge,gap,minGap,score:this.targetScore(u,t,w)}}).sort((a,b)=>a.score-b.score);
   for(const c of scored){if(c.gap<=0&&c.minGap<=0)return c.t;if(u.order==='hold')continue;if(this.approachPath(u,c.t,Math.max(c.w.minRange||0,c.w.range-3)))return c.t;u.unreachableTargets||={};u.unreachableTargets[c.t.id]=this.time+1.5}
   return null;
  }
- moveCombat(u,p,dt){if(!p)return false;let dx=p.x-u.x,dy=p.y-u.y,length=Math.hypot(dx,dy)||1;if(length<3&&length>.05){if(u.def.air||!this.map.blocked(p.x,p.y,u.r*.55)){u.x=p.x;u.y=p.y;return true}return false}dx/=length;dy/=length;let rx=0,ry=0;for(const a of this.units){if(a===u||!a.alive||a.hidden||a.productionOnly||a.loaded||a.def.building||a.def.air!==u.def.air)continue;const d=dist(u,a),min=(u.r+a.r)*1.12;if(d<min){const scale=(min-d)/min/(d||1);rx+=(u.x-a.x)*scale;ry+=(u.y-a.y)*scale}}dx+=rx*.75;dy+=ry*.75;const directionLength=Math.hypot(dx,dy)||1;const base=Math.atan2(dy/directionLength,dx/directionLength);const stride=Math.min(80,Math.hypot(p.x-u.x,p.y-u.y));for(const offset of[0,.45,-.45,.9,-.9,1.35,-1.35]){const angle=base+offset;if(this.move(u,{x:u.x+Math.cos(angle)*stride,y:u.y+Math.sin(angle)*stride},dt))return true}return false;
+ moveCombat(u,p,dt){if(!p)return false;let dx=p.x-u.x,dy=p.y-u.y,length=Math.hypot(dx,dy)||1;if(length<3&&length>.05){if(u.def.air||!this.map.blocked(p.x,p.y,u.r*.55)){u.x=p.x;u.y=p.y;this.spatial?.update(u);return true}return false}dx/=length;dy/=length;let rx=0,ry=0;for(const a of this.nearby(u,this.spatialRange(u.r)*1.12)){if(a===u||!a.alive||a.hidden||a.productionOnly||a.loaded||a.def.building||a.def.air!==u.def.air)continue;const d=dist(u,a),min=(u.r+a.r)*1.12;if(d<min){const scale=(min-d)/min/(d||1);rx+=(u.x-a.x)*scale;ry+=(u.y-a.y)*scale}}dx+=rx*.75;dy+=ry*.75;const directionLength=Math.hypot(dx,dy)||1;const base=Math.atan2(dy/directionLength,dx/directionLength);const stride=Math.min(80,Math.hypot(p.x-u.x,p.y-u.y));for(const offset of[0,.45,-.45,.9,-.9,1.35,-1.35]){const angle=base+offset;if(this.move(u,{x:u.x+Math.cos(angle)*stride,y:u.y+Math.sin(angle)*stride},dt))return true}return false;
  }
  medicAssigned(m,t){return this.units.some(a=>a!==m&&a.type===34&&a.alive&&!a.hidden&&!a.productionOnly&&!a.loaded&&a.energy>=1&&!a.buffs.stasis&&!a.buffs.lockdown&&!a.buffs.maelstrom&&a.healTarget===t&&this.medicTargetValid(a,t))}
  medicTargetValid(m,t){return !!t&&t.alive&&!t.hidden&&!t.productionOnly&&!t.loaded&&t.team===m.team&&t!==m&&t.def.organic&&!t.def.building&&!t.def.air&&!t.hallucination&&!t.buffs.stasis&&!t.buffs.lockdown&&!t.buffs.maelstrom&&t.hp<t.maxHp}
  medicHeal(m,dt){if(m.type!==34)return false;const release=()=>{m.healTarget=null;m.healPath=[];if(m.goal)m.path=this.map.path(m,m.goal,m.def.air)};if(m.order==='move'||m.energy<1){if(m.healTarget)release();return false}if((!this.medicTargetValid(m,m.healTarget)||this.medicAssigned(m,m.healTarget)||m.order==='hold'&&this.edgeDistance(m,m.healTarget)>30)&&m.healTarget)release();
-  if(!m.healTarget){const candidates=this.units.filter(t=>this.medicTargetValid(m,t)&&dist(m,t)<=160&&(m.order!=='hold'||this.edgeDistance(m,t)<=30)&&!this.medicAssigned(m,t)&&!(m.healUnavailable?.[t.id]>this.time)).map(t=>({t,missing:t.maxHp-t.hp,score:dist(m,t)-(t.maxHp-t.hp)*.08})).sort((a,b)=>a.score-b.score);m.healTarget=candidates[0]?.t||null}
+  if(!m.healTarget){const candidates=this.nearby(m,160).filter(t=>this.medicTargetValid(m,t)&&dist(m,t)<=160&&(m.order!=='hold'||this.edgeDistance(m,t)<=30)&&!this.medicAssigned(m,t)&&!(m.healUnavailable?.[t.id]>this.time)).map(t=>({t,missing:t.maxHp-t.hp,score:dist(m,t)-(t.maxHp-t.hp)*.08})).sort((a,b)=>a.score-b.score);m.healTarget=candidates[0]?.t||null}
   const t=m.healTarget;if(!t)return false;
   if(this.edgeDistance(m,t)<=30){const amount=Math.min(18.75*dt,t.maxHp-t.hp,m.energy*2);if(amount>0){t.hp=Math.min(t.maxHp,t.hp+amount);m.energy=Math.max(0,m.energy-amount*.5);m.action='cast'}if(t.hp>=t.maxHp||m.energy<=0)release();return true}
   m.healPathClock=(m.healPathClock||0)-dt;if(!m.healPath?.length||m.healPathClock<=0||m.healPathTarget!==t.id||m.healPathPoint&&dist(m.healPathPoint,t)>20){const path=this.approachPath(m,t,27);m.healPath=path?.path||[];m.healPathTarget=t.id;m.healPathPoint={x:t.x,y:t.y};m.healPathClock=.55;if(!m.healPath.length){m.healUnavailable||={};m.healUnavailable[t.id]=this.time+1;release();return false}}
@@ -124,7 +131,7 @@ export class Battle{
  }
  uphillMiss(attacker,target,weapon){return !attacker.def.air&&!target.def.air&&weapon.range>=40&&this.map.heightAt(target.x,target.y)>this.map.heightAt(attacker.x,attacker.y)&&Math.random()<HIGH_GROUND_MISS_CHANCE;}
  missPoint(attacker,target){const angle=Math.random()*Math.PI*2,distance=24+Math.random()*24;return{x:target.x+Math.cos(angle)*distance,y:target.y+Math.sin(angle)*distance}}
- weaponImpact(target,weapon,damage,team,type,point,missed=false,attacker=null){if(!missed&&target?.alive){this.hitUnit(target,damage,team,type,point,attacker)}const [inner=0,medium=0,outer=0]=weapon.splash||[];if(!outer)return;for(const unit of this.units){if(!unit.alive||unit.loaded||unit.team===team||unit===target&&!missed||unit.def.air&&!weapon.air||!unit.def.air&&!weapon.ground)continue;const range=dist(unit,point),factor=range<=inner?1:range<=medium?.5:range<=outer?.25:0;if(factor)this.hitUnit(unit,damage*factor,team,type,null,attacker)}}
+ weaponImpact(target,weapon,damage,team,type,point,missed=false,attacker=null){if(!missed&&target?.alive){this.hitUnit(target,damage,team,type,point,attacker)}const [inner=0,medium=0,outer=0]=weapon.splash||[];if(!outer)return;for(const unit of this.nearby(point,outer)){if(!unit.alive||unit.loaded||unit.team===team||unit===target&&!missed||unit.def.air&&!weapon.air||!unit.def.air&&!weapon.ground)continue;const range=dist(unit,point),factor=range<=inner?1:range<=medium?.5:range<=outer?.25:0;if(factor)this.hitUnit(unit,damage*factor,team,type,null,attacker)}}
  hitUnit(u,damage,team,type,point=null,attacker=null){const hp=u.hp,shield=u.shield,matrix=u.matrix;this.hurt(u,damage,team,type);const hpLoss=hp-Math.max(0,u.hp),shieldLoss=shield-u.shield,matrixLoss=matrix-u.matrix;if(hpLoss>0||shieldLoss>0||matrixLoss>0){const source=attacker?.id?this.units.find(a=>a.id===attacker.id):null;if(source?.alive)this.onUnitDamaged(u,source)}}
  onUnitDamaged(victim,source){
   if(!this.unitThreatens(source,victim))return;
@@ -138,7 +145,7 @@ export class Battle{
    if(!old||!oldIsAttackingUnit||newInRange&&!oldInRange)u.target=source;
   };
   setAggro(victim);
-  for(const ally of this.units){if(ally===victim||!ally.alive||ally.loaded||ally.team!==victim.team||[7,41,64,67].includes(ally.type)||ally.burrowed||dist(ally,victim)>96||!this.unitThreatens(ally,source))continue;setAggro(ally)}
+  for(const ally of this.nearby(victim,96)){if(ally===victim||!ally.alive||ally.loaded||ally.team!==victim.team||[7,41,64,67].includes(ally.type)||ally.burrowed||dist(ally,victim)>96||!this.unitThreatens(ally,source))continue;setAggro(ally)}
  }
  fireLurkerSpines(u,target,weapon,damage){
   const angle=Math.atan2(target.y-u.y,target.x-u.x),speed=Math.max(1,weapon.speed||450),distance=weapon.range+20,endTick=Math.max(2,Math.ceil(distance/speed*24/2)*2);
@@ -146,7 +153,7 @@ export class Battle{
  }
  resolveLurkerSpine(wave,x,y){
   const radius=wave.weapon.splash?.[0]||20;
-  for(const target of this.units){
+  for(const target of this.nearby({x,y},this.spatialRange(radius,true))){
    if(!target.alive||target.team===wave.team||target.def.air||target.loaded||target.hidden||target.productionOnly||target.buffs?.stasis>0||wave.hitIds.has(target.id))continue;
    let gap;if(target.def.building){const [w,h]=target.def.footprint||[64,64];gap=Math.hypot(Math.max(0,Math.abs(x-target.x)-w/2),Math.max(0,Math.abs(y-target.y)-h/2))}else gap=Math.max(0,dist({x,y},target)-target.r);
    if(gap<=radius){wave.hitIds.add(target.id);this.hitUnit(target,wave.damage,wave.team,wave.weapon.type,{x,y},wave.source)}
@@ -163,7 +170,7 @@ export class Battle{
   for(const unit of this.units)unit.lurkerSpines=(unit.lurkerSpines||[]).filter(w=>w.nextTick<=w.endTick);
  }
  attack(u,t,w){u.cooldown=w.cooldown/(u.buffs.stim>0?1.5:1);u.action=t.def.air?'airAttack':'attack';u.animTime=0;u.direction=(Math.round(Math.atan2(t.x-u.x,u.y-t.y)*16/Math.PI)+32)%32;const sounds=this.data.graphics[u.def.image]?.tracks?.[u.action]?.sounds||[];if(sounds.length)this.emit('sfx',{id:sounds[Math.floor(Math.random()*sounds.length)]});const damage=u.hallucination?0:w.damage*(u.type===125?4:u.type===72?4:1)*(w.factor||1)*(t.def.air?u.def.airHits||1:u.def.groundHits||1);if(u.type===103&&w.id===109)this.fireLurkerSpines(u,t,w,damage);else{const missed=this.uphillMiss(u,t,w),impact=missed?this.missPoint(u,t):{x:t.x,y:t.y};if(w.behavior===2||w.range<40)this.weaponImpact(t,w,damage,u.team,w.type,impact,missed,u);else this.projectiles.push({x:u.x,y:u.y,endX:impact.x,endY:impact.y,target:t,source:u,team:u.team,image:w.image,elapsed:0,speed:Math.max(180,w.speed||400),damage,type:w.type,splash:w.splash,weapon:w,missed})}if([13,47,85].includes(u.type))this.die(u);}
- move(u,p,dt){if(u.def.building||u.burrowed||u.type===103&&u.lurkerState!=='ground'||u.sieged)return false;const speed=u.def.speed*(u.buffs.stim>0?1.5:1)*(u.buffs.ensnare>0?.5:1),d=dist(u,p);if(d<3)return false;const n=Math.min(d,speed*dt),x=u.x+(p.x-u.x)/d*n,y=u.y+(p.y-u.y)/d*n;u.direction=(Math.round(Math.atan2(p.x-u.x,u.y-p.y)*16/Math.PI)+32)%32;if(u.def.air||!this.map.blocked(x,y,u.r*.55)){u.x=x;u.y=y;u.action='walk';return true}return false;}
+ move(u,p,dt){if(u.def.building||u.burrowed||u.type===103&&u.lurkerState!=='ground'||u.sieged)return false;const speed=u.def.speed*(u.buffs.stim>0?1.5:1)*(u.buffs.ensnare>0?.5:1),d=dist(u,p);if(d<3)return false;const n=Math.min(d,speed*dt),x=u.x+(p.x-u.x)/d*n,y=u.y+(p.y-u.y)/d*n;u.direction=(Math.round(Math.atan2(p.x-u.x,u.y-p.y)*16/Math.PI)+32)%32;if(u.def.air||!this.map.blocked(x,y,u.r*.55)){u.x=x;u.y=y;this.spatial?.update(u);u.action='walk';return true}return false;}
  beginLurkerTransition(u){
   if(u.type!==103||!['ground','burrowed'].includes(u.lurkerState)||u.lurkerTransition>0)return false;
   const entering=u.lurkerState==='ground';u.lurkerTransitionCount=(u.lurkerTransitionCount||0)+1;u.lurkerAnimSeed=(Math.imul(u.id|0,1103515245)+Math.imul(u.lurkerTransitionCount,12345))|0;
@@ -183,7 +190,7 @@ export class Battle{
   if(u.loaded){const transport=this.units.find(a=>a.id===u.loaded);if(transport){u.x=transport.x;u.y=transport.y}return}
   for(const k in u.buffs)u.buffs[k]=Math.max(0,u.buffs[k]-dt);
   if(u.buffs.hallucination===0&&u.hallucination){this.die(u);return}
-  if(u.buffs.irradiate>0)for(const t of this.units.filter(a=>a.alive&&a.def.organic&&dist(a,u)<40))this.hurt(t,10*dt,u.irradiateOwner,3,true);
+  if(u.buffs.irradiate>0)for(const t of this.nearby(u,40).filter(a=>a.alive&&a.def.organic&&dist(a,u)<40))this.hurt(t,10*dt,u.irradiateOwner,3,true);
   if(u.cloaked&&!u.def.cloak){u.energy-=.9*dt;if(u.energy<=0)u.cloaked=false}else u.energy=Math.min(u.def.energy,u.energy+.5625*dt);
   if(u.shield<u.def.shield)u.shield=Math.min(u.def.shield,u.shield+.65*dt);
   if(u.def.race==='zerg')u.hp=Math.min(u.maxHp,u.hp+.015*dt);
@@ -209,9 +216,29 @@ export class Battle{
   if(u.goal){if(u.path.length){const p=u.path[0];this.move(u,p,dt);if(dist(u,p)<5)u.path.shift()}else if(u.order==='patrol'){const goal=u.goal;this.setGoal(u,u.anchor,'patrol');u.anchor=goal}else{u.goal=null;if(u.order!=='hold')u.order='stop';u.action='idle'}}else if(u.animTime>.5)u.action=u.burrowed?'burrow':'idle';
  }
  update(realDt){if(this.paused||!Number.isFinite(realDt)||realDt<=0)return;if(this.phase==='prep'){this.prepLeft=Math.max(0,this.prepLeft-realDt);if(!this.prepLeft)this.start();return}if(this.phase!=='battle')return;let left=realDt*this.battleTimeScale;while(left>0&&this.phase==='battle'){const dt=Math.min(left,1/30);left-=dt;this.step(dt)}}
- step(dt){this.time+=dt;this.timeLeft=Math.max(0,(this.timeLimit??300)-this.time);for(const u of [...this.units])this.tickUnit(u,dt);this.tickLurkerSpines(dt);const mobile=this.units.filter(u=>u.alive&&!u.loaded&&!u.def.building&&!u.sieged&&!u.burrowed);for(let i=0;i<mobile.length;i++)for(let j=i+1;j<mobile.length;j++){const a=mobile[i],b=mobile[j];if(a.def.air!==b.def.air)continue;let d=dist(a,b),r=(a.r+b.r);if(d<r){const dx=d?(a.x-b.x)/d:1,dy=d?(a.y-b.y)/d:0,p=Math.min((r-d)/2,dt*80);for(const [u,s]of[[a,1],[b,-1]]){const x=clamp(u.x+dx*p*s,16,1264),y=clamp(u.y+dy*p*s,16,2032);if(u.def.air||!this.map.blocked(x,y,u.r*.5)){u.x=x;u.y=y}}}}
+ step(dt){this.spatial=new UnitGrid(this.units);try{this.simulateStep(dt)}finally{this.spatial=null}}
+ simulateStep(dt){this.time+=dt;this.timeLeft=Math.max(0,(this.timeLimit??300)-this.time);for(const u of [...this.units]){this.tickUnit(u,dt);this.spatial?.update(u)};this.tickLurkerSpines(dt);const mobile=this.units.filter(u=>u.alive&&!u.loaded&&!u.def.building&&!u.sieged&&!u.burrowed);this.separateUnits(mobile,dt);
+
   for(const p of this.projectiles){p.elapsed+=dt;if(p.target?.alive&&!p.missed){p.endX=p.target.x;p.endY=p.target.y}const d=Math.hypot(p.endX-p.x,p.endY-p.y),n=p.speed*dt;if(d<=n){p.done=true;if(p.spell){if(p.target?.alive)this.hitUnit(p.target,p.damage,p.team,p.type,null,p.source)}else if(p.weapon)this.weaponImpact(p.target,p.weapon,p.damage,p.team,p.type,{x:p.endX,y:p.endY},p.missed,p.source)}else{p.x+=(p.endX-p.x)/d*n;p.y+=(p.endY-p.y)/d*n}}this.projectiles=this.projectiles.filter(p=>!p.done);
-  for(const a of this.areas){a.left-=dt;for(const u of this.units.filter(u=>u.alive&&!u.loaded&&dist(u,a)<a.r)){if(a.kind==='storm')this.hurt(u,112/3*dt,a.team,3,true);if(a.kind==='plague'&&u.hp>1)u.hp=Math.max(1,u.hp-15*dt);if(a.kind==='ensnare')u.buffs.ensnare=2;if(a.kind==='stasis')u.buffs.stasis=Math.max(u.buffs.stasis||0,a.left);if(a.kind==='maelstrom'&&u.def.organic)u.buffs.maelstrom=Math.max(u.buffs.maelstrom||0,a.left)}}this.areas=this.areas.filter(a=>a.left>0);this.effects=this.effects.filter(f=>(f.left-=dt)>0);this.visionTimer-=dt;if(this.visionTimer<=0){this.visionTimer=.15;this.updateVision()}if(!this.core?.alive)this.finish(true,'적 핵심 건물을 파괴했습니다.');else if(!this.allies.length)this.finish(false,'아군 병력이 전멸했습니다.');else if(this.timeLeft<=0)this.finish(false,'전투 제한시간이 종료되었습니다.');}
+  for(const a of this.areas){a.left-=dt;for(const u of this.nearby(a,a.r).filter(u=>u.alive&&!u.loaded&&dist(u,a)<a.r)){if(a.kind==='storm')this.hurt(u,112/3*dt,a.team,3,true);if(a.kind==='plague'&&u.hp>1)u.hp=Math.max(1,u.hp-15*dt);if(a.kind==='ensnare')u.buffs.ensnare=2;if(a.kind==='stasis')u.buffs.stasis=Math.max(u.buffs.stasis||0,a.left);if(a.kind==='maelstrom'&&u.def.organic)u.buffs.maelstrom=Math.max(u.buffs.maelstrom||0,a.left)}}this.areas=this.areas.filter(a=>a.left>0);this.effects=this.effects.filter(f=>(f.left-=dt)>0);this.visionTimer-=dt;if(this.visionTimer<=0){this.visionTimer=.15;this.updateVision()}if(!this.core?.alive)this.finish(true,'적 핵심 건물을 파괴했습니다.');else if(!this.allies.length)this.finish(false,'아군 병력이 전멸했습니다.');else if(this.timeLeft<=0)this.finish(false,'전투 제한시간이 종료되었습니다.');}
+ separateUnits(mobile,dt){
+  const order=new Map(mobile.map((u,i)=>[u,i]));
+  for(let i=0;i<mobile.length;i++){
+   const a=mobile[i];let after=i;
+   // Requery after a push: a can enter another cell during the same pass.
+   while(true){
+    let pushed=false;
+    for(const b of this.nearby(a,this.spatialRange(a.r))){
+     const j=order.get(b);if(j===undefined||j<=after||a.def.air!==b.def.air)continue;after=j;
+     const d=dist(a,b),r=a.r+b.r;if(d>=r)continue;
+     const dx=d?(a.x-b.x)/d:1,dy=d?(a.y-b.y)/d:0,p=Math.min((r-d)/2,dt*80);
+     for(const [u,sign]of [[a,1],[b,-1]]){const x=clamp(u.x+dx*p*sign,16,1264),y=clamp(u.y+dy*p*sign,16,2032);if(u.def.air||!this.map.blocked(x,y,u.r*.5)){u.x=x;u.y=y;this.spatial?.update(u)}}
+     pushed=true;break;
+    }
+    if(!pushed)break;
+   }
+  }
+ }
  finish(win,reason){if(this.phase!=='battle')return;this.phase='result';this.paused=false;this.closeMenu();this.result={win,reason,time:this.time,produced:this.produced,survivors:this.allies.length,kills:this.kills,losses:this.losses,damage:this.damageDone};this.emit('phase');this.emit('result',{result:this.result});}
 }
 

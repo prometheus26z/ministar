@@ -1,10 +1,13 @@
-import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.8';
-import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.16.8';
+import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.9';
+import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.16.9';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export class Battle extends CombatBattle{
  constructor(data,options){super(data,options);this.money=50;this.gas=0;this.maxSupply=0;this.timeLimit=Infinity;this.nodes=[];this.researched=new Set();this.orderSerial=1;this.economyClock=0;this.lastError='';this.produced=0;
- const terrainBlocked=this.map.blocked.bind(this.map);this.map.blocked=(x,y,r=0)=>terrainBlocked(x,y,r)||this.units.some(u=>{if(!u.alive||!u.def.building||u.construction&&!u.construction.started)return false;const [w,h]=this.footprint(u.type);return Math.abs(x-u.x)<w/2+r&&Math.abs(y-u.y)<h/2+r});
+ const terrainBlocked=this.map.blocked.bind(this.map);this.map.blocked=(x,y,r=0)=>terrainBlocked(x,y,r)||this.buildingObstacles().some(u=>{if(!u.alive||!u.def.building||u.construction&&!u.construction.started)return false;const [w,h]=this.footprint(u.type);return Math.abs(x-u.x)<w/2+r&&Math.abs(y-u.y)<h/2+r});
  }
+ // Only structures can block paths. Keep their live objects so construction
+ // starts, morphs and deaths are reflected immediately within this step.
+ buildingObstacles(){return this.spatial?this.spatial.buildings:this.units}
  get supply(){return this.allies.reduce((n,u)=>n+(u.egg?u.egg.supply:u.def.supply)+((u.queue||[]).reduce((s,q)=>s+(q.supply||0),0)),0)}
  get army(){return this.allies.filter(u=>!u.def.building&&u.type!==35&&!u.egg)}
  begin(){if(this.phase!=='title')return false;this.phase='battle';this.setupEnemy();this.nodes=[];for(const [x,y]of[[416,1904],[480,1936],[544,1952],[608,1968],[672,1968],[736,1952],[800,1936],[864,1904],[160,1472],[224,1504],[288,1536],[960,1472],[1024,1504],[1088,1536]])this.nodes.push({id:'mineral'+this.nodes.length,x,y,r:20,kind:'mineral',amount:1500});for(const [x,y]of[[864,1728],[192,1344],[1088,1344]])this.nodes.push({id:'geyser'+this.nodes.length,x,y,r:32,kind:'gas',amount:5000});this.main=this.create(BASE[this.race],0,640,1744);if(this.race==='zerg')for(let i=0;i<3;i++)this.spawnLarva(this.main);this.refreshSupply();this.select([this.main.id],false);this.updateVision();this.emit('phase');this.emit('change');return true}
