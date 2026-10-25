@@ -19,10 +19,10 @@ test('enemy inspection highlights a living unit without selecting it for allied 
 test('construction labels include every output group and non-producing structures',()=>{
  const b=fresh();assert.equal(waveDescription(111,b.waveUnitsForBuilding(111),data),'마린 6기');
  assert.equal(waveDescription(112,b.waveUnitsForBuilding(112),data),'파이어뱃 1기 · 메딕 1기');
- assert.equal(waveDescription(106,b.waveUnitsForBuilding(106),data),'출격 없음');
+ assert.match(waveDescription(106,b.waveUnitsForBuilding(106),data),/건설 기반/);
 });
 
-function setup(crew){const b=fresh(),bunker=b.outpostDefenses[0][0];for(const u of b.units)if(u!==bunker&&u.garrison)u.garrison=[];bunker.garrison=crew;return{b,bunker}}
+function setup(crew){const b=fresh(),bunker=b.makeBunker(0,640,1568);for(const u of b.units)if(u!==bunker&&u.garrison)u.garrison=[];bunker.garrison=crew;return{b,bunker}}
 test('a bunker Firebat cannot shoot a Marine-range target but can shoot one within its own range',()=>{
  const {b,bunker}=setup([32]);const target=b.create(0,1,bunker.x,bunker.y-170),hp=target.hp;
  b.fireBunkers(.01);assert.equal(target.hp,hp);assert.equal(b.effects.length,0);assert.equal(b.projectiles.length,0);

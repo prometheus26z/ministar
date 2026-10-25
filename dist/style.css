@@ -188,3 +188,5 @@ body[data-inspect=no] #panel .unit-info::before{display:none}
 @media(max-width:350px){#panel .vitals{gap:1px 3px;padding-inline:3px;font-size:7px}#panel .unit-info{max-width:27vw}}
 
 #panel .vitals span{position:relative;z-index:0;padding-bottom:3px}#panel .vitals span::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:#30383c}#panel .vitals span i{position:absolute;left:0;bottom:0;height:2px;z-index:1;background:#65b54a;box-shadow:0 0 4px #68c45188}#panel #shields i{background:#549dc9}#panel #energy i{background:#9f73b7}
+
+#productionSide{position:fixed;top:65px;left:8px;z-index:5;padding:7px 10px;font-size:11px;background:#34271b;color:#e4c58f;border:1px solid #91764e}

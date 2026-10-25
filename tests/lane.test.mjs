@@ -35,7 +35,7 @@ test('extra wave members spawn in following ranks without overlapping the first 
 });
 
 test('bunker garrison fire emits original effects, sound and functioning weapon impacts',()=>{
- const battle=fresh(),bunker=battle.outpostDefenses[0][0];
+ const battle=fresh(),bunker=battle.makeBunker(0,640,1568);
  for(const u of battle.units)if(u!==bunker&&u.garrison)u.garrison=[];
  const target=battle.create(106,1,bunker.x,bunker.y-100),hp=target.hp,events=[];
  battle.on(e=>events.push(e));battle.fireBunkers(.01);
@@ -64,18 +64,18 @@ test('construction chooses original stages for all races and gas footprints touc
  assert.equal(healthBarPixels(81),Math.round(79*.85));
 });
 
-test('all races begin with empty hidden production lanes and five horizontal gas slots per side',()=>{
+test('all races begin with a production base, fixed objectives and five original gas slots per side',()=>{
  for(const race of ['terran','zerg','protoss']){
   const battle=fresh(race),playerSlots=battle.nodes.filter(node=>node.team===0&&node.kind==='gas'),enemySlots=battle.nodes.filter(node=>node.team===1&&node.kind==='gas');
   assert.equal(battle.money,300);assert.equal(battle.gas,0);
   assert.deepEqual(playerSlots.map(node=>node.x),GAS_SLOT_X);
-  assert.deepEqual(enemySlots.map(node=>node.x),[...GAS_SLOT_X].reverse());
-  assert.equal(battle.units.filter(unit=>unit.team===0&&unit.productionOnly).length,0);
-  assert.equal(battle.units.filter(unit=>unit.team===1&&unit.productionOnly).length,0);
+  assert.deepEqual(enemySlots.map(node=>node.x),GAS_SLOT_X.map(x=>1280-x));
+  assert.equal(battle.units.filter(unit=>unit.team===0&&unit.productionOnly).length,1);
+  assert.equal(battle.units.filter(unit=>unit.team===1&&unit.productionOnly).length,1);
   assert.equal(battle.units.filter(unit=>unit.isMain).length,2);
-  assert.equal(battle.units.some(unit=>unit.isOutpost),false);
-  assert.equal(battle.outpostDefenses[0].length,race==='protoss'?3:2);
-  assert.equal(battle.outpostDefenses[1].length,race==='protoss'?3:2);
+  assert.equal(battle.units.filter(unit=>unit.isOutpost).length,2);
+  assert.equal(battle.outpostDefenses[0].length,1);
+  assert.equal(battle.outpostDefenses[1].length,1);
   assert.equal(battle.activeWave(0).size,0);
   assert.equal(battle.activeWave(1).size,0);
  }

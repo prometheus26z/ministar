@@ -1,7 +1,10 @@
-import {buildingDestruction} from './presentation.js?v=0.14.0';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.14.0';
-import {clamp,dist} from './core.js?v=0.14.0';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.14.0';
+import {LaneAI} from './lane-ai.js?v=0.15.0';
+import {SATISFIES} from './tech.js?v=0.15.0';
+import {gasSlots,productionTileAllowed} from './lane-rules.js?v=0.15.0';
+import {buildingDestruction} from './presentation.js?v=0.15.0';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.15.0';
+import {clamp,dist} from './core.js?v=0.15.0';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.15.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 
@@ -9,7 +12,7 @@ export class Battle extends EconomyBattle{
  constructor(data,options={}){
   super(data,options);
   this.laneMode=true;
-  this.map.elevation=true;this.map.rocks=[];this.map.water=[{x:0,y:640,w:320,h:768},{x:960,y:640,w:320,h:768}];
+  this.map.elevation=false;this.map.water=[];this.map.rocks=[{x:0,y:640,w:256,h:768},{x:1024,y:640,w:256,h:768}];
   this.phase='title';
   this.timeLimit=Infinity;
   this.waveClock=WAVE_SECONDS;
@@ -18,16 +21,12 @@ export class Battle extends EconomyBattle{
   this.builder=null;
   this.wrecks=[];this.outpostDefenses=[[],[]];this.incomeRemaining=[INCOME_SECONDS,INCOME_SECONDS];this.gasInvestmentLevel=[0,0];
   this.menuMode='build';
-  this.aiStep=0;
-  this.aiPlans={
-   terran:[{at:0,type:111,x:300,y:1620},{at:80,type:113,x:300,y:1480},{at:180,type:114,x:280,y:1540}],
-   zerg:[{at:0,type:142,x:380,y:1620},{at:80,type:135,x:380,y:1500},{at:155,type:141,x:280,y:1600}],
-   protoss:[{at:0,type:160,x:360,y:1750},{at:80,type:164,x:360,y:1620},{at:180,type:167,x:300,y:1600}]
-  }[this.race].map(plan=>({...plan,at:plan.at*(this.difficulty==='easy'?1.35:this.difficulty==='hard'?.75:1)}));
+  this.enemyRace=options.enemyRace||this.race;
+  this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
  }
  get battleTimeScale(){return 1}
  get timeScale(){return 1}
- powered(unit){if(unit?.productionOnly&&unit.def.race==='protoss')return true;return super.powered(unit)}
+ powered(unit){if(unit?.sourceProducer)return this.units.some(u=>u.id===unit.sourceProducer&&this.ready(u));if(unit?.productionOnly&&unit.def.race==='protoss')return true;return super.powered(unit)}
  get nextWave(){return Math.max(0,this.waveClock)}
  get supply(){return this.allies.filter(u=>!u.hidden&&!u.def.building&&!u.egg).reduce((n,u)=>n+u.def.supply,0)}
  supplyCap(team=0){return Math.min(200,this.units.filter(u=>u.alive&&u.team===team&&this.ready(u)).reduce((n,u)=>n+(this.race==='zerg'&&[131,132,133].includes(u.type)?10:BUILDINGS[u.type]?.supply||(u.type===42?8:0)),0))}
@@ -51,21 +50,24 @@ export class Battle extends EconomyBattle{
  begin(){
   if(this.phase!=='title')return false;
   this.phase='battle';this.paused=false;this.time=0;this.timeLeft=Infinity;
-  this.units=[];this.projectiles=[];this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];
+  this.units=[];this.projectiles=[];this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];
+  this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
   this.money=DESERT_STRIKE.startingMinerals;this.gas=0;this.botMoney=DESERT_STRIKE.startingMinerals;this.botGas=0;this.maxSupply=200;
   this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.waveClock=WAVE_SECONDS;
   const player=this.installSide(0),enemy=this.installSide(1);
   this.main=player.main;this.core=enemy.main;this.builder=this.create(WORKER[this.race],0,640,1930);this.builder.hidden=true;
   this.builder.completed=true;this.builder.order='stop';this.enemyMain=enemy.main;
   this.playerOutpost=player.outpost;this.enemyOutpost=enemy.outpost;
-  for(const [team,xs]of[[0,GAS_SLOT_X],[1,[...GAS_SLOT_X].reverse()]])xs.forEach((x,slot)=>this.addGasNode(team,x,PRODUCTION_OFFSET+GAS_SLOT_Y,slot));
+  for(const team of [0,1])for(const node of gasSlots(team))this.addGasNode(team,node.x,node.y,node.slot);
+  for(const team of [0,1]){const town=this.create(BASE[this.raceFor(team)],team,640,PRODUCTION_OFFSET+1056);town.productionOnly=true;town.startingBase=true;}
   this.installDefenses(0,player);this.installDefenses(1,enemy);
   this.incomeRemaining=[INCOME_SECONDS,INCOME_SECONDS];this.gasInvestmentLevel=[0,0];for(const [key,id]of Object.entries(TECH_IDS))if(DESERT_STRIKE.technologies[id]?.researched)this.researched.add(key);this.refreshSupply();this.updateVision();this.select([],false);this.emit('phase');this.emit('change');return true;
  }
+ raceFor(team){return team?this.enemyRace:this.race}
+ create(type,team,x,y){const u=super.create(type,team,x,y);if(!u)return u;const override=DESERT_STRIKE.unitOverrides?.[type];if(override){u.def={...u.def,...override,shield:u.def.shield?override.shield:0};u.hp=u.maxHp=override.hp;u.shield=u.def.shield}return u}
  installSide(team){
-  const mainY=team?160:1888,outpostY=team?480:1568,baseType=BASE[this.race];
-  const main=this.create(baseType,team,640,mainY);main.isMain=true;main.order='hold';
-  const outpost={id:`outpost-${team}`,team,x:640,y:outpostY};
+  const main=this.create(173,team,640,team?160:1888);main.isMain=true;main.order='hold';main.hp=main.maxHp=30000;
+  const outpost=this.create(174,team,640,team?480:1568);outpost.isOutpost=true;outpost.order='hold';outpost.hp=outpost.maxHp=15000;
   return {main,outpost,team};
  }
  addGasNode(team,x,y,slot){this.nodes.push({id:`geyser-${team}-${slot}`,team,slot,x,y,r:36,kind:'gas',amount:5000,miner:null,occupiedBy:null})}
@@ -79,12 +81,13 @@ export class Battle extends EconomyBattle{
  tickIncome(dt){
   for(const team of [0,1]){
    const count=this.completedGasCount(team);
-   while(this.gasInvestmentLevel[team]<count){this.gasInvestmentLevel[team]++;this.incomeRemaining[team]+=DESERT_STRIKE.gasPenaltyCycles[this.gasInvestmentLevel[team]]*DESERT_STRIKE.hyperCycleSeconds}
+   this.gasInvestmentLevel[team]=Math.max(this.gasInvestmentLevel[team],count);
+   if(count>=2&&!this.gasDelayApplied[team].has(count)){this.gasDelayApplied[team].add(count);this.incomeRemaining[team]+=DESERT_STRIKE.gasPenaltyCycles[count]*DESERT_STRIKE.hyperCycleSeconds}
    this.incomeRemaining[team]-=dt;
-   while(this.incomeRemaining[team]<=1e-9){const amount=this.incomeAmount(team);if(team===0)this.money+=amount;else this.botMoney+=amount;this.incomeRemaining[team]+=INCOME_SECONDS;this.emit('income',{team,minerals:amount})}
+   while(this.incomeRemaining[team]<=1e-9){const amount=this.incomeAmount(team);if(team===0)this.money+=amount;else this.botMoney+=amount;this.incomeRemaining[team]+=INCOME_SECONDS;this.incomeTotal[team]+=amount;this.emit('income',{team,minerals:amount})}
   }
  }
- waveProducers(team){return this.units.filter(u=>u.alive&&u.team===team&&u.productionOnly&&u.def.building&&this.ready(u)&&BUILDING_WAVES[u.type])}
+ waveProducers(team){return this.units.filter(u=>u.alive&&u.team===team&&u.productionOnly&&u.def.building&&this.ready(u)&&!u.flying&&BUILDING_WAVES[u.type])}
  waveGroups(producer,poolsRemaining=1){
   if(producer.type===142&&poolsRemaining>=DESERT_STRIKE.poolBonusThreshold[producer.team])return[{unit:37,count:DESERT_STRIKE.poolBonusCount}];
   return this.waveUnitsForBuilding(producer.type)||[];
@@ -96,20 +99,7 @@ export class Battle extends EconomyBattle{
  releaseGasSlot(unit){const node=this.nodes.find(n=>n.id===unit?.gasNode);if(node?.occupiedBy===unit.id)node.occupiedBy=null}
  spawnLarva(){return null}
  productionOptions(unit){if(unit?.type===142)return[37];return super.productionOptions(unit).filter(type=>type!==WORKER[this.race])}
- installDefenses(team,side){
-  const y=side.outpost.y,baseY=side.main.y;
-  if(this.race==='terran'){
-   for(const x of [510,770])this.outpostDefenses[team].push(this.makeBunker(team,x,y));
-   for(const x of [500,780])this.makeTower(team,124,x,baseY+(team?92:-92));
-  }else if(this.race==='zerg'){
-   this.outpostDefenses[team].push(this.makeTower(team,146,550,y),this.makeTower(team,144,730,y));
-   this.makeTower(team,146,520,baseY+(team?92:-92));this.makeTower(team,144,760,baseY+(team?92:-92));
-  }else{
-   this.outpostDefenses[team].push(this.makeTower(team,156,640,y+96),this.makeTower(team,162,550,y),this.makeTower(team,162,730,y));
-   this.makeTower(team,156,640,baseY+(team?148:-148));
-   this.makeTower(team,162,550,baseY+(team?92:-92));this.makeTower(team,162,730,baseY+(team?92:-92));
-  }
- }
+ installDefenses(team,side){this.outpostDefenses[team].push(side.outpost)}
  makeBunker(team,x,y){
   const bunker=this.create(125,team,x,y);bunker.order='hold';bunker.isFortification=true;bunker.garrison=[0,0,0,32];bunker.garrisonClock=0;
   return bunker;
@@ -119,50 +109,48 @@ export class Battle extends EconomyBattle{
   if(this.race==='terran')u.def={...u.def,groundWeapon:80,airWeapon:81,sight:400,armor:1};
   return u;
  }
- buildReason(worker,type){
-  const spec=BUILDINGS[type],def=this.data.units[type];
-  if(!this.builder?.alive||!spec||!def||spec.race!==this.race||spec.addon||spec.morph)return '건설할 수 없는 건물입니다.';
-  const missing=this.prerequisites(spec.requires);if(missing.length)return '필요: '+missing.join(', ');
-  return this.costReason(this.buildingCost(type));
+ hasTeam(team,type){return this.units.some(u=>u.team===team&&u.productionOnly&&this.ready(u)&&(SATISFIES[type]||[Number(type)]).includes(u.type))}
+ teamBuildReason(team,type,parent=null,morph=false){
+  const spec=BUILDINGS[type];if(!spec||spec.race!==this.raceFor(team))return '건설할 수 없는 건물입니다.';
+  const count=this.units.filter(u=>u.alive&&u.team===team&&u.productionOnly&&(u.type===type||u.construction?.nextType===type)).length;
+  if(count>=(DESERT_STRIKE.maxBuildings[type]??Infinity))return '건설 한도에 도달했습니다.';
+  if(spec.gas&&this.units.filter(u=>u.alive&&u.team===team&&u.gasNode).length>=5)return '가스 시설은 최대 5개입니다.';
+  if(spec.addon&&(!this.ready(parent)||parent.team!==team||parent.type!==spec.addon))return '부착할 건물을 선택하세요.';
+  if(spec.addon&&this.units.some(u=>u.alive&&u.parent===parent.id))return '이미 부속 건물이 있습니다.';
+  if(spec.morph&&(!morph||!this.ready(parent)||parent.type!==spec.morph))return '변태할 건물을 선택하세요.';
+  const requires=[...spec.requires,...(DESERT_STRIKE.specials[type]?.requires||[])],missing=requires.filter(id=>!this.hasTeam(team,id));
+  if(missing.length)return '필요: '+missing.map(id=>this.data.units[id]?.name||id).join(', ');
+  const money=team?this.botMoney:this.money;return money<this.buildingCost(type)[0]?'미네랄이 부족합니다.':'';
  }
- placement(worker,type,point){
-  type=Number(type);const spec=BUILDINGS[type],size=this.footprint(type),p={x:Math.round((point.x-size[0]/2)/32)*32+size[0]/2,y:Math.round((point.y-PRODUCTION_OFFSET-size[1]/2)/32)*32+size[1]/2+PRODUCTION_OFFSET};
-  const reason=this.buildReason(this.builder,type);if(reason)return {point:p,reason};
-  let gasNode=null;if(spec?.gas){gasNode=this.nodes.find(n=>n.team===0&&n.kind==='gas'&&!n.occupiedBy&&dist(n,p)<100);if(gasNode){p.x=gasNode.x;p.y=gasNode.y}}
-  if(spec?.gas&&!gasNode)return {point:p,reason:'비어 있는 가스 지점에 건설하세요.'};
-  if(p.x-size[0]/2<PRODUCTION_GROUND_X||p.x+size[0]/2>PRODUCTION_GROUND_X+PRODUCTION_GROUND_WIDTH||p.y-size[1]/2<PRODUCTION_OFFSET+PRODUCTION_GROUND_Y||p.y+size[1]/2>PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT)return {point:p,reason:'육지 안에 건물을 배치하세요.'};
-  for(const u of this.units.filter(u=>u.alive&&u.team===0&&u.productionOnly&&u.def.building)){const [w,h]=this.footprint(u.type);if(Math.abs(u.x-p.x)<(w+size[0])/2&&Math.abs(u.y-p.y)<(h+size[1])/2)return {point:p,reason:'건물이 겹칩니다.'}}
-  for(const node of this.nodes)if(node.team===0&&node!==gasNode&&node.amount>0&&Math.abs(node.x-p.x)<size[0]/2+node.r&&Math.abs(node.y-p.y)<size[1]/2+node.r)return {point:p,reason:'가스 지점과 겹칩니다.'};
+ buildReason(worker,type){return this.teamBuildReason(0,Number(type))}
+ placementForTeam(team,type,point,parent=null){
+  const size=this.footprint(type),spec=BUILDINGS[type],p={x:Math.round((point.x-size[0]/2)/32)*32+size[0]/2,y:Math.round((point.y-PRODUCTION_OFFSET-size[1]/2)/32)*32+size[1]/2+PRODUCTION_OFFSET};
+  let gasNode=null;
+  if(spec?.gas){gasNode=this.nodes.find(n=>n.team===team&&!n.occupiedBy&&dist(n,point)<56);if(!gasNode)return {point:p,reason:'비어 있는 가스 지점에 건설하세요.'};p.x=gasNode.x;p.y=gasNode.y}
+  for(let y=p.y-size[1]/2+16;y<p.y+size[1]/2;y+=32)for(let x=p.x-size[0]/2+16;x<p.x+size[0]/2;x+=32)if(!productionTileAllowed(x,y,team))return {point:p,reason:'건설할 수 없는 지형입니다.'};
+  for(const u of this.units)if(u.alive&&u.team===team&&u.productionOnly&&u.def.building&&u!==parent){const [w,h]=this.footprint(u.type);if(Math.abs(u.x-p.x)<(w+size[0])/2&&Math.abs(u.y-p.y)<(h+size[1])/2)return {point:p,reason:'건물이 겹칩니다.'}}
+  for(const n of this.nodes)if(n.team===team&&n!==gasNode&&Math.abs(n.x-p.x)<(128+size[0])/2&&Math.abs(n.y-p.y)<(64+size[1])/2)return {point:p,reason:'가스 지점과 겹칩니다.'};
   return {point:p,reason:'',gasNode};
  }
- build(worker,type,point){
-  type=Number(type);const result=this.placement(this.builder,type,point);
-  if(result.reason)return this.fail(result.reason);
-  const def=this.data.units[type],cost=this.buildingCost(type);if(!def||!this.affordable(cost))return this.fail(this.costReason(cost));
-  this.money-=cost[0];this.gas-=cost[1];
-  const u=this.create(type,0,result.point.x,result.point.y);u.completed=false;u.hp=Math.max(1,def.hp*.1);u.shield=def.shield*.1;u.productionOnly=true;
-  u.parent='lane-builder';u.construction={time:0,total:this.constructionSeconds(type),builder:this.builder.id,started:true,cost:[...cost],original:null};
-  u.gasNode=result.gasNode?.id;if(result.gasNode)result.gasNode.occupiedBy=u.id;this.closeMenu();this.emit('change');return true;
+ placement(worker,type,point){const reason=this.buildReason(worker,Number(type));return reason?{point,reason}:this.placementForTeam(0,Number(type),point)}
+ startConstruction(team,type,result,parent=null,morph=false){
+  const reason=this.teamBuildReason(team,type,parent,morph);if(reason||result.reason)return false;
+  const def=this.data.units[type],cost=this.buildingCost(type);if(team)this.botMoney-=cost[0];else this.money-=cost[0];
+  this.spendingHistory.push({time:this.time,team,type,minerals:cost[0]});
+  if(morph){parent.completed=false;parent.construction={time:0,total:this.constructionSeconds(type),started:true,cost:[...cost],original:{type:parent.type,hp:parent.hp,shield:parent.shield},nextType:type};return parent}
+  const u=this.create(type,team,result.point.x,result.point.y);u.completed=false;u.hp=Math.max(1,u.maxHp*.1);u.shield=u.def.shield*.1;u.productionOnly=true;
+  u.parent=parent?.id||(team?'bot-builder':'lane-builder');u.construction={time:0,total:this.constructionSeconds(type),builder:null,started:true,cost:[...cost],original:null};
+  u.gasNode=result.gasNode?.id;if(result.gasNode)result.gasNode.occupiedBy=u.id;return u;
  }
- morphReason(unit,type){const spec=BUILDINGS[type];if(!this.ready(unit)||spec?.morph!==unit.type||unit.team!==0)return '변태할 수 없습니다.';if(unit.queue.length)return '연구를 먼저 완료하세요.';const missing=this.prerequisites(spec.requires);return missing.length?'필요: '+missing.join(', '):this.costReason(this.buildingCost(type))}
- morph(unit,type){type=Number(type);const reason=this.morphReason(unit,type);if(reason)return this.fail(reason);const cost=this.buildingCost(type);this.money-=cost[0];unit.construction={time:0,total:this.constructionSeconds(type),builder:null,started:true,cost,original:{type:unit.type,hp:unit.hp,shield:unit.shield},nextType:type};unit.completed=false;this.closeMenu();this.emit('change');return true}
+ build(worker,type,point){type=Number(type);const result=this.placement(worker,type,point);if(result.reason)return this.fail(result.reason);if(!this.startConstruction(0,type,result))return false;this.closeMenu();this.emit('change');return true}
+
+ morphReason(unit,type){return this.teamBuildReason(0,Number(type),unit,true)}
+ morph(unit,type){type=Number(type);const reason=this.morphReason(unit,type);if(reason)return this.fail(reason);const u=this.startConstruction(0,type,{point:unit,reason:''},unit,true);if(u){this.closeMenu();this.emit('change')}return !!u}
  addonOptions(unit){return Object.keys(BUILDINGS).map(Number).filter(id=>BUILDINGS[id].addon===unit?.type)}
- addonReason(parent,type){
-  const spec=BUILDINGS[type];if(!this.ready(parent)||parent.team!==0||!spec||spec.addon!==parent.type)return '부속 건물을 만들 수 없습니다.';
-  if(parent.queue?.length)return '생산 또는 연구가 진행 중입니다.';
-  if(this.allies.some(u=>u.parent===parent.id))return '이미 부속 건물이 있습니다.';
-  const missing=this.prerequisites(spec.requires);if(missing.length)return '필요: '+missing.join(', ');
-  const parentSize=this.footprint(parent.type),size=this.footprint(type),p={x:parent.x+parentSize[0]/2+size[0]/2,y:parent.y};
-  if(p.x-size[0]/2<PRODUCTION_GROUND_X||p.x+size[0]/2>PRODUCTION_GROUND_X+PRODUCTION_GROUND_WIDTH||p.y-size[1]/2<PRODUCTION_OFFSET+PRODUCTION_GROUND_Y||p.y+size[1]/2>PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT)return '육지 안에 부속 건물을 붙일 공간이 없습니다.';
-  for(const u of this.units.filter(u=>u.alive&&u.team===0&&u.productionOnly&&u.def.building&&u!==parent)){const other=this.footprint(u.type);if(Math.abs(u.x-p.x)<(other[0]+size[0])/2&&Math.abs(u.y-p.y)<(other[1]+size[1])/2)return '부속 건물이 겹칩니다.'}
-  return this.costReason(this.buildingCost(type));
- }
- addon(parent,type){
-  type=Number(type);const reason=this.addonReason(parent,type);if(reason)return this.fail(reason);
-  const cost=this.buildingCost(type),def=this.data.units[type],parentSize=this.footprint(parent.type),size=this.footprint(type);
-  this.money-=cost[0];this.gas-=cost[1];const u=this.create(type,0,parent.x+parentSize[0]/2+size[0]/2,parent.y);u.parent=parent.id;u.productionOnly=true;u.completed=false;u.hp=Math.max(1,def.hp*.1);
-  u.construction={time:0,total:this.constructionSeconds(type),builder:null,started:true,cost:[...cost],original:null};this.closeMenu();this.emit('change');return true;
- }
+ addonPoint(parent,type){const [w]=this.footprint(parent.type),[aw]=this.footprint(type);return{x:parent.x+w/2+aw/2,y:parent.y}}
+ addonReason(parent,type){const reason=this.teamBuildReason(0,Number(type),parent);return reason||this.placementForTeam(0,Number(type),this.addonPoint(parent,type)).reason}
+ addon(parent,type){type=Number(type);const reason=this.addonReason(parent,type);if(reason)return this.fail(reason);const u=this.startConstruction(0,type,this.placementForTeam(0,type,this.addonPoint(parent,type)),parent);if(u){this.closeMenu();this.emit('change')}return !!u}
+
  cancel(unit,index=0){if(unit?.team===0&&unit.construction)this.releaseGasSlot(unit);return super.cancel(unit,index)}
  execute(command,point=null,target=null){
   if(command.startsWith('build:'))return this.build(this.builder,Number(command.split(':')[1]),point);
@@ -176,13 +164,16 @@ export class Battle extends EconomyBattle{
  research(unit,key){return this.fail(this.researchReason(unit,key))}
  formationGoal(u,objective){return{x:clamp(objective.x+(u.laneOffset||0),352,928),y:objective.y}}
  setAdvanceGoal(u,objective){
-  const goal=this.formationGoal(u,objective);this.setGoal(u,goal,'attackmove');
-  const direction=u.team?1:-1,departure={x:goal.x,y:(u.team?this.enemyOutpost:this.playerOutpost).y+direction*112};
-  if(!u.def.air&&(departure.y-u.y)*direction>0){
-   const path=this.map.path(u,departure,false);
-   if(path.length&&dist(path[path.length-1],departure)<32)u.path=[...path,...this.map.path(departure,goal,false)];
-  }
+  const goal=this.formationGoal(u,objective),direction=u.team?1:-1,end={x:goal.x,y:goal.y-direction*128};
+  // A shared open corridor needs no per-soldier A* search. Verify every tile
+  // before using this route; blocked approach routes retain the pathfinder.
+  const clear=(a,b)=>{const length=dist(a,b),steps=Math.max(1,Math.ceil(length/32));for(let i=0;i<=steps;i++){const p={x:a.x+(b.x-a.x)*i/steps,y:a.y+(b.y-a.y)*i/steps};if(!u.def.air&&this.map.blocked(p.x,p.y,u.r*.55))return false}return true};
+  const turn={x:goal.x,y:u.y};
+  if(clear(u,turn)&&clear(turn,end)){
+   u.goal=goal;u.path=[turn,end];u.order='attackmove';u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.aiClock=0;u.stuck=0;
+  }else this.setGoal(u,goal,'attackmove');
  }
+
  deploymentPoint(def,team,point,spacing=32,ignore=null){
   const clearance=Math.max(20,(def.radius||10)*.55),direction=team?1:-1;
   const free=p=>{
@@ -198,11 +189,13 @@ export class Battle extends EconomyBattle{
  }
  spawnUnit(type,team,index,total,origin,spacing=32){
   const def=this.data.units[type];if(!def)return null;
+  const cap=DESERT_STRIKE.maxActiveUnits[type];if(cap&&this.units.filter(u=>u.alive&&u.team===team&&u.type===type&&!u.productionOnly).length>=cap)return null;
   const columns=Math.min(8,Math.max(1,Math.floor(448/spacing)),total),row=Math.floor(index/columns),rowCount=Math.min(columns,total-row*columns),direction=team?1:-1;
   const spread=(index%columns-(rowCount-1)/2)*spacing;
   const point=this.deploymentPoint(def,team,{x:640+spread,y:clamp(origin.y+direction*120-direction*row*spacing,24,2024)},spacing);if(!point)return null;
   const u=this.create(type,team,point.x,point.y);
   u.order='attackmove';u.laneArmy=true;u.laneOffset=spread;const objective=this.laneObjective(team);this.setAdvanceGoal(u,objective);u.laneObjectiveId=objective.id;
+  const prop=DESERT_STRIKE.properties[type===103?2:3];if(prop){u.hp=u.maxHp*prop.hp/100;u.shield=u.def.shield*prop.shield/100;u.energy=(u.def.energy||0)*prop.energy/100;if(prop.specialValid&2)u.burrowed=!!(prop.status&2)}
   if(team===0)this.produced++;return u;
  }
  spawnWave(team){
@@ -215,42 +208,41 @@ export class Battle extends EconomyBattle{
   }
   lineup.forEach((type,index)=>this.spawnUnit(type,team,index,lineup.length,origin,spacing));
  }
- botBuild(plan){
-  const def=this.data.units[plan.type],cost=this.buildingCost(plan.type);if(!def||this.botMoney<cost[0]||this.botGas<cost[1])return false;
-  const size=this.footprint(plan.type),left=PRODUCTION_GROUND_X,top=PRODUCTION_GROUND_Y,right=left+PRODUCTION_GROUND_WIDTH,bottom=top+PRODUCTION_GROUND_HEIGHT,preferred={x:1280-(left+plan.x/1280*PRODUCTION_GROUND_WIDTH),y:PRODUCTION_OFFSET+top+(1-plan.y/PRODUCTION_HEIGHT)*PRODUCTION_GROUND_HEIGHT},blocked=p=>{
-   if(p.x-size[0]/2<left||p.x+size[0]/2>right||p.y-size[1]/2<PRODUCTION_OFFSET+top||p.y+size[1]/2>PRODUCTION_OFFSET+bottom)return true;
-   if(this.units.some(u=>u.alive&&u.team===1&&u.productionOnly&&u.def.building&&Math.abs(u.x-p.x)<(this.footprint(u.type)[0]+size[0])/2&&Math.abs(u.y-p.y)<(this.footprint(u.type)[1]+size[1])/2))return true;
-   if(!BUILDINGS[plan.type]?.gas&&this.nodes.some(n=>n.team===1&&n.kind==='gas'&&Math.abs(n.x-p.x)<size[0]/2+n.r&&Math.abs(n.y-p.y)<size[1]/2+n.r))return true;
-   return false;
-  },snap=p=>({x:Math.round((p.x-size[0]/2)/32)*32+size[0]/2,y:Math.round((p.y-size[1]/2)/32)*32+size[1]/2}),preferredPoint=snap(preferred);
-  let point=blocked(preferredPoint)?null:preferredPoint;
-  if(!point){const candidates=[];for(let y=Math.ceil((PRODUCTION_OFFSET+top)/32)*32+size[1]/2;y<=PRODUCTION_OFFSET+bottom-size[1]/2;y+=32)for(let x=Math.ceil(left/32)*32+size[0]/2;x<=right-size[0]/2;x+=32){const p={x,y};if(!blocked(p))candidates.push(p)}candidates.sort((a,b)=>dist(a,preferred)-dist(b,preferred));point=candidates[0]||null}
-  if(!point)return false;
-  this.botMoney-=cost[0];this.botGas-=cost[1];
-  const u=this.create(plan.type,1,point.x,point.y);u.completed=false;u.hp=Math.max(1,def.hp*.1);u.parent='bot-builder';u.productionOnly=true;
-  u.construction={time:0,total:this.constructionSeconds(plan.type),builder:null,started:true,cost:[...cost],original:null};return true;
- }
- botBuildGas(){
-  if(this.units.some(u=>u.alive&&u.team===1&&u.gasNode&&u.construction))return false;
-  const node=this.nodes.find(n=>n.team===1&&n.kind==='gas'&&!n.occupiedBy);if(!node)return false;
-  const type=GAS_BUILDING[this.race],def=this.data.units[type],cost=this.buildingCost(type);if(!def||this.botMoney<cost[0])return false;
-  this.botMoney-=cost[0];this.botGas-=cost[1];
-  const u=this.create(type,1,node.x,node.y);u.productionOnly=true;u.completed=false;u.hp=Math.max(1,def.hp*.1);u.gasNode=node.id;u.parent='bot-builder';node.occupiedBy=u.id;
-  u.construction={time:0,total:this.constructionSeconds(type),builder:null,started:true,cost:[...cost],original:null};return true;
- }
- botStep(dt){
-  this.botBuildGas();
-  const plan=this.aiPlans[this.aiStep];if(!plan||this.time<plan.at)return;
-  if(this.botBuild(plan))this.aiStep++;
- }
+ botBuild(plan){return this.ai.build(plan.type)}
+ botBuildGas(){return this.ai.build(GAS_BUILDING[this.enemyRace])}
+ botStep(dt){this.ai.step(dt)}
  tickBotConstruction(u,dt){
   const c=u.construction;if(!c)return false;
-  u.animTime+=dt;c.time=Math.min(c.total,c.time+dt);
-  const def=this.data.units[u.type];u.hp=Math.min(def.hp,u.hp+def.hp*.9*dt/c.total);
-  if(c.time>=c.total){u.completed=true;u.construction=null;u.action='idle';this.emit('change');
-  }
+  u.animTime+=dt;c.time=Math.min(c.total,c.time+dt);const def=this.data.units[c.nextType||u.type];
+  if(!c.original){u.hp=Math.min(u.maxHp,u.hp+u.maxHp*.9*dt/c.total);u.shield=Math.min(u.def.shield,u.shield+u.def.shield*.9*dt/c.total)}
+  if(c.time>=c.total){if(c.nextType){u.type=c.nextType;u.def=this.data.units[u.type];u.maxHp=u.def.hp;u.hp=u.maxHp;u.shield=u.def.shield}u.completed=true;u.construction=null;u.action='idle';this.deployDefense(u);this.emit('change')}
   return true;
  }
+ deployDefense(u){
+  if(!u.productionOnly||![124,125,144,146,162].includes(u.type)||u.deployedDefenseId)return;
+  const direction=u.team?1:-1,base=u.team?this.core:this.main;
+  const point=[440,840,312,968].flatMap(x=>[112,256,368].map(offset=>({x,y:base.y+direction*offset}))).find(p=>!this.map.blocked(p.x,p.y,56));
+  if(!point)return;
+  const defense=u.type===125?this.makeBunker(u.team,point.x,point.y):this.create(u.type,u.team,point.x,point.y);
+  defense.isFortification=true;defense.order='hold';defense.sourceProducer=u.id;u.deployedDefenseId=defense.id;
+ }
+ tickSpecials(dt){
+  for(const team of [0,1]){
+   for(const u of this.units.filter(u=>u.team===team&&u.productionOnly&&this.ready(u))){
+    if(u.type===139&&!this.evolutionBonus[team]){this.evolutionBonus[team]=true;if(team)this.botMoney+=100;else this.money+=100;this.incomeTotal[team]+=100}
+    const spec=DESERT_STRIKE.specials[u.type];if(!spec||this.specialStates[team][spec.effect])continue;
+    const enemies=this.units.filter(t=>t.alive&&t.team!==team&&!t.productionOnly&&!t.def.building&&!t.hidden&&!t.loaded);
+    if(spec.requires?.some(id=>!this.hasTeam(team,id)))continue;
+    this.specialStates[team][spec.effect]={clock:0,pulses:0};u.refunded=true;this.die(u,1-team);
+    if(spec.effect==='mind'){enemies.forEach((t,i)=>{if(i%2===0){t.team=team;t.target=null;t.laneArmy=true;this.setAdvanceGoal(t,this.laneObjective(team))}});delete this.specialStates[team].mind}
+    if(spec.effect==='broodlings'){for(const target of enemies){const p={x:target.x,y:target.y};this.die(target,team);const point=this.deploymentPoint(this.data.units[40],team,p);if(point){const a=this.create(40,team,point.x,point.y);a.laneArmy=true;a.expiresAt=this.time+1800/24;this.setAdvanceGoal(a,this.laneObjective(team))}}delete this.specialStates[team].broodlings}
+    this.emit('notice',{text:spec.effect==='heal'?'Heal & Repair!':spec.effect==='mind'?'Mind Control!':'Broodling!'})
+   }
+   const state=this.specialStates[team].heal;if(state){state.clock+=dt;const interval=DESERT_STRIKE.specials[115].intervalCycles*DESERT_STRIKE.hyperCycleSeconds;while(state.clock>=interval&&state.pulses<45){state.clock-=interval;state.pulses++;for(const u of this.units)if(u.alive&&u.team===team&&!u.def.building&&!u.productionOnly)u.hp=u.maxHp}if(state.pulses>=45)delete this.specialStates[team].heal}
+  }
+ }
+ checkBaseWarning(){for(const team of [0,1]){const near=this.units.some(u=>u.alive&&u.team!==team&&u.laneArmy&&!u.productionOnly&&(team?u.y<640:u.y>1408));if(near&&!this.baseWarnings[team]&&team===0)this.emit('notice',{text:'경고: 적 병력이 기지에 접근합니다.'});this.baseWarnings[team]=near}}
+
  maintainAdvance(u,dt){
   const objective=this.laneObjective(u.team),previous=u.laneCheckpoint;
   u.laneStall=previous&&dist(u,previous)<Math.max(.1,u.def.speed*dt*.1)?(u.laneStall||0)+dt:0;u.laneCheckpoint={x:u.x,y:u.y};
@@ -264,17 +256,18 @@ export class Battle extends EconomyBattle{
  }
  tickUnit(u,dt){
   if(!u.alive)return super.tickUnit(u,dt);
+  if(u.expiresAt&&this.time>=u.expiresAt){this.die(u,1-u.team);return}
   if(u.hidden){u.animTime+=dt;return}
-  if(u.productionOnly){if(u.team===1&&u.construction)this.tickBotConstruction(u,dt);else if(u.team===0&&u.construction)this.tickEconomy(u,dt);else if(!u.def.building&&!u.hidden)u.animTime+=dt;return}
+  if(u.productionOnly){if(u.team===1&&u.construction)this.tickBotConstruction(u,dt);else if(u.team===0&&u.construction)this.tickBotConstruction(u,dt);else if(!u.def.building&&!u.hidden)u.animTime+=dt;return}
   if(u.team===1&&u.construction){this.tickBotConstruction(u,dt);return}
   if(!u.def.building&&u.laneArmy)this.maintainAdvance(u,dt);
-  if(u.team===0&&!u.def.building&&!u.loaded)this.autoCast(u);
+  if(!u.def.building&&!u.loaded)this.autoCast(u);
   super.tickUnit(u,dt);
  }
  weapon(u,target){
   if(target.productionOnly||u.productionOnly||u.garrison)return null;
   if(u.laneArmy&&!target.def.building&&Math.abs(target.x-640)>240&&dist(u,target)>96)return null;
-  if(u.isFortification&&this.race==='terran'){
+  if(u.isFortification&&this.raceFor(u.team)==='terran'){
    const weapon=this.data.weapons[target.def.air?u.def.airWeapon:u.def.groundWeapon];
    return weapon&&weapon.damage&&(!target.def.air||weapon.air)&& (target.def.air||weapon.ground)?weapon:null;
   }
@@ -289,9 +282,9 @@ export class Battle extends EconomyBattle{
  }
  step(dt){
   super.step(dt);if(this.phase!=='battle')return;
-  this.fireBunkers(dt);this.tickIncome(dt);
+  this.fireBunkers(dt);this.tickIncome(dt);this.tickSpecials(dt);this.checkBaseWarning();
   this.waveClock-=dt;
-  while(this.waveClock<=0){this.spawnWave(0);this.spawnWave(1);this.waveClock+=WAVE_SECONDS;this.emit('wave')}
+  while(this.waveClock<=0){this.spawnWave(0);this.spawnWave(1);this.ai.observe();this.waveHistory.push(this.ai.snapshot());this.waveClock+=WAVE_SECONDS;this.emit('wave')}
   this.botStep(dt);
  }
  bunkerRange(type,weapon){
@@ -319,10 +312,13 @@ export class Battle extends EconomyBattle{
   }
  }
  die(u,team){
-  if(!u.alive)return;const wasMain=u===this.main,wasCore=u===this.core;this.releaseGasSlot(u);
+  if(!u.alive)return;const wasOutpost=u.isOutpost;const wasMain=u===this.main,wasCore=u===this.core;this.releaseGasSlot(u);
   if(u.def.building){const visual=buildingDestruction(u);this.wrecks.push({x:u.x,y:u.y,team:u.team,image:visual.rubble,variant:u.id%4,productionOnly:!!u.productionOnly});this.effects.push({x:u.x,y:u.y,image:visual.explosion,left:1.15,duration:1.15,team:u.team,kind:'building-death',productionOnly:!!u.productionOnly})}
   if(u.garrison?.length){for(let i=0;i<u.garrison.length;i++){const type=u.garrison[i],crew=this.create(type,u.team,u.x+(i-1.5)*18,u.y),objective=this.laneObjective(u.team);crew.order='attackmove';crew.laneArmy=true;this.setGoal(crew,{x:objective.x,y:objective.y},'attackmove');crew.laneObjectiveId=objective.id}u.garrison=[]}
-  super.die(u,team);this.refreshSupply();this.emit('change');
+  super.die(u,team);
+  const linked=this.units.find(t=>t.alive&&t.id===(u.deployedDefenseId||u.sourceProducer));if(linked){u.deployedDefenseId=null;u.sourceProducer=null;this.die(linked,team)}
+  this.refreshSupply();this.emit('change');
+  if(wasOutpost&&!u.defenseReleased){u.defenseReleased=true;const types={terran:[0,0,0,0,0,0,0,0,3,3,34,34],zerg:[37,37,37,37,37,37,37,37,38,38,38,38],protoss:[65,65,65,65,65,65,66,66]}[this.raceFor(u.team)],base=u.team?this.core:this.main;types.forEach((type,i)=>this.spawnUnit(type,u.team,i,types.length,base))}
   if(this.phase==='battle'&&wasCore)this.finish(true,'상대 메인 기지를 함락했습니다.');
   else if(this.phase==='battle'&&wasMain)this.finish(false,'우리 메인 기지가 함락되었습니다.');
  }

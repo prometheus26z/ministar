@@ -10,19 +10,17 @@ Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics
 const lane=(race='protoss')=>{const b=new LaneBattle(data,{race,difficulty:'easy'});b.begin();b.botStep=()=>{};b.waveClock=99999;return b};
 const combat=()=>{const b=new CombatBattle(data,{race:'terran'});b.phase='battle';return b};
 
-test('eight Protoss Zealots reach the outpost perimeter and destroy the Pylon and Cannon',()=>{
- const b=lane(),pylon=b.outpostDefenses[1].find(u=>u.type===156),cannons=b.outpostDefenses[1].filter(u=>u.type===162),cannonHp=cannons.map(u=>u.hp);
+test('eight Protoss Zealots reach and damage the durable temple outpost',()=>{
+ const b=lane(),temple=b.enemyOutpost,hp=temple.hp;
  for(let i=0;i<8;i++){const u=b.create(65,0,570+(i%4)*40,730+Math.floor(i/4)*40),objective=b.laneObjective(0);u.laneArmy=true;u.laneOffset=0;b.setAdvanceGoal(u,objective);u.laneObjectiveId=objective.id}
  for(let i=0;i<600;i++)b.step(1/30);
- assert.equal(pylon.alive,false,'the ground force reaches and destroys the Pylon');
- assert.ok(cannons.some((u,i)=>!u.alive||u.hp<cannonHp[i]),'the formation acquires and damages a Cannon');
- const zealots=b.units.filter(u=>u.team===0&&u.type===65&&u.alive);
- assert.ok(zealots.length>=5);
- assert.ok(zealots.some(u=>u.target?.def.building&&b.edgeDistance(u,u.target)<=b.weapon(u,u.target).range),'at least one Zealot reaches actual weapon range');
+ assert.ok(temple.alive);assert.ok(temple.hp<hp);
+ const zealots=b.units.filter(u=>u.team===0&&u.type===65&&u.alive);assert.equal(zealots.length,8);
+ assert.ok(zealots.some(u=>u.target===temple&&b.edgeDistance(u,temple)<=b.weapon(u,temple).range));
 });
 
 test('melee attackers spread around a building instead of remaining stacked',()=>{
- const b=lane(),pylon=b.outpostDefenses[1].find(u=>u.type===156&&u.y>400);
+ const b=lane(),pylon=b.enemyOutpost;
  for(let i=0;i<8;i++){const u=b.create(65,0,570+(i%4)*40,730+Math.floor(i/4)*40),objective=b.laneObjective(0);u.laneArmy=true;u.laneOffset=0;b.setAdvanceGoal(u,objective);u.laneObjectiveId=objective.id}
  for(let i=0;i<600;i++)b.step(1/30);
  const group=b.units.filter(u=>u.team===0&&u.type===65&&u.alive),gaps=[];
@@ -92,7 +90,7 @@ test('fast Vulture and Zergling approach points without overshooting them',()=>{
 });
 
 test('bunker garrison hits use the canonical live source and bunker victims do not crash aggro selection',()=>{
- const b=lane('terran'),bunker=b.outpostDefenses[1][0],target=b.create(0,0,bunker.x,bunker.y-35),clone={...bunker,alive:true};
+ const b=lane('terran'),bunker=b.makeBunker(1,640,480),target=b.create(0,0,bunker.x,bunker.y-35),clone={...bunker,alive:true};
  b.hitUnit(target,5,1,3,null,clone);assert.equal(target.aggroTarget,bunker.id,'a garrison shooter resolves to its real bunker');
  const counter=b.create(0,0,bunker.x,bunker.y+35);assert.doesNotThrow(()=>b.hitUnit(bunker,5,0,3,null,counter));
  b.die(bunker,0);b.tickUnit(target,.05);assert.notEqual(target.target,bunker,'a destroyed source is no longer retained as a target');

@@ -1,0 +1,1154 @@
+{
+  "scope": "economy/construction and actual deployment; armies retired between waves, not a combat win-rate measurement",
+  "results": [
+    {
+      "player": "terran",
+      "enemy": "terran",
+      "snapshots": [
+        {
+          "wave": 5,
+          "time": 153.25,
+          "race": "terran",
+          "minerals": 510,
+          "income": 1140,
+          "spent": 930,
+          "gas": 0,
+          "production": 2,
+          "tech": 1,
+          "construction": 0,
+          "units": 9,
+          "composition": {
+            "0": 6,
+            "3": 3
+          },
+          "air": 0,
+          "value": 600,
+          "idleFor": 68.75,
+          "reservation": {
+            "type": 114,
+            "reason": "technology"
+          },
+          "deployed": 9
+        },
+        {
+          "wave": 10,
+          "time": 306.5,
+          "race": "terran",
+          "minerals": 600,
+          "income": 2380,
+          "spent": 2080,
+          "gas": 1,
+          "production": 3,
+          "tech": 1,
+          "construction": 0,
+          "units": 11,
+          "composition": {
+            "0": 6,
+            "3": 3,
+            "8": 2
+          },
+          "air": 2,
+          "value": 900,
+          "idleFor": 67.5,
+          "reservation": {
+            "type": 123,
+            "reason": "technology"
+          },
+          "deployed": 11
+        },
+        {
+          "wave": 20,
+          "time": 613.25,
+          "race": "terran",
+          "minerals": 402,
+          "income": 5182,
+          "spent": 5080,
+          "gas": 2,
+          "production": 5,
+          "tech": 3,
+          "construction": 0,
+          "units": 16,
+          "composition": {
+            "0": 6,
+            "3": 3,
+            "5": 3,
+            "8": 2,
+            "58": 2
+          },
+          "air": 4,
+          "value": 1850,
+          "idleFor": 35.75,
+          "reservation": {
+            "type": 118,
+            "reason": "technology"
+          },
+          "deployed": 16
+        },
+        {
+          "wave": 30,
+          "time": 919.75,
+          "race": "terran",
+          "minerals": 383,
+          "income": 8563,
+          "spent": 8480,
+          "gas": 3,
+          "production": 9,
+          "tech": 3,
+          "construction": 0,
+          "units": 23,
+          "composition": {
+            "0": 6,
+            "2": 2,
+            "3": 3,
+            "5": 3,
+            "8": 2,
+            "9": 1,
+            "12": 2,
+            "32": 1,
+            "34": 1,
+            "58": 2
+          },
+          "air": 7,
+          "value": 3000,
+          "idleFor": 28.25,
+          "reservation": {
+            "type": 110,
+            "reason": "income investment",
+            "payback": 453.72600000000006
+          },
+          "deployed": 23
+        }
+      ]
+    },
+    {
+      "player": "terran",
+      "enemy": "zerg",
+      "snapshots": [
+        {
+          "wave": 5,
+          "time": 153.25,
+          "race": "zerg",
+          "minerals": 120,
+          "income": 1140,
+          "spent": 1320,
+          "gas": 0,
+          "production": 6,
+          "tech": 0,
+          "construction": 0,
+          "units": 19,
+          "composition": {
+            "37": 10,
+            "38": 3,
+            "43": 1,
+            "45": 1,
+            "47": 2,
+            "103": 2
+          },
+          "air": 4,
+          "value": 1225,
+          "idleFor": 16.25,
+          "reservation": {
+            "type": 133,
+            "reason": "production"
+          },
+          "deployed": 19
+        },
+        {
+          "wave": 10,
+          "time": 306.5,
+          "race": "zerg",
+          "minerals": 510,
+          "income": 2430,
+          "spent": 2220,
+          "gas": 1,
+          "production": 6,
+          "tech": 0,
+          "construction": 0,
+          "units": 20,
+          "composition": {
+            "37": 10,
+            "38": 3,
+            "42": 1,
+            "43": 1,
+            "45": 1,
+            "47": 2,
+            "103": 2
+          },
+          "air": 5,
+          "value": 1325,
+          "idleFor": 56.5,
+          "reservation": {
+            "type": 136,
+            "reason": "production"
+          },
+          "deployed": 20
+        },
+        {
+          "wave": 20,
+          "time": 613.25,
+          "race": "zerg",
+          "minerals": 54,
+          "income": 5184,
+          "spent": 5430,
+          "gas": 2,
+          "production": 12,
+          "tech": 0,
+          "construction": 0,
+          "units": 29,
+          "composition": {
+            "37": 10,
+            "38": 3,
+            "39": 2,
+            "42": 1,
+            "43": 1,
+            "44": 1,
+            "45": 2,
+            "46": 4,
+            "47": 2,
+            "62": 1,
+            "103": 2
+          },
+          "air": 8,
+          "value": 2425,
+          "idleFor": 4.75,
+          "reservation": {
+            "type": 141,
+            "reason": "production"
+          },
+          "deployed": 29
+        },
+        {
+          "wave": 30,
+          "time": 919.75,
+          "race": "zerg",
+          "minerals": 305,
+          "income": 8715,
+          "spent": 8710,
+          "gas": 3,
+          "production": 20,
+          "tech": 0,
+          "construction": 0,
+          "units": 47,
+          "composition": {
+            "37": 10,
+            "38": 9,
+            "39": 3,
+            "42": 1,
+            "43": 3,
+            "44": 2,
+            "45": 3,
+            "46": 6,
+            "47": 6,
+            "62": 2,
+            "103": 2
+          },
+          "air": 17,
+          "value": 3975,
+          "idleFor": 21.25,
+          "reservation": {
+            "type": 149,
+            "reason": "income investment",
+            "payback": 420.12600000000003
+          },
+          "deployed": 47
+        }
+      ]
+    },
+    {
+      "player": "terran",
+      "enemy": "protoss",
+      "snapshots": [
+        {
+          "wave": 5,
+          "time": 153.25,
+          "race": "protoss",
+          "minerals": 135,
+          "income": 1140,
+          "spent": 1305,
+          "gas": 0,
+          "production": 3,
+          "tech": 1,
+          "construction": 0,
+          "units": 8,
+          "composition": {
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2
+          },
+          "air": 0,
+          "value": 1025,
+          "idleFor": 17.75,
+          "reservation": {
+            "type": 165,
+            "reason": "technology"
+          },
+          "deployed": 8
+        },
+        {
+          "wave": 10,
+          "time": 306.5,
+          "race": "protoss",
+          "minerals": 107,
+          "income": 2412,
+          "spent": 2605,
+          "gas": 1,
+          "production": 4,
+          "tech": 2,
+          "construction": 0,
+          "units": 10,
+          "composition": {
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2,
+            "67": 1,
+            "68": 1
+          },
+          "air": 0,
+          "value": 1175,
+          "idleFor": 10.5,
+          "reservation": {
+            "type": 171,
+            "reason": "technology"
+          },
+          "deployed": 10
+        },
+        {
+          "wave": 20,
+          "time": 613.25,
+          "race": "protoss",
+          "minerals": 57,
+          "income": 5262,
+          "spent": 5505,
+          "gas": 2,
+          "production": 6,
+          "tech": 2,
+          "construction": 0,
+          "units": 15,
+          "composition": {
+            "60": 1,
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2,
+            "67": 1,
+            "68": 1,
+            "70": 2,
+            "83": 2
+          },
+          "air": 3,
+          "value": 2275,
+          "idleFor": 4.75,
+          "reservation": {
+            "type": 169,
+            "reason": "technology"
+          },
+          "deployed": 15
+        },
+        {
+          "wave": 30,
+          "time": 919.75,
+          "race": "protoss",
+          "minerals": 569,
+          "income": 8874,
+          "spent": 8605,
+          "gas": 3,
+          "production": 9,
+          "tech": 2,
+          "construction": 0,
+          "units": 19,
+          "composition": {
+            "60": 1,
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2,
+            "67": 1,
+            "68": 1,
+            "70": 2,
+            "71": 1,
+            "72": 1,
+            "83": 2,
+            "84": 2
+          },
+          "air": 7,
+          "value": 2775,
+          "idleFor": 41.25,
+          "reservation": {
+            "type": 157,
+            "reason": "income investment",
+            "payback": 453.72600000000006
+          },
+          "deployed": 19
+        }
+      ]
+    },
+    {
+      "player": "zerg",
+      "enemy": "terran",
+      "snapshots": [
+        {
+          "wave": 5,
+          "time": 153.25,
+          "race": "terran",
+          "minerals": 510,
+          "income": 1140,
+          "spent": 930,
+          "gas": 0,
+          "production": 2,
+          "tech": 1,
+          "construction": 0,
+          "units": 9,
+          "composition": {
+            "0": 6,
+            "3": 3
+          },
+          "air": 0,
+          "value": 600,
+          "idleFor": 68.75,
+          "reservation": {
+            "type": 114,
+            "reason": "technology"
+          },
+          "deployed": 9
+        },
+        {
+          "wave": 10,
+          "time": 306.5,
+          "race": "terran",
+          "minerals": 600,
+          "income": 2380,
+          "spent": 2080,
+          "gas": 1,
+          "production": 3,
+          "tech": 1,
+          "construction": 0,
+          "units": 11,
+          "composition": {
+            "0": 6,
+            "3": 3,
+            "8": 2
+          },
+          "air": 2,
+          "value": 900,
+          "idleFor": 67.5,
+          "reservation": {
+            "type": 123,
+            "reason": "technology"
+          },
+          "deployed": 11
+        },
+        {
+          "wave": 20,
+          "time": 613.25,
+          "race": "terran",
+          "minerals": 402,
+          "income": 5182,
+          "spent": 5080,
+          "gas": 2,
+          "production": 5,
+          "tech": 3,
+          "construction": 0,
+          "units": 16,
+          "composition": {
+            "0": 6,
+            "3": 3,
+            "5": 3,
+            "8": 2,
+            "58": 2
+          },
+          "air": 4,
+          "value": 1850,
+          "idleFor": 35.75,
+          "reservation": {
+            "type": 118,
+            "reason": "technology"
+          },
+          "deployed": 16
+        },
+        {
+          "wave": 30,
+          "time": 919.75,
+          "race": "terran",
+          "minerals": 383,
+          "income": 8563,
+          "spent": 8480,
+          "gas": 3,
+          "production": 9,
+          "tech": 3,
+          "construction": 0,
+          "units": 23,
+          "composition": {
+            "0": 6,
+            "2": 2,
+            "3": 3,
+            "5": 3,
+            "8": 2,
+            "9": 1,
+            "12": 2,
+            "32": 1,
+            "34": 1,
+            "58": 2
+          },
+          "air": 7,
+          "value": 3000,
+          "idleFor": 28.25,
+          "reservation": {
+            "type": 110,
+            "reason": "income investment",
+            "payback": 453.72600000000006
+          },
+          "deployed": 23
+        }
+      ]
+    },
+    {
+      "player": "zerg",
+      "enemy": "zerg",
+      "snapshots": [
+        {
+          "wave": 5,
+          "time": 153.25,
+          "race": "zerg",
+          "minerals": 120,
+          "income": 1140,
+          "spent": 1320,
+          "gas": 0,
+          "production": 6,
+          "tech": 0,
+          "construction": 0,
+          "units": 19,
+          "composition": {
+            "37": 10,
+            "38": 3,
+            "43": 1,
+            "45": 1,
+            "47": 2,
+            "103": 2
+          },
+          "air": 4,
+          "value": 1225,
+          "idleFor": 16.25,
+          "reservation": {
+            "type": 133,
+            "reason": "production"
+          },
+          "deployed": 19
+        },
+        {
+          "wave": 10,
+          "time": 306.5,
+          "race": "zerg",
+          "minerals": 510,
+          "income": 2430,
+          "spent": 2220,
+          "gas": 1,
+          "production": 6,
+          "tech": 0,
+          "construction": 0,
+          "units": 20,
+          "composition": {
+            "37": 10,
+            "38": 3,
+            "42": 1,
+            "43": 1,
+            "45": 1,
+            "47": 2,
+            "103": 2
+          },
+          "air": 5,
+          "value": 1325,
+          "idleFor": 56.5,
+          "reservation": {
+            "type": 136,
+            "reason": "production"
+          },
+          "deployed": 20
+        },
+        {
+          "wave": 20,
+          "time": 613.25,
+          "race": "zerg",
+          "minerals": 54,
+          "income": 5184,
+          "spent": 5430,
+          "gas": 2,
+          "production": 12,
+          "tech": 0,
+          "construction": 0,
+          "units": 29,
+          "composition": {
+            "37": 10,
+            "38": 3,
+            "39": 2,
+            "42": 1,
+            "43": 1,
+            "44": 1,
+            "45": 2,
+            "46": 4,
+            "47": 2,
+            "62": 1,
+            "103": 2
+          },
+          "air": 8,
+          "value": 2425,
+          "idleFor": 4.75,
+          "reservation": {
+            "type": 141,
+            "reason": "production"
+          },
+          "deployed": 29
+        },
+        {
+          "wave": 30,
+          "time": 919.75,
+          "race": "zerg",
+          "minerals": 305,
+          "income": 8715,
+          "spent": 8710,
+          "gas": 3,
+          "production": 20,
+          "tech": 0,
+          "construction": 0,
+          "units": 47,
+          "composition": {
+            "37": 10,
+            "38": 9,
+            "39": 3,
+            "42": 1,
+            "43": 3,
+            "44": 2,
+            "45": 3,
+            "46": 6,
+            "47": 6,
+            "62": 2,
+            "103": 2
+          },
+          "air": 17,
+          "value": 3975,
+          "idleFor": 21.25,
+          "reservation": {
+            "type": 149,
+            "reason": "income investment",
+            "payback": 420.12600000000003
+          },
+          "deployed": 47
+        }
+      ]
+    },
+    {
+      "player": "zerg",
+      "enemy": "protoss",
+      "snapshots": [
+        {
+          "wave": 5,
+          "time": 153.25,
+          "race": "protoss",
+          "minerals": 135,
+          "income": 1140,
+          "spent": 1305,
+          "gas": 0,
+          "production": 3,
+          "tech": 1,
+          "construction": 0,
+          "units": 8,
+          "composition": {
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2
+          },
+          "air": 0,
+          "value": 1025,
+          "idleFor": 17.75,
+          "reservation": {
+            "type": 165,
+            "reason": "technology"
+          },
+          "deployed": 8
+        },
+        {
+          "wave": 10,
+          "time": 306.5,
+          "race": "protoss",
+          "minerals": 107,
+          "income": 2412,
+          "spent": 2605,
+          "gas": 1,
+          "production": 4,
+          "tech": 2,
+          "construction": 0,
+          "units": 10,
+          "composition": {
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2,
+            "67": 1,
+            "68": 1
+          },
+          "air": 0,
+          "value": 1175,
+          "idleFor": 10.5,
+          "reservation": {
+            "type": 171,
+            "reason": "technology"
+          },
+          "deployed": 10
+        },
+        {
+          "wave": 20,
+          "time": 613.25,
+          "race": "protoss",
+          "minerals": 57,
+          "income": 5262,
+          "spent": 5505,
+          "gas": 2,
+          "production": 6,
+          "tech": 2,
+          "construction": 0,
+          "units": 15,
+          "composition": {
+            "60": 1,
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2,
+            "67": 1,
+            "68": 1,
+            "70": 2,
+            "83": 2
+          },
+          "air": 3,
+          "value": 2275,
+          "idleFor": 4.75,
+          "reservation": {
+            "type": 169,
+            "reason": "technology"
+          },
+          "deployed": 15
+        },
+        {
+          "wave": 30,
+          "time": 919.75,
+          "race": "protoss",
+          "minerals": 569,
+          "income": 8874,
+          "spent": 8605,
+          "gas": 3,
+          "production": 9,
+          "tech": 2,
+          "construction": 0,
+          "units": 19,
+          "composition": {
+            "60": 1,
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2,
+            "67": 1,
+            "68": 1,
+            "70": 2,
+            "71": 1,
+            "72": 1,
+            "83": 2,
+            "84": 2
+          },
+          "air": 7,
+          "value": 2775,
+          "idleFor": 41.25,
+          "reservation": {
+            "type": 157,
+            "reason": "income investment",
+            "payback": 453.72600000000006
+          },
+          "deployed": 19
+        }
+      ]
+    },
+    {
+      "player": "protoss",
+      "enemy": "terran",
+      "snapshots": [
+        {
+          "wave": 5,
+          "time": 153.25,
+          "race": "terran",
+          "minerals": 510,
+          "income": 1140,
+          "spent": 930,
+          "gas": 0,
+          "production": 2,
+          "tech": 1,
+          "construction": 0,
+          "units": 9,
+          "composition": {
+            "0": 6,
+            "3": 3
+          },
+          "air": 0,
+          "value": 600,
+          "idleFor": 68.75,
+          "reservation": {
+            "type": 114,
+            "reason": "technology"
+          },
+          "deployed": 9
+        },
+        {
+          "wave": 10,
+          "time": 306.5,
+          "race": "terran",
+          "minerals": 600,
+          "income": 2380,
+          "spent": 2080,
+          "gas": 1,
+          "production": 3,
+          "tech": 1,
+          "construction": 0,
+          "units": 11,
+          "composition": {
+            "0": 6,
+            "3": 3,
+            "8": 2
+          },
+          "air": 2,
+          "value": 900,
+          "idleFor": 67.5,
+          "reservation": {
+            "type": 123,
+            "reason": "technology"
+          },
+          "deployed": 11
+        },
+        {
+          "wave": 20,
+          "time": 613.25,
+          "race": "terran",
+          "minerals": 402,
+          "income": 5182,
+          "spent": 5080,
+          "gas": 2,
+          "production": 5,
+          "tech": 3,
+          "construction": 0,
+          "units": 16,
+          "composition": {
+            "0": 6,
+            "3": 3,
+            "5": 3,
+            "8": 2,
+            "58": 2
+          },
+          "air": 4,
+          "value": 1850,
+          "idleFor": 35.75,
+          "reservation": {
+            "type": 118,
+            "reason": "technology"
+          },
+          "deployed": 16
+        },
+        {
+          "wave": 30,
+          "time": 919.75,
+          "race": "terran",
+          "minerals": 383,
+          "income": 8563,
+          "spent": 8480,
+          "gas": 3,
+          "production": 9,
+          "tech": 3,
+          "construction": 0,
+          "units": 23,
+          "composition": {
+            "0": 6,
+            "2": 2,
+            "3": 3,
+            "5": 3,
+            "8": 2,
+            "9": 1,
+            "12": 2,
+            "32": 1,
+            "34": 1,
+            "58": 2
+          },
+          "air": 7,
+          "value": 3000,
+          "idleFor": 28.25,
+          "reservation": {
+            "type": 110,
+            "reason": "income investment",
+            "payback": 453.72600000000006
+          },
+          "deployed": 23
+        }
+      ]
+    },
+    {
+      "player": "protoss",
+      "enemy": "zerg",
+      "snapshots": [
+        {
+          "wave": 5,
+          "time": 153.25,
+          "race": "zerg",
+          "minerals": 120,
+          "income": 1140,
+          "spent": 1320,
+          "gas": 0,
+          "production": 6,
+          "tech": 0,
+          "construction": 0,
+          "units": 19,
+          "composition": {
+            "37": 10,
+            "38": 3,
+            "43": 1,
+            "45": 1,
+            "47": 2,
+            "103": 2
+          },
+          "air": 4,
+          "value": 1225,
+          "idleFor": 16.25,
+          "reservation": {
+            "type": 133,
+            "reason": "production"
+          },
+          "deployed": 19
+        },
+        {
+          "wave": 10,
+          "time": 306.5,
+          "race": "zerg",
+          "minerals": 510,
+          "income": 2430,
+          "spent": 2220,
+          "gas": 1,
+          "production": 6,
+          "tech": 0,
+          "construction": 0,
+          "units": 20,
+          "composition": {
+            "37": 10,
+            "38": 3,
+            "42": 1,
+            "43": 1,
+            "45": 1,
+            "47": 2,
+            "103": 2
+          },
+          "air": 5,
+          "value": 1325,
+          "idleFor": 56.5,
+          "reservation": {
+            "type": 136,
+            "reason": "production"
+          },
+          "deployed": 20
+        },
+        {
+          "wave": 20,
+          "time": 613.25,
+          "race": "zerg",
+          "minerals": 54,
+          "income": 5184,
+          "spent": 5430,
+          "gas": 2,
+          "production": 12,
+          "tech": 0,
+          "construction": 0,
+          "units": 29,
+          "composition": {
+            "37": 10,
+            "38": 3,
+            "39": 2,
+            "42": 1,
+            "43": 1,
+            "44": 1,
+            "45": 2,
+            "46": 4,
+            "47": 2,
+            "62": 1,
+            "103": 2
+          },
+          "air": 8,
+          "value": 2425,
+          "idleFor": 4.75,
+          "reservation": {
+            "type": 141,
+            "reason": "production"
+          },
+          "deployed": 29
+        },
+        {
+          "wave": 30,
+          "time": 919.75,
+          "race": "zerg",
+          "minerals": 305,
+          "income": 8715,
+          "spent": 8710,
+          "gas": 3,
+          "production": 20,
+          "tech": 0,
+          "construction": 0,
+          "units": 47,
+          "composition": {
+            "37": 10,
+            "38": 9,
+            "39": 3,
+            "42": 1,
+            "43": 3,
+            "44": 2,
+            "45": 3,
+            "46": 6,
+            "47": 6,
+            "62": 2,
+            "103": 2
+          },
+          "air": 17,
+          "value": 3975,
+          "idleFor": 21.25,
+          "reservation": {
+            "type": 149,
+            "reason": "income investment",
+            "payback": 420.12600000000003
+          },
+          "deployed": 47
+        }
+      ]
+    },
+    {
+      "player": "protoss",
+      "enemy": "protoss",
+      "snapshots": [
+        {
+          "wave": 5,
+          "time": 153.25,
+          "race": "protoss",
+          "minerals": 135,
+          "income": 1140,
+          "spent": 1305,
+          "gas": 0,
+          "production": 3,
+          "tech": 1,
+          "construction": 0,
+          "units": 8,
+          "composition": {
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2
+          },
+          "air": 0,
+          "value": 1025,
+          "idleFor": 17.75,
+          "reservation": {
+            "type": 165,
+            "reason": "technology"
+          },
+          "deployed": 8
+        },
+        {
+          "wave": 10,
+          "time": 306.5,
+          "race": "protoss",
+          "minerals": 107,
+          "income": 2412,
+          "spent": 2605,
+          "gas": 1,
+          "production": 4,
+          "tech": 2,
+          "construction": 0,
+          "units": 10,
+          "composition": {
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2,
+            "67": 1,
+            "68": 1
+          },
+          "air": 0,
+          "value": 1175,
+          "idleFor": 10.5,
+          "reservation": {
+            "type": 171,
+            "reason": "technology"
+          },
+          "deployed": 10
+        },
+        {
+          "wave": 20,
+          "time": 613.25,
+          "race": "protoss",
+          "minerals": 57,
+          "income": 5262,
+          "spent": 5505,
+          "gas": 2,
+          "production": 6,
+          "tech": 2,
+          "construction": 0,
+          "units": 15,
+          "composition": {
+            "60": 1,
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2,
+            "67": 1,
+            "68": 1,
+            "70": 2,
+            "83": 2
+          },
+          "air": 3,
+          "value": 2275,
+          "idleFor": 4.75,
+          "reservation": {
+            "type": 169,
+            "reason": "technology"
+          },
+          "deployed": 15
+        },
+        {
+          "wave": 30,
+          "time": 919.75,
+          "race": "protoss",
+          "minerals": 569,
+          "income": 8874,
+          "spent": 8605,
+          "gas": 3,
+          "production": 9,
+          "tech": 2,
+          "construction": 0,
+          "units": 19,
+          "composition": {
+            "60": 1,
+            "61": 1,
+            "63": 1,
+            "65": 4,
+            "66": 2,
+            "67": 1,
+            "68": 1,
+            "70": 2,
+            "71": 1,
+            "72": 1,
+            "83": 2,
+            "84": 2
+          },
+          "air": 7,
+          "value": 2775,
+          "idleFor": 41.25,
+          "reservation": {
+            "type": 157,
+            "reason": "income investment",
+            "payback": 453.72600000000006
+          },
+          "deployed": 19
+        }
+      ]
+    }
+  ]
+}

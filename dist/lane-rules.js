@@ -1,15 +1,21 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.14.0';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.15.0';
 export {DESERT_STRIKE};
 export const WAVE_SECONDS=DESERT_STRIKE.waveGameSeconds/1.5;
 export const INCOME_SECONDS=DESERT_STRIKE.incomeCycles*DESERT_STRIKE.hyperCycleSeconds;
 export const PRODUCTION_OFFSET=2304;
 export const PRODUCTION_HEIGHT=2048;
-export const PRODUCTION_GROUND_WIDTH=Math.round(Math.round(1280*.8)*.8);
-export const PRODUCTION_GROUND_HEIGHT=Math.round(Math.round(PRODUCTION_HEIGHT*.6)*.5);
-export const PRODUCTION_GROUND_X=Math.round((1280-PRODUCTION_GROUND_WIDTH)/2);
-export const PRODUCTION_GROUND_Y=Math.ceil((PRODUCTION_HEIGHT-PRODUCTION_GROUND_HEIGHT)/2/32)*32;
+export const PRODUCTION_GROUND_WIDTH=DESERT_STRIKE.map.productionRegion.tileWidth*32;
+export const PRODUCTION_GROUND_HEIGHT=DESERT_STRIKE.map.productionRegion.tileHeight*32;
+export const PRODUCTION_GROUND_X=96;
+export const PRODUCTION_GROUND_Y=736;
 export const GAS_SLOT_Y=Math.ceil(PRODUCTION_GROUND_Y/32)*32+32;
-export const GAS_SLOT_X=Object.freeze([320,480,640,800,960]);
+export const GAS_SLOT_X=Object.freeze(DESERT_STRIKE.map.gasSlots.map(([x])=>PRODUCTION_GROUND_X+x));
+export function gasSlots(team=0){return DESERT_STRIKE.map.gasSlots.map(([x,y],slot)=>({slot,x:team?1280-PRODUCTION_GROUND_X-x:PRODUCTION_GROUND_X+x,y:PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+y}))}
+export function productionTileAllowed(x,y,team=0){
+ const region=DESERT_STRIKE.map.productionRegion,localX=(team?1280-x:x)-PRODUCTION_GROUND_X,localY=y-PRODUCTION_OFFSET-PRODUCTION_GROUND_Y;
+ const tx=Math.floor(localX/32),ty=Math.floor(localY/32);
+ return tx>=0&&ty>=0&&tx<region.tileWidth&&ty<region.tileHeight&&!!region.buildable[ty*region.tileWidth+tx];
+}
 export const GAS_BUILDING=Object.freeze({terran:110,zerg:149,protoss:157});
 
 export const BUILDING_COSTS=Object.freeze(DESERT_STRIKE.costs);

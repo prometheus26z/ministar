@@ -25,6 +25,13 @@ console.log('Restored 6 race-specific music cues.');
 // One checked original-map snapshot supplies both browser and simulation rules.
 {
  const rules=JSON.parse(fs.readFileSync(path.join(root,'resources/desert-strike-v1.json'),'utf8'));
+ const audit=JSON.parse(fs.readFileSync(path.join(root,'resources/original-desertstrike.json'),'utf8'));
+ const scx=fs.readFileSync(path.join(root,'resources/desertstrike/original.scx'));
+ const chk=zlib.gunzipSync(fs.readFileSync(path.join(root,'resources/desertstrike/scenario.chk.gz')));
+ for(const [bytes,expected]of [[scx,audit.source.sha256],[chk,audit.source.chkSha256]])if(crypto.createHash('sha256').update(bytes).digest('hex')!==expected)throw Error('Original Desert Strike source checksum mismatch');
+ if(audit.originalTriggers.length!==328||audit.originalTriggers.some((t,i)=>t.id!==i+1||!t.portStatus||!t.mappedRule))throw Error('Incomplete original trigger audit');
+ if(Object.values(rules.costs).some(cost=>cost[1]!==0))throw Error('Original building costs must be minerals-only');
+ if(rules.map.gasSlots.length!==5||rules.map.productionRegion.buildable.length!==rules.map.productionRegion.tileWidth*rules.map.productionRegion.tileHeight)throw Error('Invalid source production geometry');
  fs.writeFileSync(path.join(root,'dist/desert-strike-data.js'),'// Extracted from original map sections; see resources/desert-strike-v1.json.\nexport const DESERT_STRIKE='+JSON.stringify(rules)+';\n');
  console.log('Restored original Desert Strike economy and production data.');
 }
