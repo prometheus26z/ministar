@@ -206,7 +206,8 @@ assert.match(await page.locator('#commandGrid').innerText(),/마린/);assert.mat
 await page.locator('#closeCommands').click();
 await page.locator('#map').click();const minimap=page.locator('#minimap'),miniBox=await minimap.boundingBox();
 await minimap.click({position:{x:miniBox.width/2,y:1}});await page.locator('#map').click();
-await page.locator('#field').click({position:{x:195,y:159}});await page.waitForTimeout(100);
+const enemyMainPoint=await page.evaluate(()=>{const t=window.__visualTest;return t.project(t.battle.enemyMain)});
+await page.locator('#field').tap({position:enemyMainPoint});await page.waitForTimeout(100);
 assert.equal(await page.locator('#unitName').innerText(),'케이다린 수정 형성부');
 assert.doesNotMatch(await page.locator('#toast').innerText(),/HP/);assert.equal(await page.locator('.vitals').isVisible(),true);assert.ok((await page.locator('#hp').innerText()).startsWith('HP '));assert.match(await page.locator('#groundAttack').innerText(),/지상/);assert.match(await page.locator('#armor').innerText(),/방어/);
 const enemyHealth=await page.evaluate(()=>{const b=window.__visualTest.battle,u=b.units.find(u=>u.team===1&&u.alive&&!u.hidden&&!u.loaded);b.inspect(u);return `HP ${Math.ceil(u.hp)}/${Math.ceil(u.maxHp||u.def.hp)}`});await page.waitForFunction(expected=>document.getElementById('hp').textContent===expected,enemyHealth);assert.ok((await page.locator('#hp').innerText()).startsWith('HP '));assert.match(await page.locator('#groundAttack').innerText(),/지상/);assert.match(await page.locator('#armor').innerText(),/방어/);
