@@ -36,8 +36,9 @@ const {createServer}=require('../server.cjs');
    assert.ok(dragoonFrames.samples.some(frame=>frame?.firstRendered),'the short flight survives until a frame is rendered');
    assert.ok(new Set(dragoonFrames.samples.filter(Boolean).map(frame=>frame.x)).size>1,'successive frames show the projectile moving');
    assert.ok(dragoonFrames.hp<dragoon.hp,'the original projectile still applies its hit');
-   assert.ok(dragoonFrames.failures.some(url=>url.includes('523_blue.webp')),'the delayed URL is recorded as failed after the timeout');
    assert.ok(dragoonFrames.fallbacks.includes(523),'the dragoon uses its directional fallback after the image timeout');
+   await page.waitForFunction(()=>window.__projectileTest.failedImages.some(url=>url.includes('523_blue.webp')),null,{timeout:9000});
+   assert.ok((await page.evaluate(()=>window.__projectileTest.failedImages)).some(url=>url.includes('523_blue.webp')),'the delayed URL is recorded as failed after the retry timeout');
    await page.screenshot({path:'/tmp/ministar-projectile-dragoon.png'});
 
    const hydra=await page.evaluate(()=>window.__projectileTest.fire('hydra',120,1160));
