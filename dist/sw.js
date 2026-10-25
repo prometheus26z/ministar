@@ -8,7 +8,7 @@ self.addEventListener('activate',event=>event.waitUntil((async()=>{
  for(const client of await self.clients.matchAll({type:'window'})){
   const url=new URL(client.url);
   if(url.origin===scope.origin&&url.pathname.startsWith(scope.pathname)){
-   url.searchParams.set('v','0.16.9');
+   url.searchParams.set('v','0.16.10');
    await client.navigate(url.href);
   }
  }

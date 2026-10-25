@@ -1,10 +1,10 @@
-import {constructionVisual,healthBarPixels,waveDescription} from './presentation.js?v=0.16.9';
-import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.9';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.9';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.9';
-import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS} from './lane-rules.js?v=0.16.9';
-import {researchAt} from './tech.js?v=0.16.9';
-import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.9';
+import {constructionVisual,healthBarLayout,waveDescription} from './presentation.js?v=0.16.10';
+import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.10';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.10';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.10';
+import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS} from './lane-rules.js?v=0.16.10';
+import {researchAt} from './tech.js?v=0.16.10';
+import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.10';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),mc=mini.getContext('2d');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';
@@ -107,7 +107,7 @@ function selectionUI(){
   const unit=units[0]||battle.inspectedUnit,entries=unit?.productionOnly?battle.commanderWave(unit.commanderId,unit.id):new Map(),lineup=[...entries].map(([type,count])=>`${data.units[type].name} ${count}기`).join(' · ');$('unitName').textContent=unit?unit.def.name:'';document.querySelector('.unit-info').style.setProperty('--unit-icon',`url("${icon(unit?.type??BASE[race])}")`);
   showVitals(unit?[unit]:[]);
   const role=unit?.def.building?waveDescription(unit.type,battle.waveUnitsForBuilding(unit.type),data):'';
-  $('order').textContent=unit?.garrison?.length?'수비 병력':unit?.construction?`건설 중 · ${role}`:unit?.productionOnly&&lineup?`매 ${Math.round(WAVE_SECONDS)}초 자동 출격 · ${lineup}`:unit?.productionOnly&&unit?.def.building?role:unit?.def.building?'전장 방어 시설':'';
+  $('order').textContent=unit?.garrison?.length?'수비 병력':unit?.construction?`건설 중 · ${role}`:unit?.productionOnly&&lineup?lineup:unit?.productionOnly&&unit?.def.building?role:unit?.def.building?'전장 방어 시설':'';
   $('chips').replaceChildren();hudUI();productionUI();return;
  }
  $('unitName').textContent=units.length===1?units[0].def.name:units.length?units.length+'기 선택됨' :'';showVitals(units);
@@ -141,7 +141,7 @@ function menuUI(){
  }else if(mode==='produce'){
   const team=viewMode==='production'?productionTeam:0,owner=viewMode==='production'?viewCommanderId():0,scoped=unit?.commanderId===owner&&unit.productionOnly&&unit.def.building?unit:null,counts=battle.commanderWave(owner,scoped?.id??null);
   $('commandHint').textContent='';
-  for(const [type,count]of counts){const card=document.createElement('div');card.className='wave-card';card.innerHTML=`<img src="${icon(type)}" alt=""><b>${data.units[type].name}</b><span>${count}기 · 매 ${Math.round(WAVE_SECONDS)}초</span>`;$('commandGrid').append(card)}
+  for(const [type,count]of counts){const card=document.createElement('div');card.className='wave-card';card.innerHTML=`<img src="${icon(type)}" alt=""><b>${data.units[type].name}</b><span>${count}기</span>`;$('commandGrid').append(card)}
   if(!counts.size&&scoped){const empty=document.createElement('p');empty.className='wave-empty';empty.textContent='이 건물은 현재 출격 유닛을 생성하지 않습니다. '+waveDescription(scoped.type,battle.waveUnitsForBuilding(scoped.type),data);$('commandGrid').append(empty)}
  }else{
   if(!unit||!unit.productionOnly||!unit.def.building){$('commandHint').textContent='생산 공간에서 연구할 건물을 선택하세요.';return}
@@ -205,8 +205,8 @@ function sprite(id,team,x,y,action='idle',time=0,direction=0,alpha=1,stack=new S
  stack.delete(id);return drawn;
 }
 function drawHealthBar(u){
- const g=data.graphics[u.def.image],nominal=g?.healthBarSize||u.def.healthBarSize||u.def.footprint?.[0]||u.r*2;const pixels=healthBarPixels(nominal);
- const width=pixels/camera.zoom,x=u.x-width/2,y=u.y+u.r+5/camera.zoom,hp=Math.floor(100*clamp(u.hp/(u.maxHp||u.def.hp),0,1)),shieldMax=u.def.shield||0,shield=shieldMax?Math.max(0,Math.floor(100*u.shield/shieldMax)):0,hasShield=shieldMax>0;
+ const g=data.graphics[u.def.image],{pixels,width,x,y}=healthBarLayout(u,g,camera.zoom);
+ const hp=Math.floor(100*clamp(u.hp/(u.maxHp||u.def.hp),0,1)),shieldMax=u.def.shield||0,shield=shieldMax?Math.max(0,Math.floor(100*u.shield/shieldMax)):0,hasShield=shieldMax>0;
  const hpRows=hasShield?[18,0,0,1,1,2,18]:[18,0,1,2,18],bgRows=hasShield?[18,15,15,16,16,17,18]:[18,15,16,17,18],band=hp>=66?(hasShield?[18,0,0,1,1,2,18]:[18,0,1,2,18]):hp>=33?(hasShield?[18,3,3,4,4,5,18]:[18,3,4,5,18]):(hasShield?[18,6,6,7,7,8,18]:[18,6,7,8,18]),fillWidth=percent=>{let n=Math.floor(pixels*percent/100);if(n<3)n=3;else if(n%3){if(n%3>1)n+=3-n%3;else n-=n%3}return Math.min(pixels,n)};
  const colors={0:'#8fdb83',1:'#62bd49',2:'#37932a',3:'#f4d56e',4:'#dbac48',5:'#b7832d',6:'#ed8070',7:'#d94b36',8:'#a92a20',10:'#659fce',11:'#3373ac',15:'#343733',16:'#252f37',17:'#151b1d',18:'#080b0a'},hpFill=fillWidth(hp),shieldFill=fillWidth(shield),rowHeight=1/camera.zoom;
  for(let row=0;row<hpRows.length;row++){const yy=y+row*rowHeight;ctx.fillStyle=colors[band[row]];ctx.fillRect(x,yy,hpFill/camera.zoom,rowHeight);ctx.fillStyle=colors[bgRows[row]];ctx.fillRect(x+hpFill/camera.zoom,yy,(pixels-hpFill)/camera.zoom,rowHeight)}
@@ -333,5 +333,5 @@ async function retireOfflineStorage(){
  }catch(error){console.warn('Legacy game cache cleanup:',error)}
  return true;
 }
-async function boot(){try{if(!await retireOfflineStorage())return;enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});clearMediaSession();const extra=await fetch('rts-data.json?v=0.16.9').then(r=>{if(!r.ok)throw Error('생산 데이터를 읽을 수 없습니다.');return r.json()});Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);const constructionGraphics=await fetch('construction-data.json?v=0.16.9').then(r=>{if(!r.ok)throw Error('건설 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,constructionGraphics);const turretGraphics=await fetch('turret-data.json?v=0.16.9').then(r=>{if(!r.ok)throw Error('포탑 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,turretGraphics);const destructionGraphics=await fetch('destruction-data.json?v=0.16.9').then(r=>{if(!r.ok)throw Error('건물 파괴 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,destructionGraphics);const originalAnimations=await fetch('original-animation-data.json?v=0.16.9').then(r=>{if(!r.ok)throw Error('원본 애니메이션을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,originalAnimations);await Promise.all([...Object.values(destructionGraphics),data.graphics[215]].map(g=>loadImage(g.images.blue)));await Promise.all(Object.values(turretGraphics).flatMap(g=>Object.values(g.images)).map(loadImage));await Promise.all(Object.values(constructionGraphics).map(g=>loadImage(g.images.blue)));for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);[desertField,desertProduction]=await Promise.all([loadImage('ds-assets/battlefield.webp?v=0.16.9'),loadImage('ds-assets/production.webp')]);if(!desertField)console.warn('Desert field texture unavailable; rendering flat sand field');terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
+async function boot(){try{if(!await retireOfflineStorage())return;enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});clearMediaSession();const extra=await fetch('rts-data.json?v=0.16.10').then(r=>{if(!r.ok)throw Error('생산 데이터를 읽을 수 없습니다.');return r.json()});Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);const constructionGraphics=await fetch('construction-data.json?v=0.16.10').then(r=>{if(!r.ok)throw Error('건설 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,constructionGraphics);const turretGraphics=await fetch('turret-data.json?v=0.16.10').then(r=>{if(!r.ok)throw Error('포탑 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,turretGraphics);const destructionGraphics=await fetch('destruction-data.json?v=0.16.10').then(r=>{if(!r.ok)throw Error('건물 파괴 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,destructionGraphics);const originalAnimations=await fetch('original-animation-data.json?v=0.16.10').then(r=>{if(!r.ok)throw Error('원본 애니메이션을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,originalAnimations);await Promise.all([...Object.values(destructionGraphics),data.graphics[215]].map(g=>loadImage(g.images.blue)));await Promise.all(Object.values(turretGraphics).flatMap(g=>Object.values(g.images)).map(loadImage));await Promise.all(Object.values(constructionGraphics).map(g=>loadImage(g.images.blue)));for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);[desertField,desertProduction]=await Promise.all([loadImage('ds-assets/battlefield.webp?v=0.16.10'),loadImage('ds-assets/production.webp')]);if(!desertField)console.warn('Desert field texture unavailable; rendering flat sand field');terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
 
