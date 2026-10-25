@@ -100,7 +100,7 @@ test('gas buildings use the original race-specific mineral cost and reserve thei
 
 test('Zerg creep requirements do not block construction inside the production area',()=>{
  const battle=fresh('zerg');battle.money=1000;
- const site={x:640,y:PRODUCTION_OFFSET+832};
+ const site={x:640,y:PRODUCTION_OFFSET+960};
  assert.equal(battle.placement(battle.builder,142,site).reason,'');
  assert.equal(battle.build(battle.builder,142,site),true,battle.lastError);
  const pool=battle.units.find(unit=>unit.team===0&&unit.type===142&&unit.productionOnly);

@@ -1,6 +1,6 @@
 # MINISTAR · 미니스타
 
-현재 버전 **v0.13.0** · [플레이](https://prometheus26z.github.io/ministar/)
+현재 버전 **v0.14.0** · [플레이](https://prometheus26z.github.io/ministar/)
 
 ## 경제와 생산 기준
 
