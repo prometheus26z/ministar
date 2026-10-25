@@ -7,8 +7,12 @@ const TRACKS=Object.freeze({
  unburrow:['unburrow','burrow','idle'],
  idle:['idle','stand','built']
 });
+export function trackFor(g,action){
+ const tracks=g?.tracks||{},candidates=TRACKS[action]||[action];
+ return candidates.map(key=>tracks[key]).find(Boolean)||tracks.idle||tracks.built||null;
+}
 export function pose(g,action,time,direction){
- const tracks=g?.tracks||{},candidates=TRACKS[action]||[action],track=candidates.map(key=>tracks[key]).find(Boolean)||tracks.idle||tracks.built;
+ const track=trackFor(g,action);
  const frames=Array.isArray(g?.frames)?g.frames:[];if(!frames.length)return{frame:0,flip:false};
  let frame=0;
  if(track){

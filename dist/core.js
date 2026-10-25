@@ -94,7 +94,7 @@ export class Battle{
  hurt(u,damage,team,type=3,ignore=false){if(!u.alive||u.buffs.stasis>0)return 0;if(u.hallucination)damage*=2;const before=u.hp+u.shield;if(u.matrix){const n=Math.min(u.matrix,damage);u.matrix-=n;damage-=n}if(u.shield){const n=Math.min(u.shield,damage);u.shield-=n;damage-=n}if(damage>0){let factor=type===1?[1,.5,.75,1][u.def.size]||1:type===2?[1,1,.5,.25][u.def.size]||1:1;u.hp-=ignore?damage:Math.max(.5,damage*factor-u.def.armor)}const dealt=Math.max(0,before-Math.max(0,u.hp)-u.shield);if(team===0)this.damageDone+=dealt;if(u.hp<=0)this.die(u,team);return dealt;}
  die(u,team=-1){
   if(!u.alive)return;
-  const deathTrack=this.data.graphics[u.def.image]?.tracks?.death,death=deathTrack?.sounds||[];
+  const graphics=this.data.graphics[u.def.image],deathTrack=graphics?.tracks?.death||graphics?.tracks?.dead,death=deathTrack?.sounds||[];
   if(death.length)this.emit('sfx',{id:death[Math.floor(Math.random()*death.length)]});
   const trackSeconds=Number(deathTrack?.ticks)/24;
   u.deathDuration=Math.max(.2,Math.min(8,Number.isFinite(trackSeconds)&&trackSeconds>0?trackSeconds:1.8));
