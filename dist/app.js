@@ -317,6 +317,7 @@ function drawBuildingFire(u){
 }
 const PROJECTILE_TONES={523:'#d9f5ff',524:'#d9f5ff',528:'#a9eaff',529:'#a9eaff',521:'#a9eaff',965:'#c5f4ff',509:'#d5ef8a',511:'#f0d76b',515:'#c6df77',962:'#c4ed79',532:'#ffe6a0',534:'#f8e7ad',535:'#d2f4ff',522:'#cff4ff',503:'#ffc85d',536:'#ffe9b8'};
 function projectileAlpha(visual){
+ if(!visual.firstRendered&&visual.kind==='projectile')return 1;
  if(visual.kind==='hitscan')return Math.max(0,Math.min(1,(visual.duration-visual.age)/.03));
  if(visual.kind==='projectile'&&!visual.arrived)return 1;
  const life=visual.kind==='projectile'?Math.max(.12,visual.flightElapsed+.06):visual.duration;
