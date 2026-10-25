@@ -12,7 +12,7 @@ def centered_crop(width, height, target_width, target_height):
 
 
 def map_point(x, y, source_width, source_height, target_width, target_height):
-    """Map a source point through the importer's 90° CCW rotation and fit crop."""
+    """Keep legacy gameplay coordinates; upright scenery is fitted separately."""
     rotated_x, rotated_y = y, source_width - x
     rotated_width, rotated_height = source_height, source_width
     left, top, crop_width, crop_height = centered_crop(

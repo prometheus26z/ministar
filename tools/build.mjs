@@ -1,5 +1,8 @@
 import fs from 'node:fs';import path from 'node:path';import zlib from 'node:zlib';import crypto from 'node:crypto';
 import {deriveBuildingCatalog,SOURCE_PLAYER_BY_COMMANDER} from './desert-strike-source.mjs';
+import {execFileSync} from 'node:child_process';
+// Regenerate the background from upright source artwork on every clean build.
+execFileSync('python3',[path.resolve(import.meta.dirname,'battlefield_terrain.py')],{stdio:'inherit'});
 const root=path.resolve(import.meta.dirname,'..'),meta=JSON.parse(fs.readFileSync(path.join(root,'resources/manifest.json'))),packed=Buffer.concat(meta.parts.map(p=>Buffer.from(fs.readFileSync(path.join(root,'resources',p),'utf8'),'base64')));
 if(crypto.createHash('sha256').update(packed).digest('hex')!==meta.sha256)throw Error('Asset bundle checksum mismatch');
 const raw=zlib.gunzipSync(packed);if(raw.subarray(0,8).toString()!=='MSTAR001')throw Error('Invalid asset bundle');let offset=8,count=0;
@@ -45,6 +48,7 @@ console.log('Restored 6 race-specific music cues.');
  else{cropHeight=Math.round(rotatedWidth/targetAspect);top=Math.floor((rotatedHeight-cropHeight)/2)}
  const scaleX=targetWidth/cropWidth,scaleY=targetHeight/cropHeight;
  if(Math.abs(scaleX-scaleY)>1e-12)throw Error('Original battlefield fit would distort terrain');
+ // Preserve gameplay placement independently of the upright mobile scenery.
  const pointOnBattlefield=(x,y)=>({x:(y-field.top-left)*scaleX,y:(sourceWidth-(x-field.left)-top)*scaleY});
  const templeUnits=audit.map.units.filter(unit=>unit.unitId===174&&[3,7].includes(unit.owner));
  if(templeUnits.length!==2||new Set(templeUnits.map(unit=>unit.owner)).size!==2)throw Error('Original map must contain one temple for each team');

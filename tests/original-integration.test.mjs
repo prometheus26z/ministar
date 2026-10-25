@@ -94,7 +94,7 @@ test('production crop uses original buildable mask and L-shaped geyser centers w
  assert.equal(mask.reduce((n,v)=>n+v,0),606);
 });
 
-test('battlefield outposts use the original placed temples after terrain rotation and crop',()=>{
+test('battlefield outposts preserve legacy source-derived gameplay positions independently of upright scenery',()=>{
  const outposts=DESERT_STRIKE.map.objectives.outposts;
  assert.deepEqual(outposts[0],{x:1856/3,y:1632,owner:3,source:{x:624,y:1008}});
  assert.deepEqual(outposts[1],{x:1856/3,y:416,owner:7,source:{x:2448,y:1008}});
