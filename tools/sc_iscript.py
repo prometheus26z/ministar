@@ -73,6 +73,7 @@ def trace(id,slot,target_near=None,stop_at_signal=None,include_signals=False,inh
   elif name in ['sethorpos','setvertpos','setpos','setflipstate','turnccwise','turncwise','turn1cwise','turnrand','setspawnframe','attackwith','attack','castspell','useweapon','move','gotorepeatattk','__2d','nobrkcodestart','nobrkcodeend','attkshiftproj','setflspeed','orderdone','domissiledmg','attackmelee','__0c','__3e','__43','dogrddamage','creategasoverlays','switchul']:pass
   else:raise ValueError(('unknown',id,slot,name))
  else:raise ValueError(('too long',id,slot))
- track={'frames':frames,'ticks':ticks,'loop':loop,'loopStart':loopstart,'ended':ended,'overlayEvents':overlays,'overlays':list(dict.fromkeys(x['image']for x in overlays)),'warpOverlayEvents':warp_overlays,'sounds':sounds,'fixedDirection':fixed,'followParent':follow}
+ track={'frames':frames,'ticks':ticks,'loop':loop,'loopStart':loopstart,'ended':ended,'overlayEvents':overlays,'overlays':list(dict.fromkeys(x['image']for x in overlays)),'sounds':sounds,'fixedDirection':fixed,'followParent':follow}
+ if warp_overlays:track['warpOverlayEvents']=warp_overlays
  if include_signals:track['signalTicks']=signal_ticks
  return track
