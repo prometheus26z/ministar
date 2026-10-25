@@ -3,20 +3,37 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {Battle} from '../dist/autobattle.js';
 import {buildingDestruction} from '../dist/presentation.js';
+import {DESERT_STRIKE} from '../dist/lane-rules.js';
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
 const fresh=(race='terran')=>{const b=new Battle(data,{race,enemyRace:race});b.begin();b.weapon=()=>null;b.autoCast=()=>{};return b};
+const flushPending=b=>{let guard=0;while(b.pendingDeployments.some(queue=>queue.length)){b.deploymentBudget=[8,8];assert.ok(b.drainPendingDeployments().length,'rear deployment space is available');if(++guard>100)throw Error('deployment queue did not drain')}};
 
 test('36-unit waves on both sides spawn clear of HQ and turrets and every member leaves the base',()=>{
  for(const team of [0,1]){
   const b=fresh();for(let i=0;i<6;i++){const u=b.create(111,team,200+i*150,3100);u.productionOnly=true}
-  b.spawnWave(team);const army=b.units.filter(u=>u.laneArmy);
+  b.spawnWave(team);assert.equal(b.units.filter(u=>u.laneArmy).length,8,'one simulation slice deploys at most eight units');flushPending(b);const army=b.units.filter(u=>u.laneArmy);
   assert.equal(army.length,36);assert.equal(new Set(army.map(u=>`${u.x},${u.y}`)).size,36);
+  const main=team?b.core:b.main,zone=DESERT_STRIKE.map.mobileLayout.deploymentZones[team],direction=team?1:-1;
+  assert.ok(army.every(u=>direction*(u.y-main.y)<0&&u.x>=zone.left+u.r&&u.x<=zone.right-u.r&&u.y>=zone.top+u.r&&u.y<=zone.bottom-u.r));
   assert.ok(army.every(u=>!b.map.blocked(u.x,u.y,Math.max(20,u.r*.55))));
   for(let frame=0;frame<300;frame++)for(const u of army)b.tickUnit(u,1/30);
   assert.ok(army.every(u=>team?u.y>500:u.y<1500),JSON.stringify(army.filter(u=>team?u.y<=500:u.y>=1500).map(u=>[u.x,u.y,u.order])));
  }
+});
+
+test('rear-zone congestion queues units without forward fallback or cross-team starvation',()=>{
+ const b=fresh();for(const team of [0,1]){const producer=b.create(111,team,640,1200);producer.productionOnly=true;producer.completed=true}
+ const find=b.findRearDeploymentPoint.bind(b);b.findRearDeploymentPoint=(def,team,...args)=>team===0?null:find(def,team,...args);
+ b.spawnWave(0);b.spawnWave(1);
+ assert.equal(b.units.filter(u=>u.laneArmy&&u.team===0).length,0);
+ assert.equal(b.pendingDeployments[0].length,6,'blocked requests remain queued');
+ assert.equal(b.units.filter(u=>u.laneArmy&&u.team===1).length,6,'the clear team deploys independently');
+ b.findRearDeploymentPoint=find;flushPending(b);
+ assert.equal(b.units.filter(u=>u.laneArmy&&u.team===0).length,6);
+ assert.equal(b.pendingDeployments[0].length+b.pendingDeployments[1].length,0);
+ assert.ok(b.units.filter(u=>u.laneArmy).every(u=>u.team===0?u.y>b.main.y:u.y<b.core.y));
 });
 
 test('an idle soldier accidentally trapped in the HQ regains an open route without resetting its objective',()=>{

@@ -39,6 +39,12 @@ console.log('Restored 6 race-specific music cues.');
  const humanPlayers=Object.values(SOURCE_PLAYER_BY_COMMANDER),blocked=Object.keys(buildingSource.buildingCatalog).map(Number).filter(id=>!humanPlayers.every(player=>buildingSource.buildingCatalog[id].availableByPlayer[player]));
  if(JSON.stringify(blocked)!=='[120]')throw Error(`Unexpected PUNI building catalog; expected only disabled ID 120, got ${JSON.stringify(blocked)}`);
  if(rules.map.gasSlots.length!==5||rules.map.productionRegion.buildable.length!==rules.map.productionRegion.tileWidth*rules.map.productionRegion.tileHeight)throw Error('Invalid source production geometry');
+ const layout=rules.map.mobileLayout;if(!layout||layout.objectiveDetectionRange!==320)throw Error('Invalid mobile objective detection layout');
+ for(const team of [0,1]){
+  const main=layout.mains?.[team],outpost=layout.outposts?.[team],zone=layout.deploymentZones?.[team],mirror=1-team;
+  if(!main||!outpost||!zone||main.x!==640||outpost.x!==640||Math.abs(Math.abs(main.y-outpost.y)-480)>1||main.y+layout.mains[mirror].y!==2048||outpost.y+layout.outposts[mirror].y!==2048)throw Error(`Invalid mobile objectives for team ${team}`);
+  if(zone.left!==32||zone.right!==1248||zone.top<0||zone.bottom>2048||zone.top>=zone.bottom)throw Error(`Invalid rear deployment zone for team ${team}`);
+ }
  const field=audit.map.locations.find(location=>location.name==='Playing field');
  if(!field||field.left!==0||field.top!==0)throw Error('Invalid original battlefield crop');
  const targetWidth=1280,targetHeight=2048,sourceWidth=field.right-field.left,sourceHeight=field.bottom-field.top;

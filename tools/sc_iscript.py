@@ -29,10 +29,10 @@ def debug(id,action=0):
   seen.add(p);name,a,n=instruction(p);print(p,name,a);p=a[0]if name=='goto'else n
   if name in ['end','ignorerest']:break
 
-def trace(id,slot,target_near=None):
+def trace(id,slot,target_near=None,stop_at_signal=None,include_signals=False,inherit_initial=False):
  h=headers.get(image_script(id),[])
  if slot>=len(h)or not h[slot]:return None
- p=h[slot];seen={};stack=[];frame=0;frames=[];overlays=[];ticks=0;hidden=False;loop=False;loopstart=0;sounds=[];fixed=None;follow=False;ended=False
+ p=h[slot];seen={};stack=[];frame=None if inherit_initial else 0;frames=[];overlays=[];ticks=0;hidden=False;loop=False;loopstart=0;sounds=[];fixed=None;follow=False;ended=False;signal_ticks={}
  for step in range(10000):
   state=(p,tuple(stack))
   if state in seen:loop=True;loopstart=seen[state];break
@@ -43,6 +43,7 @@ def trace(id,slot,target_near=None):
   elif name in ['wait','waitrand']:
    extra={}
    if hidden:extra['hidden']=True
+   if frame is None:extra['inheritFrame']=True
    if name=='waitrand':extra['randomWait']=a
    frames.append([frame,a[0]]+([extra]if extra else []));ticks+=a[0]
   elif name=='goto':p=a[0]
@@ -63,7 +64,12 @@ def trace(id,slot,target_near=None):
   elif name=='trgtrangecondjmp' and target_near is not None:
    if target_near:p=a[1]
   elif name in ['randcondjmp','pwrupcondjmp','trgtrangecondjmp','trgtarccondjmp','curdirectcondjmp','liftoffcondjmp']:raise ValueError(('conditional',id,slot,name,a))
-  elif name in ['sethorpos','setvertpos','setpos','setflipstate','turnccwise','turncwise','turn1cwise','turnrand','setspawnframe','sigorder','attackwith','attack','castspell','useweapon','move','gotorepeatattk','__2d','nobrkcodestart','nobrkcodeend','attkshiftproj','setflspeed','orderdone','domissiledmg','attackmelee','__0c','__3e','__43','dogrddamage','warpoverlay','creategasoverlays','switchul']:pass
+  elif name=='sigorder':
+   signal_ticks[str(a[0])]=ticks
+   if stop_at_signal==a[0]:break
+  elif name in ['sethorpos','setvertpos','setpos','setflipstate','turnccwise','turncwise','turn1cwise','turnrand','setspawnframe','attackwith','attack','castspell','useweapon','move','gotorepeatattk','__2d','nobrkcodestart','nobrkcodeend','attkshiftproj','setflspeed','orderdone','domissiledmg','attackmelee','__0c','__3e','__43','dogrddamage','warpoverlay','creategasoverlays','switchul']:pass
   else:raise ValueError(('unknown',id,slot,name))
  else:raise ValueError(('too long',id,slot))
- return {'frames':frames,'ticks':ticks,'loop':loop,'loopStart':loopstart,'ended':ended,'overlayEvents':overlays,'overlays':list(dict.fromkeys(x['image']for x in overlays)),'sounds':sounds,'fixedDirection':fixed,'followParent':follow}
+ track={'frames':frames,'ticks':ticks,'loop':loop,'loopStart':loopstart,'ended':ended,'overlayEvents':overlays,'overlays':list(dict.fromkeys(x['image']for x in overlays)),'sounds':sounds,'fixedDirection':fixed,'followParent':follow}
+ if include_signals:track['signalTicks']=signal_ticks
+ return track

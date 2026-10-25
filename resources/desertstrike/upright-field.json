@@ -20,5 +20,12 @@
     "gitBlob": "427d7e99923e0849ff8481bed859726e1be9c797",
     "operation": "90 degrees clockwise (undo legacy CCW rotation), then left 800x1280 crop; lossless WebP storage"
   },
-  "gameplayCoordinates": "Unchanged legacy 90-degree coordinate mapping; scenery is an intentional mobile adaptation."
+  "gameplayCoordinates": "Unchanged legacy 90-degree coordinate mapping; scenery is an intentional mobile adaptation.",
+  "mobileCrop": [
+    0,
+    0,
+    640,
+    1024
+  ],
+  "mobileLayout": "MiniStar continuous sand-field presentation crop, no elevation or terrain collision"
 }

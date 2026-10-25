@@ -16,12 +16,13 @@ class TerrainOrientationTests(unittest.TestCase):
         path = ROOT / "resources/desertstrike/upright-field.webp"
         metadata = json.loads(path.with_suffix(".json").read_text())
         self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), metadata["sourceSha256"])
+        self.assertEqual(metadata["mobileCrop"], [0, 0, 640, 1024])
         with Image.open(path) as source, Image.open(ROOT / "dist/ds-assets/battlefield.webp") as deployed:
             self.assertEqual(source.size, (800, 1280))
             self.assertEqual(deployed.size, (1280, 2048))
-            expected = source.convert("RGB").resize((1280, 2048), Image.Resampling.LANCZOS)
-            # WebP is lossy. Compare each quadrant independently so a rotated,
-            # mirrored, or stale deployed raster cannot pass a geometry test.
+            expected = source.crop((0, 0, 640, 1024)).convert("RGB").resize((1280, 2048), Image.Resampling.LANCZOS)
+            # WebP is lossy. Compare each quadrant independently so rotation,
+            # mirroring, a stale crop, or axis distortion cannot pass.
             for box in [(0, 0, 640, 1024), (640, 0, 1280, 1024),
                         (0, 1024, 640, 2048), (640, 1024, 1280, 2048)]:
                 difference = ImageChops.difference(expected.crop(box), deployed.convert("RGB").crop(box))

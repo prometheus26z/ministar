@@ -18,8 +18,11 @@ function frameTicks(track){
  if(Number.isFinite(declared)&&declared>0)return declared;
  return (track?.frames||[]).reduce((sum,item)=>sum+(Number.isFinite(Number(item?.[1]))&&Number(item[1])>0?Number(item[1]):0),0);
 }
-export function transitionSeconds(g,action,fallback=.45){
+export function transitionSeconds(g,action,fallback=.45,seed=0){
  const track=trackFor(g,action);if(!track)return fallback;
+ if(Number.isFinite(track.transitionTicks))return Math.max(1,track.transitionTicks)/24;
+ const seededTicks=timedFrames(g,track,seed).reduce((sum,item)=>sum+item.duration,0);
+ if(track.transitionSignal===4)return Math.max(1,seededTicks)/24;
  const durations=(track.frames||[]).map(item=>Number(item?.[1])).filter(n=>Number.isFinite(n)&&n>0);
  let ticks=frameTicks(track);
  // Some Remastered loop tracks append a long final hold after the playable
@@ -29,6 +32,11 @@ export function transitionSeconds(g,action,fallback=.45){
   if(last>=Math.max(8,median*8))ticks=durations.slice(0,-1).reduce((sum,n)=>sum+n,0);
  }
  return Math.max(1,ticks)/24;
+}
+export function steadyStartSeconds(g,action='idle',context={}){
+ const track=trackFor(g,action,context);if(!track?.loop)return 0;
+ const timeline=timedFrames(g,track,context.seed),start=Math.max(0,Math.min(timeline.length,track.loopStart||0));
+ return timeline.slice(0,start).reduce((sum,item)=>sum+item.duration,0)/24;
 }
 export function layeredActionSeconds(graphics,id,action,fallback=0){
  const visiting=new Set();
@@ -48,17 +56,18 @@ function timedFrames(g,track,seed=0){
  return(track?.frames||[]).map((item,index)=>{
   let duration=Number(item[1]);const range=item[2]?.randomWait;
   if(range){const hash=((Math.imul((seed|0)^g.sourceImage,1103515245)+Math.imul(index+1,12345))>>>0);duration=range[0]+hash%(range[1]-range[0]+1)}
-  return{frame:Number(item[0]),duration,hidden:!!item[2]?.hidden};
- }).filter(f=>Number.isFinite(f.frame)&&Number.isFinite(f.duration)&&f.duration>0);
+  const inheritFrame=!!item[2]?.inheritFrame;
+  return{frame:item[0]===null?null:Number(item[0]),inheritFrame,duration,hidden:!!item[2]?.hidden};
+ }).filter(f=>(Number.isFinite(f.frame)||f.inheritFrame)&&Number.isFinite(f.duration)&&f.duration>0);
 }
 export function pose(g,action,time,direction,context={}){
  const track=trackFor(g,action,context),frames=Array.isArray(g?.frames)?g.frames:[];
  if(!frames.length)return{frame:0,flip:false};
  const timeline=timedFrames(g,track,context.seed),total=timeline.reduce((n,f)=>n+f.duration,0),elapsed=Math.max(0,Number(time)||0)*24;
- let tick=elapsed,frame=0,hidden=!!track?.ended&&elapsed>=total;
- if(track?.loop&&total>0){const start=Math.max(0,Math.min(timeline.length-1,track.loopStart||0)),intro=timeline.slice(0,start).reduce((n,f)=>n+f.duration,0),cycle=total-intro;if(tick>=intro&&cycle>0)tick=intro+(tick-intro)%cycle}
+ let tick=elapsed,frame=Number.isInteger(context.inheritedFrame)?context.inheritedFrame:0,hidden=!!track?.ended&&elapsed>=total;
+ if(track?.loop&&total>0){const start=Math.max(0,Math.min(timeline.length-1,track.loopStart||0)),intro=timeline.slice(0,start).reduce((n,f)=>n+f.duration,0),cycle=total-intro;if(context.skipSpawnIntro&&action==='idle')tick=Math.max(tick,intro);if(tick>=intro&&cycle>0)tick=intro+(tick-intro)%cycle}
  else tick=Math.min(tick,Math.max(0,total-.001));
- for(const item of timeline){frame=item.frame;if(tick<item.duration){hidden||=item.hidden;break}tick-=item.duration}
+ for(const item of timeline){if(!item.inheritFrame&&Number.isFinite(item.frame))frame=item.frame;if(tick<item.duration){hidden||=item.hidden;break}tick-=item.duration}
  let facing=Number.isInteger(track?.fixedDirection)?track.fixedDirection:direction;
  facing=((Math.floor(Number(facing)||0)%32)+32)%32;const flip=!!g?.turns&&facing>16;
  if(g?.turns)frame+=facing>16?32-facing:facing;

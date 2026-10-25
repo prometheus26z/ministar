@@ -8,6 +8,7 @@ const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.me
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
 const fresh=(race='terran')=>{const b=new Battle(data,{race,enemyRace:race});b.begin();b.botStep=()=>{};return b};
 const producer=(b,type,team=0)=>{const u=b.create(type,team,640,PRODUCTION_OFFSET+900);u.productionOnly=true;return u};
+const drainDeployments=b=>{let guard=0;while(b.pendingDeployments.some(queue=>queue.length)){b.deploymentBudget=[8,8];assert.ok(b.drainPendingDeployments().length);if(++guard>100)throw Error('deployment queue did not drain')}};
 function gas(b,slot,team=0,ready=true){const n=b.nodes.find(n=>n.team===team&&n.slot===slot),u=producer(b,GAS_BUILDING[b.race],team);u.x=n.x;u.y=n.y;u.gasNode=n.id;n.occupiedBy=u.id;u.completed=ready;if(!ready)u.construction={time:0,total:100,started:true};return u}
 
 test('costs and production quantities agree with original UNIx/TRIG bytes rather than property indices',()=>{
@@ -49,7 +50,7 @@ test('unfinished gas buildings do not improve income and rebuilding does not rep
 
 test('all multi-unit building groups accumulate without supply limits or per-wave costs',()=>{
  for(const [type,groups]of Object.entries(BUILDING_WAVES)){
-  const b=fresh(data.units[type].race);producer(b,+type);producer(b,+type);b.supplyCap=()=>0;const money=b.money;b.spawnWave(0);
+  const b=fresh(data.units[type].race);producer(b,+type);producer(b,+type);b.supplyCap=()=>0;const money=b.money;b.spawnWave(0);drainDeployments(b);
   for(const {unit,count}of groups)assert.equal(b.units.filter(u=>u.laneArmy&&u.type===unit).length,count*2,'building '+type+', unit '+unit);
   assert.equal(b.money,money);assert.equal(b.gas,0);
  }
