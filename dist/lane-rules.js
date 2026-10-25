@@ -1,4 +1,4 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.10';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.11';
 export {DESERT_STRIKE};
 export const WAVE_SECONDS=DESERT_STRIKE.waveGameSeconds/1.5;
 export const INCOME_SECONDS=DESERT_STRIKE.incomeCycles*DESERT_STRIKE.hyperCycleSeconds;
