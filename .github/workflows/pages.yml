@@ -40,6 +40,7 @@ jobs:
         run: |
           node tests/browser.cjs
           node tests/original-animation-browser.cjs
+          node tests/performance-browser.cjs
       - name: Upload original animation visual evidence
         uses: actions/upload-artifact@v4
         with:
@@ -48,6 +49,8 @@ jobs:
             /tmp/ministar-original-animations.png
             /tmp/ministar-original-deaths.png
             /tmp/ministar-upright-terrain.png
+            /tmp/ministar-performance-mobile.png
+            /tmp/ministar-browser-performance.json
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static game

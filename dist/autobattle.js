@@ -1,11 +1,11 @@
-import {LaneAI} from './lane-ai.js?v=0.16.8';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.8';
-import {SATISFIES} from './tech.js?v=0.16.8';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.8';
-import {buildingDestruction} from './presentation.js?v=0.16.8';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.8';
-import {clamp,dist} from './core.js?v=0.16.8';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.8';
+import {LaneAI} from './lane-ai.js?v=0.16.9';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.9';
+import {SATISFIES} from './tech.js?v=0.16.9';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.9';
+import {buildingDestruction} from './presentation.js?v=0.16.9';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.9';
+import {clamp,dist} from './core.js?v=0.16.9';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.9';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -356,7 +356,7 @@ export class Battle extends EconomyBattle{
  lurkerThreatInRange(u){
   const weapon=this.data.weapons[u.def.groundWeapon];
   if(!weapon?.damage||!weapon.ground)return false;
-  return this.units.some(t=>t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.def.air&&!t.buffs?.stasis&&this.canSee(u.team,t)&&this.edgeDistance(u,t)<=weapon.range&&this.edgeDistance(u,t)>=(weapon.minRange||0));
+  return this.nearby(u,this.spatialRange(weapon.range+u.r,true)).some(t=>t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.def.air&&!t.buffs?.stasis&&this.canSee(u.team,t)&&this.edgeDistance(u,t)<=weapon.range&&this.edgeDistance(u,t)>=(weapon.minRange||0));
  }
  cast(u,key,p,target){
   if(u.type===103&&(['burrowing','unburrowing'].includes(u.lurkerState)||key==='burrow'&&!['ground','burrowed'].includes(u.lurkerState)))return false;
@@ -372,10 +372,10 @@ export class Battle extends EconomyBattle{
    return;
   }
   if(!abilities.length)return;
-  if(abilities.includes('stim')&&u.buffs.stim<=0&&u.hp>20&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<160))this.cast(u,'stim');
-  if(abilities.includes('siege')&&!u.sieged&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<260))this.cast(u,'siege');
-  if(abilities.includes('cloak')&&!u.cloaked&&u.energy>=25&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<240))this.cast(u,'cloak');
-  if(u.type!==103&&abilities.includes('burrow')&&!u.burrowed&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<110))this.cast(u,'burrow');
+  if(abilities.includes('stim')&&u.buffs.stim<=0&&u.hp>20&&this.nearby(u,160).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<160))this.cast(u,'stim');
+  if(abilities.includes('siege')&&!u.sieged&&this.nearby(u,260).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<260))this.cast(u,'siege');
+  if(abilities.includes('cloak')&&!u.cloaked&&u.energy>=25&&this.nearby(u,240).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<240))this.cast(u,'cloak');
+  if(u.type!==103&&abilities.includes('burrow')&&!u.burrowed&&this.nearby(u,110).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<110))this.cast(u,'burrow');
  }
  step(dt){
   this.inSimulationStep=true;this.deploymentBudget=[8,8];
@@ -386,6 +386,8 @@ export class Battle extends EconomyBattle{
    while(this.waveClock<=0){for(const c of this.commanders)this.withCommander(c.id,()=>this.spawnWave(c.team));this.ai.observe();const history=this.ai.snapshot();history.commanders=this.commanders.map(c=>this.commanderSnapshot(c.id));this.waveHistory.push(history);this.waveClock+=WAVE_SECONDS;this.emit('wave')}
    this.drainPendingDeployments();this.botStep(dt);for(const c of this.commanders.filter(c=>c.slot>0))this.withCommander(c.id,()=>c.ai.step(dt));
   }finally{this.inSimulationStep=false}
+  this.corpseCleanupClock=(this.corpseCleanupClock||0)+dt;
+  if(this.corpseCleanupClock>=1){this.corpseCleanupClock=0;this.units=this.units.filter(u=>u.alive||u.lurkerSpines?.length||(!u.refunded&&this.time-(u.deathTime??this.time)<=(u.deathDuration||1.8)))}
  }
  bunkerRange(type,weapon){
   // OpenBW weapon_max_range: +64 from the loaded soldier's bounds, not the bunker hull.
