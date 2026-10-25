@@ -2,6 +2,7 @@ import fs from 'node:fs';
 const root=new URL('../dist/',import.meta.url),read=name=>JSON.parse(fs.readFileSync(new URL(name,root)));
 const data=read('assets/data.json'),extra=read('rts-data.json');Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
 for(const name of ['construction-data.json','turret-data.json','destruction-data.json'])Object.assign(data.graphics,read(name));
+Object.assign(data.graphics,read('original-animation-data.json'));
 const missing=new Map();
 function walk(id,owner,action,seen=new Set()){
  if(seen.has(id))return;seen.add(id);const g=data.graphics[id];

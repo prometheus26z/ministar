@@ -24,6 +24,8 @@ jobs:
           node-version: '22'
       - name: Restore and verify original resources
         run: npm run build
+      - name: Verify complete original animation assets
+        run: npm run audit:animations
       - name: Test simulation, static server and resource paths
         run: npm test
       - name: Install browser test tools
@@ -31,7 +33,16 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.56.1
           npx playwright install --with-deps chromium
       - name: Test mobile UI and legacy cache migration under /ministar/
-        run: node tests/browser.cjs
+        run: |
+          node tests/browser.cjs
+          node tests/original-animation-browser.cjs
+      - name: Upload original animation visual evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-animation-visuals
+          path: |
+            /tmp/ministar-original-animations.png
+            /tmp/ministar-original-deaths.png
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static game

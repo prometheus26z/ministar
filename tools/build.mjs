@@ -35,3 +35,8 @@ console.log('Restored 6 race-specific music cues.');
  fs.writeFileSync(path.join(root,'dist/desert-strike-data.js'),'// Extracted from original map sections; see resources/desert-strike-v1.json.\nexport const DESERT_STRIKE='+JSON.stringify(rules)+';\n');
  console.log('Restored original Desert Strike economy and production data.');
 }
+
+
+// Original overlay/corpse sprites and full source-script visual timelines.
+const {restoreOriginalAnimations}=await import('./restore-original-animations.mjs');
+restoreOriginalAnimations(root);

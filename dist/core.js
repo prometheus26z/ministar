@@ -1,5 +1,5 @@
-import {layeredActionSeconds} from './animation.js?v=0.16.3';
-export const VERSION='0.16.3';
+import {layeredActionSeconds} from './animation.js?v=0.16.4';
+export const VERSION='0.16.4';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
@@ -18,7 +18,7 @@ export class Battle{
  constructor(data,{race='terran',difficulty='normal'}={}){this.data=data;this.race=race;this.difficulty=difficulty;this.phase='title';this.money=1200;this.gas=600;this.maxSupply=30;this.prepLeft=60;this.timeLeft=300;this.time=0;this.paused=false;this.menuOpen=false;this.targeting=null;this.selection=[];this.groups=Array.from({length:10},()=>[]);this.units=[];this.projectiles=[];this.areas=[];this.effects=[];this.map=new Battlefield();this.fog=new Uint8Array(2560);this.explored=new Uint8Array(2560);this.nextId=1;this.listeners=[];this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.visionTimer=0;this.result=null;}
  on(fn){this.listeners.push(fn);return()=>this.listeners=this.listeners.filter(x=>x!==fn)}emit(type,rest={}){for(const fn of this.listeners)fn({type,...rest})}
  get allies(){return this.units.filter(u=>u.team===0&&u.alive&&!u.refunded)}get selected(){return this.selection.map(id=>this.units.find(u=>u.id===id)).filter(u=>u?.alive&&!u.loaded)}get supply(){return this.allies.reduce((n,u)=>n+u.def.supply,0)}get battleTimeScale(){return this.phase==='battle'&&this.menuOpen?.5:1}get timeScale(){return this.battleTimeScale}
- create(type,team,x,y){const def=this.data.units[type];if(!def)return null;const u={id:this.nextId++,type:Number(type),def,team,x,y,r:def.radius||10,hp:def.hp,maxHp:def.hp,shield:def.shield,energy:def.energy?Math.min(200,def.energy):0,alive:true,loaded:null,passengers:[],cooldown:0,action:'idle',animTime:0,direction:0,order:'stop',goal:null,path:[],anchor:{x,y},buffs:{},cloaked:!!def.cloak,burrowed:false,sieged:false,matrix:0,mines:3,aiClock:0,target:null};this.units.push(u);return u;}
+ create(type,team,x,y){const def=this.data.units[type];if(!def)return null;const u={id:this.nextId++,type:Number(type),def,team,x,y,r:def.radius||10,hp:def.hp,maxHp:def.hp,shield:def.shield,energy:def.energy?Math.min(200,def.energy):0,alive:true,loaded:null,passengers:[],cooldown:0,action:'idle',animTime:0,visualTime:0,direction:0,order:'stop',goal:null,path:[],anchor:{x,y},buffs:{},cloaked:!!def.cloak,burrowed:false,sieged:false,matrix:0,mines:3,aiClock:0,target:null};this.units.push(u);return u;}
  begin(){if(this.phase!=='title')return false;this.phase='prep';this.setupEnemy();this.updateVision();this.emit('phase');return true}
  setupEnemy(){this.core=this.create(106,1,640,220);const factor=this.difficulty==='easy'?.65:this.difficulty==='hard'?1.3:1;this.core.hp=this.core.maxHp=this.core.def.hp*factor;for(const [t,x,y]of[[125,560,510],[124,760,480],[109,450,360],[109,850,360],[0,540,850],[0,700,850],[0,600,880],[0,740,920],[3,960,950],[5,320,720],[0,630,430],[0,690,420]]){const u=this.create(t,1,x,y);if(u.def.building)u.hp=u.maxHp=u.def.hp*factor;u.order='hold'}if(this.difficulty==='hard')for(let i=0;i<6;i++)this.create(i%2?3:0,1,500+i*45,570);}
  buy(type){type=Number(type);const d=this.data.units[type];if(this.phase!=='prep'||!d||!this.data.races[this.race].includes(type))return false;const q=d.qty||1;if(this.money<d.cost[0]||this.gas<d.cost[1]||this.supply+q*d.supply>30)return false;this.money-=d.cost[0];this.gas-=d.cost[1];const created=[];for(let i=0;i<q;i++){const n=this.allies.length,u=this.create(type,0,420+n%8*60,1810+Math.floor(n/8)*50);u.purchase={cost:d.cost.map(n=>n/q)};created.push(u)}this.produced+=q;this.select(created.map(u=>u.id),false);this.updateVision();this.emit('change');return true;}
@@ -132,7 +132,7 @@ export class Battle{
  move(u,p,dt){if(u.def.building||u.burrowed||u.sieged)return false;const speed=u.def.speed*(u.buffs.stim>0?1.5:1)*(u.buffs.ensnare>0?.5:1),d=dist(u,p);if(d<3)return false;const n=Math.min(d,speed*dt),x=u.x+(p.x-u.x)/d*n,y=u.y+(p.y-u.y)/d*n;u.direction=(Math.round(Math.atan2(p.x-u.x,u.y-p.y)*16/Math.PI)+32)%32;if(u.def.air||!this.map.blocked(x,y,u.r*.55)){u.x=x;u.y=y;u.action='walk';return true}return false;}
  beforeUnitActions(){return true}
  tickUnit(u,dt){
-  if(!u.alive){u.animTime+=dt;return}
+  if(!u.alive){u.animTime+=dt;u.visualTime=(u.visualTime||0)+dt;return}
   if(u.loaded){const transport=this.units.find(a=>a.id===u.loaded);if(transport){u.x=transport.x;u.y=transport.y}return}
   for(const k in u.buffs)u.buffs[k]=Math.max(0,u.buffs[k]-dt);
   if(u.buffs.hallucination===0&&u.hallucination){this.die(u);return}
@@ -142,7 +142,7 @@ export class Battle{
   if(u.def.race==='zerg')u.hp=Math.min(u.maxHp,u.hp+.015*dt);
   u.cooldown=Math.max(0,u.cooldown-dt);
   if(u.buffs.lockdown>0||u.buffs.stasis>0||u.buffs.maelstrom>0)return;
-  u.animTime+=dt;
+  u.animTime+=dt;u.visualTime=(u.visualTime||0)+dt;
   if(!this.beforeUnitActions(u,dt))return;
   if(this.medicHeal(u,dt))return;
   if(u.order==='repair'&&u.target?.alive){const t=u.target;if(this.edgeDistance(u,t)<=20&&this.money>0){const amount=Math.min(12*dt,t.maxHp-t.hp,this.money*4);t.hp+=amount;this.money-=amount/4}else this.move(u,t,dt);return;}

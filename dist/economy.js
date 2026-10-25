@@ -1,4 +1,4 @@
-import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.3';
+import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.4';
 import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.16.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export class Battle extends CombatBattle{

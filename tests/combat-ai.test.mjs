@@ -7,7 +7,7 @@ import {layeredActionSeconds} from '../dist/animation.js';
 
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
-Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
+Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);Object.assign(data.graphics,JSON.parse(fs.readFileSync(new URL('../dist/original-animation-data.json',import.meta.url))));
 const lane=(race='protoss')=>{const b=new LaneBattle(data,{race,enemyRace:race,difficulty:'easy'});b.begin();b.botStep=()=>{};b.waveClock=99999;return b};
 const combat=()=>{const b=new CombatBattle(data,{race:'terran'});b.phase='battle';return b};
 
@@ -142,7 +142,7 @@ test('death clips remain available for their full animation duration',()=>{
  const fallback=b.create(0,0,240,200);fallback.def={...fallback.def,image:999999};b.die(fallback);assert.equal(fallback.deathDuration,1.8);
  const archon=b.create(68,0,260,200),darkArchon=b.create(63,0,280,200);b.die(archon);b.die(darkArchon);
  assert.ok(archon.deathDuration>Number(b.data.graphics[134].tracks.death.ticks)/24,'Archon keeps its longer layered death effect visible');
- assert.equal(archon.deathDuration,20/24);assert.equal(darkArchon.deathDuration,.2,'missing source overlays do not use an invented effect lifetime');
+ assert.equal(archon.deathDuration,20/24);assert.equal(darkArchon.deathDuration,15/24,'Dark Archon uses its original death effect lifetime');
 });
 test('bunker garrison hits use the canonical live source and bunker victims do not crash aggro selection',()=>{
  const b=lane('terran'),bunker=b.makeBunker(1,640,480),target=b.create(0,0,bunker.x,bunker.y-35),clone={...bunker,alive:true};
