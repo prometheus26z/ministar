@@ -17,11 +17,11 @@ async function testLegacyMigration(browser,direct=false){
    await caches.open('other-app-cache');
   },legacyHtml);
   await page.reload();assert.equal(await page.locator('#legacy').innerText(),'v0.1.1');
-  legacy=false;if(direct)await page.goto(url+'?v=0.12.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
+  legacy=false;if(direct)await page.goto(url+'?v=0.13.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
   await page.locator('#title').waitFor({state:'visible'});
-  assert.equal(await page.locator('.top small').innerText(),'v0.12.0');
+  assert.equal(await page.locator('.top small').innerText(),'v0.13.0');
   assert.equal(await page.locator('#offline').count(),0);
-  assert.equal(new URL(page.url()).searchParams.get('v'),'0.12.0');
+  assert.equal(new URL(page.url()).searchParams.get('v'),'0.13.0');
   assert.deepEqual(await page.evaluate(async()=>(await caches.keys()).sort()),['other-app-cache']);
   assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);
   assert.equal(await page.evaluate(()=>localStorage.getItem('ministar.records')),'[{"win":true}]');

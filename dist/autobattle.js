@@ -1,7 +1,7 @@
-import {buildingDestruction} from './presentation.js?v=0.12.0';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.12.0';
-import {clamp,dist} from './core.js?v=0.12.0';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.12.0';
+import {buildingDestruction} from './presentation.js?v=0.13.0';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.13.0';
+import {clamp,dist} from './core.js?v=0.13.0';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.13.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 
@@ -247,7 +247,7 @@ export class Battle extends EconomyBattle{
   u.laneStall=previous&&dist(u,previous)<Math.max(.1,u.def.speed*dt*.1)?(u.laneStall||0)+dt:0;u.laneCheckpoint={x:u.x,y:u.y};
   const immobilized=u.sieged||u.burrowed||u.buffs.lockdown>0||u.buffs.stasis>0||u.buffs.maelstrom>0;
   if(immobilized)return;
-  const idle=!u.goal&&!u.combatMoving&&dist(u,objective)>120,stalled=u.laneStall>.9&&!['attack','airAttack','cast'].includes(u.action)&&dist(u,objective)>120;
+  const idle=!u.goal&&!u.combatMoving&&!u.target&&!u.healTarget&&dist(u,objective)>120,stalled=u.laneStall>.9&&!u.combatMoving&&!u.target&&!u.healTarget&&!['attack','airAttack','cast'].includes(u.action)&&dist(u,objective)>120;
   if(objective?.id!==u.laneObjectiveId||idle||stalled){
    if(!u.def.air&&this.map.blocked(u.x,u.y,u.r*.55)){const p=this.deploymentPoint(u.def,u.team,u,32,u);if(p){u.x=p.x;u.y=p.y}}
    u.laneObjectiveId=objective.id;this.setAdvanceGoal(u,objective);u.laneStall=0;

@@ -1,5 +1,5 @@
-import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.12.0';
-import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.12.0';
+import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.13.0';
+import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.13.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export class Battle extends CombatBattle{
  constructor(data,options){super(data,options);this.money=50;this.gas=0;this.maxSupply=0;this.timeLimit=Infinity;this.nodes=[];this.researched=new Set();this.orderSerial=1;this.economyClock=0;this.lastError='';this.produced=0;
@@ -15,7 +15,7 @@ export class Battle extends CombatBattle{
  prerequisites(ids=[]){return ids.filter(id=>!this.has(id)).map(id=>this.data.units[id]?.name||String(id))}
  fail(reason){this.lastError=reason;this.emit('notice',{text:reason});return false}
  refreshSupply(){this.maxSupply=Math.min(200,this.allies.filter(u=>this.ready(u)).reduce((n,u)=>n+(BUILDINGS[u.type]?.supply||(u.type===42?8:0)),0))}
- powered(u){const spec=BUILDINGS[u.type];return !spec?.psi||this.allies.some(p=>p.type===156&&this.ready(p)&&this.inPsi(u,p))}
+ powered(u){const spec=BUILDINGS[u.type];return !spec?.psi||this.units.some(p=>p.alive&&p.team===u.team&&p.type===156&&this.ready(p)&&this.inPsi(u,p))}
  inPsi(point,pylon){return ((point.x-pylon.x)/224)**2+((point.y-pylon.y)/160)**2<=1}
  onCreep(point){return this.allies.some(u=>this.ready(u)&&BUILDINGS[u.type]?.creepSource&&dist(u,point)<([131,132,133].includes(u.type)?250:150))}
  affordable(cost){return this.money>=cost[0]&&this.gas>=cost[1]}
