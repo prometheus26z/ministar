@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Battle as CombatBattle} from '../dist/core.js';
+import {Battle as CombatBattle,MAX_DEATH_VISUAL_SECONDS} from '../dist/core.js';
 import {Battle as LaneBattle} from '../dist/autobattle.js';
 import {layeredActionSeconds} from '../dist/animation.js';
 
@@ -137,12 +137,16 @@ test('fast Vulture and Zergling approach points without overshooting them',()=>{
 test('death clips remain available for their full animation duration',()=>{
  const b=combat(),marine=b.create(0,0,200,200),track=b.data.graphics[marine.def.image]?.tracks?.death;
  b.die(marine);
- const sourceDuration=layeredActionSeconds(b.data.graphics,marine.def.image,'death',1.8),expected=Math.max(.2,Math.min(8,sourceDuration));
+ const sourceDuration=layeredActionSeconds(b.data.graphics,marine.def.image,'death',1.8),expected=Math.max(.2,Math.min(MAX_DEATH_VISUAL_SECONDS,sourceDuration));
  assert.equal(marine.action,'death');assert.equal(marine.animTime,0);assert.equal(marine.deathDuration,expected);
  const fallback=b.create(0,0,240,200);fallback.def={...fallback.def,image:999999};b.die(fallback);assert.equal(fallback.deathDuration,1.8);
  const archon=b.create(68,0,260,200),darkArchon=b.create(63,0,280,200);b.die(archon);b.die(darkArchon);
  assert.ok(archon.deathDuration>Number(b.data.graphics[134].tracks.death.ticks)/24,'Archon keeps its longer layered death effect visible');
  assert.equal(archon.deathDuration,20/24);assert.equal(darkArchon.deathDuration,15/24,'Dark Archon uses its original death effect lifetime');
+ const ultralisk=b.create(39,0,300,200);b.die(ultralisk);
+ assert.equal(ultralisk.deathDuration,11.25,'the original Ultralisk corpse timeline remains visible beyond the prior eight-second clamp');
+ const longestSourceDeath=Math.max(...Object.values(b.data.units).map(unit=>layeredActionSeconds(b.data.graphics,unit.image,'death',1.8)));
+ assert.equal(longestSourceDeath,11.25);assert.ok(longestSourceDeath<=MAX_DEATH_VISUAL_SECONDS,'the visual cap covers every recovered playable-unit death and corpse track');
 });
 test('bunker garrison hits use the canonical live source and bunker victims do not crash aggro selection',()=>{
  const b=lane('terran'),bunker=b.makeBunker(1,640,480),target=b.create(0,0,bunker.x,bunker.y-35),clone={...bunker,alive:true};

@@ -16,15 +16,26 @@ Continue PR #1 on `codex/fix-map-combat-lurker-animations` in `prometheus26z/min
 - Real Chromium 141 screenshots were inspected: Archon/Dark Archon idle, movement, near/far attack and death; Marine/Ghost/Medic/Zergling/Hydralisk/Ultralisk/Broodling/Drone/Queen/Defiler/Devourer/Dragoon/Lurker death sequences. The dedicated browser test passed. Screenshot generation is in `tests/original-animation-browser.cjs` and CI uploads the two images.
 - Earlier repairs: disabled Lurkers update buffs/cooldowns before actions, cannot burrow while disabled or repeat an active transition. Cache version is now 0.16.4; browser migration assertions use package.json VERSION.
 
-## Immediate remaining work
+## Follow-up implementation
 
-1. Inspect the CI run for THIS handoff commit. Full npm test and the old general mobile/cache browser suite have NOT been rerun after the final animation/resource additions. Run or inspect `npm run build`, `npm run audit:animations`, `npm test`, `node tests/browser.cjs`, `node tests/original-animation-browser.cjs`. Fix actual failures; do not weaken assertions merely to make CI green.
-2. Check the bundled supplement restores from a clean checkout. A standalone restore passed locally, but a full clean build awaits CI. The expected manifest currently holds 68 files and 88 base64 parts; use the actual checked-in manifest as authoritative.
-3. Review `sc_iscript.py` and sprite composition carefully. Only source opcodes exercised by recovered scripts are represented. Random-wait ranges are sampled deterministically per image instance; conditional range branches are preserved. LO-file attachment offsets (`imgoluselo`/`imguluselo`) are not fully evaluated by the current renderer; inspect ships/engine effects before claiming complete Brood War rendering parity. Archon and death examples were visually checked.
-4. Check a live wave with mixed Archons/Lurkers and many corpses on mobile. The contact-sheet test exercises the real renderer and actual source images, but it is not a full gameplay/performance comparison. `pose()` currently allocates timed-frame arrays per draw; consider a bounded compiled-track cache only if profiling shows a real problem.
-5. Confirm source death duration versus the existing core clamp (minimum 0.2s, maximum 8s). Active death effects shown in the inspected scenes finish, but long corpse persistence is still limited by the game policy. Do not silently change this policy without examining source behavior and memory/performance implications.
-6. Recheck the map visually against original geometry in a real battle. The previous map crop/rotation and temple-coordinate regressions remain; they were not reworked in this resource pass.
-7. Once latest CI and visual/gameplay checks are satisfactory, rewrite PR description to reflect the restored original assets and real validation. PR was deliberately left draft while assets were missing; resolve that status when appropriate. Do not merge/deploy without the user's instruction.
+The handoff follow-up is implemented locally on this branch. The remaining items below distinguish verified work from the one source-data limitation.
+
+- A clean `npm run build` restored all 1,205 packed assets and all 68 original animation files. `npm run audit:animations` reports zero missing overlay graphics.
+- `npm test` passes 109 JavaScript tests and 3 Python tests. The map geometry regression now reads the two placed Temple objects (unit 174, owners 3 and 7), rather than nearby Start Location markers (unit 214).
+- The build derives the battlefield positions from those original Temple placements using the terrain's 90-degree rotation and centered crop. Team 0 is at (618.667, 1632); team 1 is at (618.667, 416). Battle setup and the attack-move objective use those derived coordinates.
+- The death-visual cap is 12 seconds. The longest recovered playable-unit death/corpse track is 11.25 seconds (Ultralisk), so it is no longer cut off by the previous 8-second cap. A mobile DPR-2 stress profile with 76 units, 40 retained corpses and 12-second corpse visibility measured an 11.6 ms p95 frame callback (under the 16.7 ms 60 Hz budget); no pose cache was added.
+- Both Chromium suites pass: the general 390 × 844 mobile/cache test and the original layered-sprite/death-timing suite. A mixed Archon/Lurker mobile wave with retained corpses was also inspected in the real renderer.
+- `git diff --check` is clean. CI for the pending follow-up commit still needs to run after the branch is pushed.
+
+### Remaining source-data limitation
+
+The repo's checksum-verified animation supplement contains `iscript.bin`, `images.dat`, and `sprites.dat`, but no `.lo`/`.tbl` attachment tables. The active recovered gameplay tracks that call `imgoluselo` are Archon body image 135 and Dark Archon body image 926; both create image 549 with script operands `(0, 0)`. The renderer currently preserves those literal offsets, but the attachment offsets stored in the source LO files have not been recovered. Do not claim complete Brood War attachment parity until that data is available and rendered. The core sprites and the mapped battlefield fixes are otherwise validated.
+
+### Before closing PR #1
+
+1. Push this follow-up and inspect CI for the resulting commit.
+2. Update the PR description with the verified original assets, source-derived Temple coordinates, 12-second source-complete death visibility, and the remaining LO-data limit.
+3. Keep the PR draft until the attachment-table issue is resolved or explicitly scoped out. Do not merge/deploy without the user's instruction.
 
 ## Important traps already found
 

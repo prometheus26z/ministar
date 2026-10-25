@@ -4,6 +4,7 @@ export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
 export const HIGH_GROUND_MISS_CHANCE=120/256;
+export const MAX_DEATH_VISUAL_SECONDS=12;
 export const SPELLS={stim:['스팀팩',231,0,'instant'],siege:['시즈 / 탱크 모드',259,0,'instant'],cloak:['은폐 / 해제',253,25,'instant'],burrow:['잠복 / 해제',237,0,'instant'],repair:['수리',232,0,'ally'],load:['탑승',236,0,'ally'],unload:['모두 내리기',239,0,'instant'],mine:['스파이더 마인',234,0,'point'],storm:['사이오닉 스톰',244,75,'point'],lockdown:['락다운',250,100,'enemy'],mind:['마인드 컨트롤',319,150,'enemy'],matrix:['디펜시브 매트릭스',247,100,'ally'],irradiate:['이레디에이트',248,75,'enemy'],emp:['EMP',246,100,'point'],yamato:['야마토 포',249,150,'enemy'],restore:['리스토레이션',321,50,'ally'],flare:['옵티컬 플레어',322,75,'enemy'],broodlings:['브루들링',241,150,'enemy'],parasite:['패러사이트',240,75,'enemy'],ensnare:['인스네어',242,75,'point'],swarm:['다크 스웜',243,100,'point'],plague:['플레이그',245,150,'point'],consume:['컨슘',251,0,'ally'],feedback:['피드백',320,50,'enemy'],maelstrom:['메일스트롬',318,100,'point'],hallucinate:['할루시네이션',238,100,'ally'],recall:['리콜',253,150,'point'],stasis:['스테이시스 필드',252,100,'point'],web:['디스럽션 웹',317,125,'point']};
 export class Battlefield{
  constructor(){this.w=1280;this.h=2048;this.cell=32;this.elevation=false;this.water=[];this.rocks=[{x:200,y:1056,w:288,h:192},{x:768,y:1088,w:288,h:192},{x:480,y:640,w:288,h:128},{x:96,y:384,w:192,h:128},{x:1024,y:384,w:160,h:128}];}
@@ -104,7 +105,7 @@ export class Battle{
   const graphics=this.data.graphics[u.def.image],deathTrack=graphics?.tracks?.death||graphics?.tracks?.dead,death=deathTrack?.sounds||[];
   if(death.length)this.emit('sfx',{id:death[Math.floor(Math.random()*death.length)]});
   const trackSeconds=layeredActionSeconds(this.data.graphics,u.def.image,'death',1.8);
-  u.deathDuration=Math.max(.2,Math.min(8,trackSeconds));
+  u.deathDuration=Math.max(.2,Math.min(MAX_DEATH_VISUAL_SECONDS,trackSeconds));
   u.alive=false;u.hp=0;u.deathTime=this.time;u.action='death';u.animTime=0;
   if(u.team===0)this.losses++;else if(team===0&&!u.def.building)this.kills++;
   for(const id of u.passengers||[]){const a=this.units.find(a=>a.id===id);if(a)this.die(a,team)}

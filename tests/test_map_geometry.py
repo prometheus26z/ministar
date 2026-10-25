@@ -1,4 +1,5 @@
 import math
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -14,15 +15,30 @@ class DesertStrikeMapGeometryTests(unittest.TestCase):
         self.assertTrue(math.isclose(1280 / crop[2], 2048 / crop[3]))
 
     def test_original_temples_land_on_the_vertical_battle_lane(self):
-        temples = [
-            map_point(x, 1008, 3072, 2080, 1280, 2048)
-            for x in (640, 2432)
-        ]
-        self.assertAlmostEqual(temples[0][0], temples[1][0], delta=1)
-        self.assertAlmostEqual(temples[0][0], 619, delta=2)
-        self.assertAlmostEqual(temples[0][1], 1621, delta=2)
-        self.assertAlmostEqual(temples[1][1], 427, delta=2)
-        self.assertNotAlmostEqual(temples[0][1], temples[1][1], delta=100)
+        original = json.loads(
+            (Path(__file__).resolve().parents[1] / "resources/original-desertstrike.json").read_text()
+        )
+        field = next(location for location in original["map"]["locations"] if location["name"] == "Playing field")
+        source_width = field["right"] - field["left"]
+        source_height = field["bottom"] - field["top"]
+        temples = {
+            unit["owner"]: map_point(
+                unit["x"] - field["left"],
+                unit["y"] - field["top"],
+                source_width,
+                source_height,
+                1280,
+                2048,
+            )
+            for unit in original["map"]["units"]
+            if unit["unitId"] == 174 and unit["owner"] in (3, 7)
+        }
+        self.assertEqual(set(temples), {3, 7})
+        self.assertAlmostEqual(temples[3][0], 1856 / 3, places=8)
+        self.assertAlmostEqual(temples[7][0], 1856 / 3, places=8)
+        self.assertAlmostEqual(temples[3][1], 1632, places=8)
+        self.assertAlmostEqual(temples[7][1], 416, places=8)
+        self.assertNotAlmostEqual(temples[3][1], temples[7][1], delta=100)
 
 
 if __name__ == "__main__":
