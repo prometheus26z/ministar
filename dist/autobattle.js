@@ -1,11 +1,11 @@
-import {LaneAI} from './lane-ai.js?v=0.16.2';
-import {transitionSeconds} from './animation.js?v=0.16.2';
-import {SATISFIES} from './tech.js?v=0.16.2';
-import {gasSlots,productionTileAllowed} from './lane-rules.js?v=0.16.2';
-import {buildingDestruction} from './presentation.js?v=0.16.2';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.2';
-import {clamp,dist} from './core.js?v=0.16.2';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.2';
+import {LaneAI} from './lane-ai.js?v=0.16.3';
+import {transitionSeconds} from './animation.js?v=0.16.3';
+import {SATISFIES} from './tech.js?v=0.16.3';
+import {gasSlots,productionTileAllowed} from './lane-rules.js?v=0.16.3';
+import {buildingDestruction} from './presentation.js?v=0.16.3';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.3';
+import {clamp,dist} from './core.js?v=0.16.3';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.3';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -291,13 +291,16 @@ export class Battle extends EconomyBattle{
   if(u.hidden){u.animTime+=dt;return}
   if(u.productionOnly){if(u.construction)this.withCommander(u.commanderId,()=>this.tickBotConstruction(u,dt));else if(!u.def.building&&!u.hidden)u.animTime+=dt;return}
   if(u.team===1&&u.construction){this.tickBotConstruction(u,dt);return}
-  const advanceLurkerTransition=()=>{if((u.lurkerTransition||0)<=0)return false;u.animTime+=dt;u.lurkerTransition=Math.max(0,u.lurkerTransition-dt);return true};
-  if(advanceLurkerTransition())return;
-  if(!u.def.building&&u.laneArmy)this.maintainAdvance(u,dt);
-  if(!u.def.building&&!u.loaded)this.autoCast(u);
-  if(advanceLurkerTransition())return;
   super.tickUnit(u,dt);
  }
+ beforeUnitActions(u,dt){
+  if((u.lurkerTransition||0)>0){u.lurkerTransition=Math.max(0,u.lurkerTransition-dt);return false}
+  if(!u.def.building&&u.laneArmy)this.maintainAdvance(u,dt);
+  if(!u.def.building&&!u.loaded)this.autoCast(u);
+  if((u.lurkerTransition||0)>0){u.animTime=dt;u.lurkerTransition=Math.max(0,u.lurkerTransition-dt);return false}
+  return super.beforeUnitActions(u,dt);
+ }
+
  weapon(u,target){
   if(target.productionOnly||u.productionOnly||u.garrison)return null;
   if(u.isFortification&&this.raceFor(u.team)==='terran'){
@@ -316,6 +319,7 @@ export class Battle extends EconomyBattle{
   return this.units.some(t=>t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.def.air&&!t.buffs?.stasis&&this.canSee(u.team,t)&&this.edgeDistance(u,t)<=weapon.range&&this.edgeDistance(u,t)>=(weapon.minRange||0));
  }
  cast(u,key,p,target){
+  if(u.type===103&&(u.lurkerTransition||0)>0)return false;
   const laneLurker=u.type===103&&u.laneArmy&&key==='burrow',resume=u.lurkerResumeOrder||'attackmove';
   const cast=super.cast(u,key,p,target);if(!cast||!laneLurker)return cast;
   u.lurkerResumeOrder=resume;u.lurkerTransition=this.animationDuration(u,u.action);

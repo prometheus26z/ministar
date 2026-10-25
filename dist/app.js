@@ -1,10 +1,10 @@
-import {constructionVisual,healthBarPixels,waveDescription} from './presentation.js?v=0.16.2';
-import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.2';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.2';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.2';
-import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS} from './lane-rules.js?v=0.16.2';
-import {researchAt} from './tech.js?v=0.16.2';
-import {pose,teamImage,trackFor,missingOverlayEffect} from './animation.js?v=0.16.2';
+import {constructionVisual,healthBarPixels,waveDescription} from './presentation.js?v=0.16.3';
+import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.3';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.3';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.3';
+import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS} from './lane-rules.js?v=0.16.3';
+import {researchAt} from './tech.js?v=0.16.3';
+import {pose,teamImage,trackFor} from './animation.js?v=0.16.3';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),mc=mini.getContext('2d');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';
@@ -171,23 +171,7 @@ canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;e
 function pointerEnd(e,cancel=false){if(!pointers.has(e.pointerId))return;const p=position(e);pointers.delete(e.pointerId);if(pinch){if(!pointers.size){pinch=null;gesture=null;settings.zoom=camera.zoom;save('settings',settings)}return}if(!gesture)return;clearTimeout(gesture.timer);if(!cancel){if(gesture.kind==='pending')tap(p)}gesture=null}
 canvas.addEventListener('pointerup',e=>pointerEnd(e));canvas.addEventListener('pointercancel',e=>{pointerEnd(e,true);pointers.clear();pinch=null});canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(camera.zoom*(e.deltaY<0?1.12:1/1.12),e.clientX,e.clientY)},{passive:false});
 let miniDrag=false;const miniMove=e=>{const r=mini.getBoundingClientRect();camera.x=(e.clientX-r.left)/r.width*1280;camera.y=(e.clientY-r.top)/r.height*2048;limitCamera()};mini.onpointerdown=e=>{miniDrag=true;mini.setPointerCapture(e.pointerId);miniMove(e)};mini.onpointermove=e=>{if(miniDrag)miniMove(e)};mini.onpointerup=mini.onpointercancel=()=>miniDrag=false;
-function drawMissingOverlay(id,team,x,y,action,time,alpha){
- const effect=missingOverlayEffect(id,action,time);if(!effect)return false;
- const dark=Number(id)>=900,rgb=effect.kind==='death-pulse'?(effect.archon?'184,94,255':'255,194,132'):team===1?'255,74,76':dark?'180,92,255':'100,190,255';
- ctx.save();ctx.globalAlpha*=alpha;
- if(effect.kind==='aura'){
-  const phase=time*2.8+effect.layer*Math.PI,pulse=.9+.1*Math.sin(phase),radius=(effect.layer?46:36)*pulse,dx=Math.sin(phase*.7)*2;
-  const glow=ctx.createRadialGradient(x+dx,y, radius*.38,x+dx,y,radius);
-  glow.addColorStop(0,`rgba(${rgb},0)`);glow.addColorStop(.54,`rgba(${rgb},.08)`);glow.addColorStop(.78,`rgba(${rgb},.25)`);glow.addColorStop(1,`rgba(${rgb},0)`);
-  ctx.fillStyle=glow;ctx.beginPath();ctx.arc(x+dx,y,radius,0,Math.PI*2);ctx.fill();
- }else if(effect.kind==='death-pulse'){
-  const progress=Math.max(0,Math.min(1,time/(20/24))),radius=12+progress*68;
-  ctx.globalAlpha*=1-progress;ctx.strokeStyle=`rgba(${rgb},.85)`;ctx.lineWidth=3*(1-progress)+.5;
-  ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.stroke();
- }
- ctx.restore();return true;
-}
-function sprite(id,team,x,y,action='idle',time=0,direction=0,alpha=1,stack=new Set(),frameOverride=null){const g=data.graphics[id];if(!g)return drawMissingOverlay(id,team,x,y,action,time,alpha);if(stack.has(id)||stack.size>8)return false;stack.add(id);const image=getImage(teamImage(g,team));let drawn=false;if(image){const p=frameOverride===null?pose(g,action,time,direction):{frame:frameOverride,flip:false},f=g.frames[p.frame];if(f&&f[4]&&f[5]){ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);if(p.flip)ctx.scale(-1,1);ctx.drawImage(image,f[0],f[1],f[4],f[5],(f[2]-g.canvas[0]/2)*.5,(f[3]-g.canvas[1]/2)*.5,f[4]*.5,f[5]*.5);ctx.restore();drawn=true}}const track=trackFor(g,action),shadows=new Set(g.shadows||[]);for(const overlay of track?.overlays||[])if(!shadows.has(overlay))sprite(overlay,team,x,y,action,time,direction,alpha,stack);stack.delete(id);return drawn}
+function sprite(id,team,x,y,action='idle',time=0,direction=0,alpha=1,stack=new Set(),frameOverride=null){const g=data.graphics[id];if(!g)return false;if(stack.has(id)||stack.size>8)return false;stack.add(id);const image=getImage(teamImage(g,team));let drawn=false;if(image){const p=frameOverride===null?pose(g,action,time,direction):{frame:frameOverride,flip:false},f=g.frames[p.frame];if(f&&f[4]&&f[5]){ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);if(p.flip)ctx.scale(-1,1);ctx.drawImage(image,f[0],f[1],f[4],f[5],(f[2]-g.canvas[0]/2)*.5,(f[3]-g.canvas[1]/2)*.5,f[4]*.5,f[5]*.5);ctx.restore();drawn=true}}const track=trackFor(g,action),shadows=new Set(g.shadows||[]);for(const overlay of track?.overlays||[])if(!shadows.has(overlay))sprite(overlay,team,x,y,action,time,direction,alpha,stack);stack.delete(id);return drawn}
 function drawHealthBar(u){
  const g=data.graphics[u.def.image],nominal=g?.healthBarSize||u.def.healthBarSize||u.def.footprint?.[0]||u.r*2;const pixels=healthBarPixels(nominal);
  const width=pixels/camera.zoom,x=u.x-width/2,y=u.y+u.r+5/camera.zoom,hp=Math.floor(100*clamp(u.hp/(u.maxHp||u.def.hp),0,1)),shieldMax=u.def.shield||0,shield=shieldMax?Math.max(0,Math.floor(100*u.shield/shieldMax)):0,hasShield=shieldMax>0;
@@ -328,5 +312,5 @@ async function retireOfflineStorage(){
  }catch(error){console.warn('Legacy game cache cleanup:',error)}
  return true;
 }
-async function boot(){try{if(!await retireOfflineStorage())return;enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});clearMediaSession();const extra=await fetch('rts-data.json?v=0.16.2').then(r=>{if(!r.ok)throw Error('생산 데이터를 읽을 수 없습니다.');return r.json()});Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);const constructionGraphics=await fetch('construction-data.json?v=0.16.2').then(r=>{if(!r.ok)throw Error('건설 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,constructionGraphics);const turretGraphics=await fetch('turret-data.json?v=0.16.2').then(r=>{if(!r.ok)throw Error('포탑 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,turretGraphics);const destructionGraphics=await fetch('destruction-data.json?v=0.16.2').then(r=>{if(!r.ok)throw Error('건물 파괴 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,destructionGraphics);await Promise.all([...Object.values(destructionGraphics),data.graphics[215]].map(g=>loadImage(g.images.blue)));await Promise.all(Object.values(turretGraphics).flatMap(g=>Object.values(g.images)).map(loadImage));await Promise.all(Object.values(constructionGraphics).map(g=>loadImage(g.images.blue)));for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);[desertField,desertProduction]=await Promise.all([loadImage('ds-assets/battlefield.webp?v=0.16.2'),loadImage('ds-assets/production.webp')]);terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
+async function boot(){try{if(!await retireOfflineStorage())return;enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});clearMediaSession();const extra=await fetch('rts-data.json?v=0.16.3').then(r=>{if(!r.ok)throw Error('생산 데이터를 읽을 수 없습니다.');return r.json()});Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);const constructionGraphics=await fetch('construction-data.json?v=0.16.3').then(r=>{if(!r.ok)throw Error('건설 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,constructionGraphics);const turretGraphics=await fetch('turret-data.json?v=0.16.3').then(r=>{if(!r.ok)throw Error('포탑 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,turretGraphics);const destructionGraphics=await fetch('destruction-data.json?v=0.16.3').then(r=>{if(!r.ok)throw Error('건물 파괴 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,destructionGraphics);await Promise.all([...Object.values(destructionGraphics),data.graphics[215]].map(g=>loadImage(g.images.blue)));await Promise.all(Object.values(turretGraphics).flatMap(g=>Object.values(g.images)).map(loadImage));await Promise.all(Object.values(constructionGraphics).map(g=>loadImage(g.images.blue)));for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);[desertField,desertProduction]=await Promise.all([loadImage('ds-assets/battlefield.webp?v=0.16.3'),loadImage('ds-assets/production.webp')]);terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
 

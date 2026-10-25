@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {layeredActionSeconds,missingOverlayEffect,pose,teamImage,transitionSeconds} from '../dist/animation.js';
+import {layeredActionSeconds,pose,teamImage,transitionSeconds} from '../dist/animation.js';
 
 test('animation aliases keep moving, attacking, and dying sprites on their original tracks',()=>{
  const graphic={turns:true,frames:Array.from({length:64},(_,i)=>[i,0,0,0,32,32]),images:{blue:'blue.webp'},tracks:{
@@ -31,16 +31,19 @@ test('Archon and Dark Archon graphics retain complete directional action tracks'
   assert.ok(Object.values(graphic.tracks||{}).some(track=>track?.frames?.length),unit.name+' has source animation tracks');
   assert.equal(graphic.turns,false,unit.name+' uses the source animation without fabricated facing frames');
  }
- assert.deepEqual(missingOverlayEffect(135,'idle',.2),{kind:'aura',layer:1,time:.2});
- assert.deepEqual(missingOverlayEffect(927,'idle',.2),{kind:'aura',layer:1,time:.2});
- assert.deepEqual(missingOverlayEffect(928,'death',.2),{kind:'death-pulse',time:.2,archon:true});
- assert.deepEqual(missingOverlayEffect(3,'death',.2),{kind:'death-pulse',time:.2,archon:false});
  assert.equal(layeredActionSeconds(data.graphics,134,'death'),20/24,'Archon remains visible for its 20-tick death overlay');
- assert.equal(layeredActionSeconds(data.graphics,925,'death'),20/24,'Dark Archon receives the same duration for its omitted source overlay');
+ assert.equal(layeredActionSeconds(data.graphics,925,'death'),3/24,'missing source overlays must not acquire invented durations');
 });
 
 test('Lurker burrow transitions use the playable frames and omit the trailing hold',()=>{
  const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url))),g=data.graphics[921];
  assert.equal(transitionSeconds(g,'burrow'),20/24);
  assert.equal(transitionSeconds(g,'unburrow'),7/24);
+});
+
+test('entrypoint and legacy migration use the package cache version',()=>{
+ const version=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url))).version;
+ const html=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8'),worker=fs.readFileSync(new URL('../dist/sw.js',import.meta.url),'utf8');
+ assert.ok(fs.readFileSync(new URL('../dist/economy.js',import.meta.url),'utf8').includes('core.js?v='+version));
+ assert.ok(html.includes('app.js?v='+version+'-lane'));assert.ok(html.includes('v'+version+'</small>'));assert.ok(worker.includes("set('v','"+version+"')"));
 });

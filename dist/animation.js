@@ -32,7 +32,7 @@ export function layeredActionSeconds(graphics,id,action,fallback=0){
  const visiting=new Set();
  const visit=(image,depth=0)=>{
   if(depth>8||visiting.has(image))return 0;
-  const g=graphics?.[image];if(!g)return depth>0&&action==='death'?20/24:0;
+  const g=graphics?.[image];if(!g)return 0;
   const track=trackFor(g,action);if(!track)return 0;
   visiting.add(image);
   let seconds=frameTicks(track)/24;
@@ -40,11 +40,6 @@ export function layeredActionSeconds(graphics,id,action,fallback=0){
   visiting.delete(image);return seconds;
  };
  const seconds=visit(id);return seconds>0?seconds:fallback;
-}
-export function missingOverlayEffect(id,action,time){
- if([135,136,926,927].includes(Number(id)))return{kind:'aura',layer:Number(id)%2,time};
- if(action==='death')return{kind:'death-pulse',time,archon:Number(id)===928};
- return null;
 }
 export function pose(g,action,time,direction){
  const track=trackFor(g,action);

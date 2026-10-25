@@ -1,5 +1,5 @@
-import {layeredActionSeconds} from './animation.js?v=0.16.2';
-export const VERSION='0.16.2';
+import {layeredActionSeconds} from './animation.js?v=0.16.3';
+export const VERSION='0.16.3';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
@@ -38,7 +38,7 @@ export class Battle{
   else if(u.def.abilities.includes(command)&&this.cast(u,command,point,target))applied++;
  }
  if(!applied)return false;this.emit('command',{command,point,applied});this.emit('voice',{unit:list[0],kind:'yes'});this.closeMenu();this.emit('change');return true;}
- cast(u,key,p,target){const s=SPELLS[key];if(!s)return false;if(u.energy<s[2]&&!(key==='cloak'&&u.cloaked))return false;if(s[3]==='enemy'&&(!target?.alive||target.team===u.team||!this.canSee(u.team,target)))return false;if(s[3]==='ally'&&(!target?.alive||target.team!==u.team))return false;if(s[3]==='point'&&!p)return false;if(target&&dist(u,target)>340&&key!=='recall')return false;if(p&&dist(u,p)>380&&key!=='recall')return false;
+ cast(u,key,p,target){if(!u.alive||u.loaded||u.buffs.stasis>0||u.buffs.lockdown>0||u.buffs.maelstrom>0)return false;const s=SPELLS[key];if(!s)return false;if(u.energy<s[2]&&!(key==='cloak'&&u.cloaked))return false;if(s[3]==='enemy'&&(!target?.alive||target.team===u.team||!this.canSee(u.team,target)))return false;if(s[3]==='ally'&&(!target?.alive||target.team!==u.team))return false;if(s[3]==='point'&&!p)return false;if(target&&dist(u,target)>340&&key!=='recall')return false;if(p&&dist(u,p)>380&&key!=='recall')return false;
   if(key==='stim'){if(u.hp<=10)return false;u.hp-=10;u.buffs.stim=15}
   else if(key==='siege'){u.sieged=!u.sieged;u.goal=null;u.path=[];u.order='hold'}
   else if(key==='cloak'){u.cloaked=!u.cloaked;if(!u.cloaked)return true}
@@ -130,9 +130,10 @@ export class Battle{
  }
  attack(u,t,w){u.cooldown=w.cooldown/(u.buffs.stim>0?1.5:1);u.action=t.def.air?'airAttack':'attack';u.animTime=0;u.direction=(Math.round(Math.atan2(t.x-u.x,u.y-t.y)*16/Math.PI)+32)%32;const sounds=this.data.graphics[u.def.image]?.tracks?.[u.action]?.sounds||[];if(sounds.length)this.emit('sfx',{id:sounds[Math.floor(Math.random()*sounds.length)]});const damage=u.hallucination?0:w.damage*(u.type===125?4:u.type===72?4:1)*(w.factor||1)*(t.def.air?u.def.airHits||1:u.def.groundHits||1),missed=this.uphillMiss(u,t,w),impact=missed?this.missPoint(u,t):{x:t.x,y:t.y};if(w.behavior===2||w.range<40)this.weaponImpact(t,w,damage,u.team,w.type,impact,missed,u);else this.projectiles.push({x:u.x,y:u.y,endX:impact.x,endY:impact.y,target:t,source:u,team:u.team,image:w.image,elapsed:0,speed:Math.max(180,w.speed||400),damage,type:w.type,splash:w.splash,weapon:w,missed});if([13,47,85].includes(u.type))this.die(u);}
  move(u,p,dt){if(u.def.building||u.burrowed||u.sieged)return false;const speed=u.def.speed*(u.buffs.stim>0?1.5:1)*(u.buffs.ensnare>0?.5:1),d=dist(u,p);if(d<3)return false;const n=Math.min(d,speed*dt),x=u.x+(p.x-u.x)/d*n,y=u.y+(p.y-u.y)/d*n;u.direction=(Math.round(Math.atan2(p.x-u.x,u.y-p.y)*16/Math.PI)+32)%32;if(u.def.air||!this.map.blocked(x,y,u.r*.55)){u.x=x;u.y=y;u.action='walk';return true}return false;}
+ beforeUnitActions(){return true}
  tickUnit(u,dt){
   if(!u.alive){u.animTime+=dt;return}
-  u.animTime+=dt;if(u.loaded){const transport=this.units.find(a=>a.id===u.loaded);if(transport){u.x=transport.x;u.y=transport.y}return}
+  if(u.loaded){const transport=this.units.find(a=>a.id===u.loaded);if(transport){u.x=transport.x;u.y=transport.y}return}
   for(const k in u.buffs)u.buffs[k]=Math.max(0,u.buffs[k]-dt);
   if(u.buffs.hallucination===0&&u.hallucination){this.die(u);return}
   if(u.buffs.irradiate>0)for(const t of this.units.filter(a=>a.alive&&a.def.organic&&dist(a,u)<40))this.hurt(t,10*dt,u.irradiateOwner,3,true);
@@ -141,6 +142,8 @@ export class Battle{
   if(u.def.race==='zerg')u.hp=Math.min(u.maxHp,u.hp+.015*dt);
   u.cooldown=Math.max(0,u.cooldown-dt);
   if(u.buffs.lockdown>0||u.buffs.stasis>0||u.buffs.maelstrom>0)return;
+  u.animTime+=dt;
+  if(!this.beforeUnitActions(u,dt))return;
   if(this.medicHeal(u,dt))return;
   if(u.order==='repair'&&u.target?.alive){const t=u.target;if(this.edgeDistance(u,t)<=20&&this.money>0){const amount=Math.min(12*dt,t.maxHp-t.hp,this.money*4);t.hp+=amount;this.money-=amount/4}else this.move(u,t,dt);return;}
   const mayAttack=u.order!=='move';let target=null;

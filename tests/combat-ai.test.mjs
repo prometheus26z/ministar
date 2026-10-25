@@ -142,7 +142,7 @@ test('death clips remain available for their full animation duration',()=>{
  const fallback=b.create(0,0,240,200);fallback.def={...fallback.def,image:999999};b.die(fallback);assert.equal(fallback.deathDuration,1.8);
  const archon=b.create(68,0,260,200),darkArchon=b.create(63,0,280,200);b.die(archon);b.die(darkArchon);
  assert.ok(archon.deathDuration>Number(b.data.graphics[134].tracks.death.ticks)/24,'Archon keeps its longer layered death effect visible');
- assert.equal(archon.deathDuration,20/24);assert.equal(darkArchon.deathDuration,20/24,'Dark Archon omitted overlay has a matching fallback lifetime');
+ assert.equal(archon.deathDuration,20/24);assert.equal(darkArchon.deathDuration,.2,'missing source overlays do not use an invented effect lifetime');
 });
 test('bunker garrison hits use the canonical live source and bunker victims do not crash aggro selection',()=>{
  const b=lane('terran'),bunker=b.makeBunker(1,640,480),target=b.create(0,0,bunker.x,bunker.y-35),clone={...bunker,alive:true};
@@ -176,4 +176,14 @@ test('explicit movement and hold orders limit Medic pursuit',()=>{
  assert.equal(medic.healTarget,undefined);assert.ok(medic.x>200);
  b.select([medic.id],false);b.openMenu();assert.ok(b.execute('hold'));const x=medic.x;b.tickUnit(medic,.1);assert.equal(medic.x,x);assert.ok(!medic.healTarget);
  patient.x=medic.x+30;b.tickUnit(medic,.1);assert.ok(patient.hp>patient.maxHp-20);assert.equal(medic.x,x);
+});
+
+test('disabled Lurkers cannot burrow and status timers continue during transitions',()=>{
+ for(const status of ['stasis','lockdown','maelstrom']){
+  const b=lane('zerg');b.units=[];const u=b.create(103,0,600,700);u.laneArmy=true;u.order='attackmove';u.buffs[status]=1;u.cooldown=2;b.create(0,1,660,700);
+  b.tickUnit(u,.1);assert.equal(u.burrowed,false,status);assert.ok(Math.abs(u.buffs[status]-.9)<1e-8);assert.ok(Math.abs(u.cooldown-1.9)<1e-8);assert.equal(b.cast(u,'burrow'),false);
+  u.buffs[status]=0;b.tickUnit(u,.1);assert.equal(u.action,'burrow');const remaining=u.lurkerTransition,anim=u.animTime;u.buffs[status]=.5;
+  b.tickUnit(u,.1);assert.equal(u.lurkerTransition,remaining,'disabled transitions pause');assert.equal(u.animTime,anim,'disabled transition visuals pause');assert.ok(Math.abs(u.buffs[status]-.4)<1e-8);assert.ok(Math.abs(u.cooldown-1.7)<1e-8);
+  u.buffs[status]=0;assert.equal(b.cast(u,'burrow'),false,'an active transition cannot be toggled again');b.tickUnit(u,.1);assert.ok(u.lurkerTransition<remaining);
+ }
 });
