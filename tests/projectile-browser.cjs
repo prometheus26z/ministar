@@ -42,11 +42,11 @@ const {createServer}=require('../server.cjs');
    await page.screenshot({path:'/tmp/ministar-projectile-dragoon.png'});
 
    const hydra=await page.evaluate(()=>window.__projectileTest.fire('hydra',120,1160));
-   const hydraFrames=await page.evaluate(async id=>{
+   const hydraFrames=await page.evaluate(async ({sourceId,targetId})=>{
     const b=window.__projectileTest.battle;await new Promise(requestAnimationFrame);
-    const visuals=b.projectileVisuals.filter(v=>v.sourceId===id||v.targetId===id);
-    return{visuals:visuals.map(v=>({kind:v.kind,firstRendered:v.firstRendered,missed:v.missed})),contactFallbacks:window.__projectileContactFallbacks||0,failures:window.__projectileTest.failedImages,targetHp:b.units.find(u=>u.id===id)?.hp};
-   },hydra.targetId);
+    const visuals=b.projectileVisuals.filter(v=>v.sourceId===sourceId);
+    return{visuals:visuals.map(v=>({kind:v.kind,firstRendered:v.firstRendered,missed:v.missed})),contactFallbacks:window.__projectileContactFallbacks||0,failures:window.__projectileTest.failedImages,targetHp:b.units.find(u=>u.id===targetId)?.hp};
+   },{sourceId:hydra.sourceId,targetId:hydra.targetId});
    assert.deepEqual(hydraFrames.visuals.map(v=>v.kind),['hitscan','contact']);
    assert.ok(hydraFrames.visuals.every(v=>v.firstRendered),'the sting and contact flash reach the first rendered frame');
    assert.ok(hydraFrames.contactFallbacks>0,'a missing 504 contact image uses its short green flash fallback');
