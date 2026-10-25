@@ -31,14 +31,19 @@ async function testTeamModes(browser,url){
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  try{
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__teamTest={get battle(){return battle},get owner(){return viewCommanderId()},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));
+  await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__teamTest={get battle(){return battle},get owner(){return viewCommanderId()},get zoom(){return camera.zoom},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));
   await page.goto(url);await page.locator('#title').waitFor({state:'visible'});
   for(const size of [1,2,3]){
    await page.locator('#teamSizeTrigger').click();await page.getByRole('option',{name:new RegExp(`^${size} vs ${size}`)}).click();
    assert.equal(await page.locator('#teamSize').inputValue(),String(size));assert.equal(await page.locator('select:visible').count(),0);
    await page.locator('#deploy').click();assert.equal(await page.evaluate(()=>window.__teamTest.battle.commanders.length),size*2);
-   await page.evaluate(()=>{const b=window.__teamTest.battle;for(let i=0;i<160;i++)b.step(.25)});
+   assert.equal(await page.evaluate(()=>window.__teamTest.zoom),1.2,'field starts at twice the old default zoom');
+   assert.ok(Math.abs(await page.evaluate(()=>{const t=window.__teamTest;return t.project({x:100,y:1000}).x-t.project({x:0,y:1000}).x})-120)<1e-8,'100 world pixels occupy 120 screen pixels at the default field zoom');
+   await page.locator('#spaceToggle').click();assert.ok(Math.abs(await page.evaluate(()=>window.__teamTest.zoom)-.609375)<1e-8,'production view scales its previous fit zoom by two');
+   await page.locator('#spaceToggle').click();assert.equal(await page.evaluate(()=>window.__teamTest.zoom),1.2,'returning to the field resets its default zoom');
+   await page.locator('#frontView').click();assert.equal(await page.evaluate(()=>window.__teamTest.zoom),1,'front view starts at twice its old zoom');
    await page.locator('#spaceToggle').click();assert.equal(await page.locator('#productionSeat').isVisible(),size>1);
+   await page.evaluate(()=>{const b=window.__teamTest.battle;for(let i=0;i<160;i++)b.step(.25)});
    for(let slot=1;slot<size;slot++){
     await page.locator('#productionSeat').click();assert.equal(await page.evaluate(()=>window.__teamTest.owner),slot);assert.equal(await page.locator('#commandButton').isDisabled(),true);
     const target=await page.evaluate(slot=>{const t=window.__teamTest,u=t.battle.units.find(u=>u.alive&&u.productionOnly&&u.commanderId===slot&&!u.startingBase);return u?{point:t.project(u),name:u.def.name}:null},slot);
@@ -52,6 +57,20 @@ async function testTeamModes(browser,url){
   }
   assert.deepEqual(errors,[]);
  }finally{await context.close()}
+}
+async function testFoldZoomDefaults(browser,url){
+ for(const storedZoom of [.6,undefined]){
+  const context=await browser.newContext({viewport:{width:768,height:900}});
+  try{
+   const page=await context.newPage();await page.addInitScript(zoom=>{localStorage.setItem('ministar.settings',JSON.stringify(zoom===undefined?{}:{zoom}))},storedZoom);
+   await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__zoomTest={get zoom(){return camera.zoom},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));
+   await page.goto(url);await page.locator('#title').waitFor({state:'visible'});await page.locator('#deploy').click();await page.locator('#spaceToggle').waitFor({state:'visible'});
+   assert.equal(await page.evaluate(()=>window.__zoomTest.zoom),1.2,`768px field default ignores stored zoom ${storedZoom}`);
+   assert.ok(Math.abs(await page.evaluate(()=>{const t=window.__zoomTest;return t.project({x:100,y:1000}).x-t.project({x:0,y:1000}).x})-120)<1e-8);
+   await page.locator('#spaceToggle').click();assert.equal(await page.evaluate(()=>window.__zoomTest.zoom),1.2,'768px production default doubles the old fit zoom');
+   await page.locator('#frontView').click();assert.equal(await page.evaluate(()=>window.__zoomTest.zoom),1,'front view default is doubled');
+  }finally{await context.close()}
+ }
 }
 async function testBuildingCatalogUI(browser,url){
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
@@ -232,7 +251,7 @@ await page.evaluate(()=>{const b=window.__visualTest.battle;b.die(b.outpostDefen
 await page.waitForFunction(()=>[...window.__spriteDraws].some(url=>url.includes('assets/sprites/215_'))&&[...window.__spriteDraws].some(url=>url.includes('destruction-assets/217-')));
 await page.screenshot({path:'/tmp/ministar-building-explosion.png',fullPage:true});await page.waitForTimeout(1300);
 assert.ok(await page.evaluate(()=>window.__visualTest.battle.wrecks.length>0));await page.screenshot({path:'/tmp/ministar-building-rubble.png',fullPage:true});
-assert.equal(await page.locator('#offline').count(),0);assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);assert.deepEqual(errors,[]);const url='http://127.0.0.1:'+server.address().port+'/ministar/';await testTeamModes(browser,url);await testBuildingCatalogUI(browser,url);console.log('390 × 844 and 320 × 568: original UI, production/building catalog, lane permissions, team modes and legacy cache migration passed.')}finally{await browser?.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
+assert.equal(await page.locator('#offline').count(),0);assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);assert.deepEqual(errors,[]);const url='http://127.0.0.1:'+server.address().port+'/ministar/';await testTeamModes(browser,url);await testFoldZoomDefaults(browser,url);await testBuildingCatalogUI(browser,url);console.log('390 × 844, 768 × 900 and 320 × 568: original UI, doubled zoom, production/building catalog, lane permissions, team modes and legacy cache migration passed.')}finally{await browser?.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
 
 
 

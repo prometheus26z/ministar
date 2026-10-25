@@ -39,12 +39,13 @@ jobs:
       - name: Test mobile UI and legacy cache migration under /ministar/
         run: |
           node tests/browser.cjs
+          node tests/projectile-browser.cjs
           node tests/original-animation-browser.cjs
           node tests/performance-browser.cjs
-      - name: Upload original animation visual evidence
+      - name: Upload browser visual evidence
         uses: actions/upload-artifact@v4
         with:
-          name: original-animation-visuals
+          name: browser-visual-evidence
           path: |
             /tmp/ministar-original-animations.png
             /tmp/ministar-original-deaths.png
@@ -53,6 +54,8 @@ jobs:
             /tmp/ministar-health-bar-174.png
             /tmp/ministar-health-bar-142.png
             /tmp/ministar-browser-performance.json
+            /tmp/ministar-projectile-video/*.webm
+            /tmp/ministar-projectile-*.png
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static game
