@@ -1,4 +1,5 @@
-export const VERSION='0.16.1';
+import {layeredActionSeconds} from './animation.js?v=0.16.2';
+export const VERSION='0.16.2';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
@@ -74,7 +75,13 @@ export class Battle{
  }
  targetScore(u,t,w=this.weapon(u,t)){const edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge),threat=this.unitThreatens(t,u)?1:0,passive=t.def.building&&!threat?1:0;return((gap>0||minGap>0)?240:0)+gap*2+minGap*3+dist(u,t)*.18-threat*90+passive*45}
  unitThreatens(attacker,target){if(!attacker?.alive||attacker.hidden||attacker.productionOnly||attacker.loaded||attacker.buffs.stasis>0||attacker.buffs.lockdown>0||attacker.buffs.maelstrom>0)return false;if(attacker.def.building&&typeof this.powered==='function'&&!this.powered(attacker))return false;if(attacker.garrison?.length)return attacker.garrison.some(id=>{const d=this.data.units[id],w=this.data.weapons[target.def.air?d?.airWeapon:d?.groundWeapon];return !!w?.damage&&(target.def.air?w.air:w.ground)});return !!this.weapon(attacker,target)}
- betterTarget(u,current){const cw=this.weapon(u,current),base=this.targetScore(u,current,cw);const threats=this.units.filter(t=>t!==current&&this.canAttackTarget(u,t)&&dist(u,t)<=u.def.sight+u.r+t.r).map(t=>({t,w:this.weapon(u,t),edge:this.edgeDistance(u,t)})).filter(a=>a.edge<=a.w.range&&a.edge>=(a.w.minRange||0)).sort((a,b)=>this.targetScore(u,a.t,a.w)-this.targetScore(u,b.t,b.w));return threats.length&&base-this.targetScore(u,threats[0].t,threats[0].w)>80?threats[0].t:current}
+ activelyAttacking(attacker,target){return !!attacker?.alive&&attacker.target===target&&['attack','airAttack'].includes(attacker.action)}
+ betterTarget(u,current){
+  const aggro=this.units.find(t=>t.id===u.aggroTarget&&this.canAttackTarget(u,t));
+  if(u.order!=='focus'&&aggro&&u.aggroUntil>this.time){if(current===aggro)return aggro;if(this.activelyAttacking(current,u))return current;return aggro}
+  const cw=this.weapon(u,current),base=this.targetScore(u,current,cw),threats=this.units.filter(t=>t!==current&&this.canAttackTarget(u,t)&&dist(u,t)<=u.def.sight+u.r+t.r).map(t=>({t,w:this.weapon(u,t),edge:this.edgeDistance(u,t)})).filter(a=>a.edge<=a.w.range&&a.edge>=(a.w.minRange||0)).sort((a,b)=>this.targetScore(u,a.t,a.w)-this.targetScore(u,b.t,b.w));
+  return threats.length&&base-this.targetScore(u,threats[0].t,threats[0].w)>80?threats[0].t:current;
+ }
  acquireTarget(u){const candidates=this.units.filter(t=>this.canAttackTarget(u,t)&&dist(u,t)<=u.def.sight+u.r+t.r);const unavailable=u.unreachableTargets||{};const source=this.units.find(t=>t.id===u.aggroTarget&&this.canAttackTarget(u,t));if(source&&u.aggroUntil>this.time&&(!unavailable[source.id]||unavailable[source.id]<=this.time)&&dist(u,source)<=u.def.sight+u.r+source.r){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
   const scored=candidates.filter(t=>!unavailable[t.id]||unavailable[t.id]<=this.time).map(t=>{const w=this.weapon(u,t),edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge);return{t,w,edge,gap,minGap,score:this.targetScore(u,t,w)}}).sort((a,b)=>a.score-b.score);
   for(const c of scored){if(c.gap<=0&&c.minGap<=0)return c.t;if(u.order==='hold')continue;if(this.approachPath(u,c.t,Math.max(c.w.minRange||0,c.w.range-3)))return c.t;u.unreachableTargets||={};u.unreachableTargets[c.t.id]=this.time+1.5}
@@ -96,8 +103,8 @@ export class Battle{
   if(!u.alive)return;
   const graphics=this.data.graphics[u.def.image],deathTrack=graphics?.tracks?.death||graphics?.tracks?.dead,death=deathTrack?.sounds||[];
   if(death.length)this.emit('sfx',{id:death[Math.floor(Math.random()*death.length)]});
-  const trackSeconds=Number(deathTrack?.ticks)/24;
-  u.deathDuration=Math.max(.2,Math.min(8,Number.isFinite(trackSeconds)&&trackSeconds>0?trackSeconds:1.8));
+  const trackSeconds=layeredActionSeconds(this.data.graphics,u.def.image,'death',1.8);
+  u.deathDuration=Math.max(.2,Math.min(8,trackSeconds));
   u.alive=false;u.hp=0;u.deathTime=this.time;u.action='death';u.animTime=0;
   if(u.team===0)this.losses++;else if(team===0&&!u.def.building)this.kills++;
   for(const id of u.passengers||[]){const a=this.units.find(a=>a.id===id);if(a)this.die(a,team)}
@@ -115,7 +122,7 @@ export class Battle{
    const newW=this.weapon(u,source);if(!newW)return;
    const old=this.canAttackTarget(u,u.target)?u.target:null,oldW=old&&this.weapon(u,old),newEdge=this.edgeDistance(u,source),newInRange=newEdge<=newW.range&&newEdge>=(newW.minRange||0),oldInRange=old&&this.edgeDistance(u,old)<=oldW.range&&this.edgeDistance(u,old)>=(oldW.minRange||0);
    if(u.order==='move'||u.order==='focus'&&old||u.order==='hold'&&!newInRange||dist(u,source)>u.def.sight+u.r+source.r)return;
-   const oldIsAttackingUnit=old?.target===u&&['attack','airAttack'].includes(old.action);
+   const oldIsAttackingUnit=this.activelyAttacking(old,u);
    if(!old||!oldIsAttackingUnit||newInRange&&!oldInRange)u.target=source;
   };
   setAggro(victim);

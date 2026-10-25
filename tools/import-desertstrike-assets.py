@@ -5,6 +5,7 @@ import io,json,struct,zipfile
 from pathlib import Path
 from PIL import Image
 import numpy as np
+from map_geometry import centered_crop
 root=Path(__file__).resolve().parents[1];source=Path(__import__('sys').argv[1]);prefix='MINISTAR_Remastered_v0.2/'
 terrain=zipfile.ZipFile(source/'MINISTAR_Remastered_v0.2_05_Terrain_Effects.zip');hd=zipfile.ZipFile(source/'MINISTAR_Remastered_v0.2_04_HD2_WebSprites.zip');classic=zipfile.ZipFile(source/'MINISTAR_Resources_v0.1.zip')
 raw=json.loads(classic.read('MINISTAR_Resources_v0.1/data_json/units.dat.json'));sprites=json.loads(classic.read('MINISTAR_Resources_v0.1/data_json/sprites.dat.json'));flingy=json.loads(classic.read('MINISTAR_Resources_v0.1/data_json/flingy.dat.json'))
@@ -38,13 +39,8 @@ field=original.crop((0,0,3072,2080)).transpose(Image.Transpose.ROTATE_90)
 # Keep the source scale uniform: the rotated crop is 2080x3072, while the
 # battlefield viewport is 1280x2048 (5:8). Center-crop to that ratio before
 # resizing so units and terrain details are not squeezed horizontally.
-target_ratio=1280/2048
-if field.width/field.height>target_ratio:
- target_width=round(field.height*target_ratio);left=(field.width-target_width)//2
- field=field.crop((left,0,left+target_width,field.height))
-else:
- target_height=round(field.width/target_ratio);top=(field.height-target_height)//2
- field=field.crop((0,top,field.width,top+target_height))
+left,top,width,height=centered_crop(field.width,field.height,1280,2048)
+field=field.crop((left,top,left+width,top+height))
 field=field.resize((1280,2048),Image.Resampling.LANCZOS)
 field.save(dest/'battlefield.webp','WEBP',quality=90)
 print('Imported Desert terrain, crystal formation and temple sprites')

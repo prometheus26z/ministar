@@ -15,11 +15,13 @@ for i in sorted(set(map(int,original['units']))|set(names)):
 # Use the game's raw technology timing and costs rather than guide display-speed seconds.
 techids={'stim':0,'lockdown':1,'emp':2,'mine':3,'siege':5,'irradiate':7,'yamato':8,'cloak':9,'ghostCloak':10,'burrow':11,'broodlings':13,'plague':15,'consume':16,'ensnare':17,'storm':19,'hallucinate':20,'recall':21,'stasis':22,'restore':24,'web':25,'mind':27,'flare':30,'maelstrom':31,'lurker':32}
 for key,i in techids.items():supp['research'][key]={'cost':[tech[i]['mineral_cost'],tech[i]['vespene_cost']],'time':tech[i]['research_time']/24}
-needed=sorted({d['image'] for id,d in supp['units'].items() if id not in original['units']}|{347,344,21,11,914})
+overlay_images={int(overlay) for graphic in original['graphics'].values() for track in (graphic.get('tracks') or {}).values() if track for overlay in track.get('overlays') or []}
+needed=sorted({d['image'] for id,d in supp['units'].items() if id not in original['units']}|{347,344,21,11,914}|{image for image in overlay_images if str(image) not in original['graphics']})
 outdir=root/'dist/rts-assets';outdir.mkdir(exist_ok=True)
 for image in needed:
  if str(image) in original['graphics']:continue
  p=prefix+f'web_assets/HD2/anim/main_{image:03d}';meta=json.loads(hd.read(p+'.json'));im=Image.open(io.BytesIO(hd.read(p+'.diffuse.png'))).convert('RGBA');mask=Image.open(io.BytesIO(hd.read(p+'.teamcolor.png'))).convert('L') if p+'.teamcolor.png' in hd.namelist() else None
+ is_overlay=image in overlay_images
  frames=meta['frames'][:min(7,meta['frame_count'])];width=max(f['width'] for f in frames)+4;height=sum(f['height']+4 for f in frames);sheets={color:Image.new('RGBA',(width,height)) for color in ['blue','red']};table=[];y=2
  for f in frames:
   x0,y0,w,h=f['atlas_x'],f['atlas_y'],f['width'],f['height'];crop=im.crop((x0,y0,x0+w,y0+h));m=mask.crop((x0,y0,x0+w,y0+h)) if mask else None
@@ -32,7 +34,12 @@ for image in needed:
  paths={}
  for color,sheet in sheets.items():name=f'{image}-{color}.webp';sheet.save(outdir/name,'WEBP',quality=85,method=6);paths[color]='rts-assets/'+name
  track={'frames':[[i,5] for i in range(len(frames))],'ticks':len(frames)*5,'loop':True};static={'frames':[[0,125]],'ticks':125,'loop':True}
- supp['graphics'][str(image)]={'canvas':[meta['canvas_width'],meta['canvas_height']],'frames':table,'images':paths,'turns':False,'shadows':[],'tracks':{'idle':track if image in [36,21,11,914] else static,'built':track,'walk':track,'attack':static,'death':static}}
+ tracks={'idle':track if image in [36,21,11,914] else static,'built':track,'walk':track,'attack':static,'death':static}
+ if is_overlay:
+  overlay_track={'frames':[[i,2] for i in range(len(frames))],'ticks':len(frames)*2,'loop':True}
+  overlay_death={**overlay_track,'loop':False}
+  tracks={action:overlay_track for action in ['idle','built','walk','attack','airAttack','cast','burrow','unburrow']};tracks['death']=overlay_death
+ supp['graphics'][str(image)]={'canvas':[meta['canvas_width'],meta['canvas_height']],'frames':table,'images':paths,'turns':False,'shadows':[],'tracks':tracks}
 (root/'dist/rts-data.json').write_text(json.dumps(supp,ensure_ascii=False,separators=(',',':')))
 # A separate verified bundle avoids rewriting the original large resource archive.
 paths=sorted(outdir.glob('*.webp'));packed=bytearray(b'MSTAR001')
@@ -44,3 +51,4 @@ for offset in range(0,len(compressed),16384):
  name=f'rts-{offset//16384:04}.b64';(root/'resources'/name).write_text(base64.b64encode(compressed[offset:offset+16384]).decode());parts.append(name)
 (root/'resources/rts-manifest.json').write_text(json.dumps({'sha256':hashlib.sha256(compressed).hexdigest(),'files':len(paths),'parts':parts},indent=2))
 print('Imported',len(supp['units']),'definitions,',len(supp['graphics']),'sprite sets;',len(compressed),'bytes in',len(parts),'parts')
+

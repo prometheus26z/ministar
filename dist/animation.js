@@ -11,6 +11,41 @@ export function trackFor(g,action){
  const tracks=g?.tracks||{},candidates=TRACKS[action]||[action];
  return candidates.map(key=>tracks[key]).find(Boolean)||tracks.idle||tracks.built||null;
 }
+function frameTicks(track){
+ const declared=Number(track?.ticks);
+ if(Number.isFinite(declared)&&declared>0)return declared;
+ return (track?.frames||[]).reduce((sum,item)=>sum+(Number.isFinite(Number(item?.[1]))&&Number(item[1])>0?Number(item[1]):0),0);
+}
+export function transitionSeconds(g,action,fallback=.45){
+ const track=trackFor(g,action);if(!track)return fallback;
+ const durations=(track.frames||[]).map(item=>Number(item?.[1])).filter(n=>Number.isFinite(n)&&n>0);
+ let ticks=frameTicks(track);
+ // Some Remastered loop tracks append a long final hold after the playable
+ // transform frames. Do not mistake that idle hold for transition time.
+ if(track.loop&&durations.length>1){
+  const active=durations.slice(0,-1).sort((a,b)=>a-b),median=active[Math.floor(active.length/2)]||1,last=durations.at(-1);
+  if(last>=Math.max(8,median*8))ticks=durations.slice(0,-1).reduce((sum,n)=>sum+n,0);
+ }
+ return Math.max(1,ticks)/24;
+}
+export function layeredActionSeconds(graphics,id,action,fallback=0){
+ const visiting=new Set();
+ const visit=(image,depth=0)=>{
+  if(depth>8||visiting.has(image))return 0;
+  const g=graphics?.[image];if(!g)return depth>0&&action==='death'?20/24:0;
+  const track=trackFor(g,action);if(!track)return 0;
+  visiting.add(image);
+  let seconds=frameTicks(track)/24;
+  for(const overlay of track.overlays||[])seconds=Math.max(seconds,visit(overlay,depth+1));
+  visiting.delete(image);return seconds;
+ };
+ const seconds=visit(id);return seconds>0?seconds:fallback;
+}
+export function missingOverlayEffect(id,action,time){
+ if([135,136,926,927].includes(Number(id)))return{kind:'aura',layer:Number(id)%2,time};
+ if(action==='death')return{kind:'death-pulse',time,archon:Number(id)===928};
+ return null;
+}
 export function pose(g,action,time,direction){
  const track=trackFor(g,action);
  const frames=Array.isArray(g?.frames)?g.frames:[];if(!frames.length)return{frame:0,flip:false};

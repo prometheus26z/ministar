@@ -2,11 +2,13 @@ name: Test and deploy MiniStar
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: ministar-pages
+  group: ministar-pages-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -37,6 +39,7 @@ jobs:
         with:
           path: dist
   deploy:
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -50,3 +53,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
