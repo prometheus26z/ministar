@@ -6,8 +6,10 @@ headers={}
 ops=[('playfram', ['frame']), ('playframtile', ['frame']), ('sethorpos', ['sbyte']), ('setvertpos', ['sbyte']), ('setpos', ['sbyte', 'sbyte']), ('wait', ['byte']), ('waitrand', ['byte', 'byte']), ('goto', ['label']), ('imgol', ['imageid', 'sbyte', 'sbyte']), ('imgul', ['imageid', 'sbyte', 'sbyte']), ('imgolorig', ['imageid']), ('switchul', ['imageid']), ('__0c', []), ('imgoluselo', ['imageid', 'sbyte', 'sbyte']), ('imguluselo', ['imageid', 'sbyte', 'sbyte']), ('sprol', ['spriteid', 'sbyte', 'sbyte']), ('highsprol', ['spriteid', 'sbyte', 'sbyte']), ('lowsprul', ['spriteid', 'sbyte', 'sbyte']), ('uflunstable', ['flingyid']), ('spruluselo', ['spriteid', 'sbyte', 'sbyte']), ('sprul', ['spriteid', 'sbyte', 'sbyte']), ('sproluselo', ['spriteid', 'overlayid']), ('end', []), ('setflipstate', ['flipstate']), ('playsnd', ['soundid']), ('playsndrand', ['sounds', 'soundid']), ('playsndbtwn', ['soundid', 'soundid']), ('domissiledmg', []), ('attackmelee', ['sounds', 'soundid']), ('followmaingraphic', []), ('randcondjmp', ['byte', 'label']), ('turnccwise', ['byte']), ('turncwise', ['byte']), ('turn1cwise', []), ('turnrand', ['byte']), ('setspawnframe', ['byte']), ('sigorder', ['signalid']), ('attackwith', ['weapon']), ('attack', []), ('castspell', []), ('useweapon', ['weaponid']), ('move', ['byte']), ('gotorepeatattk', []), ('engframe', ['bframe']), ('engset', ['frameset']), ('__2d', []), ('nobrkcodestart', []), ('nobrkcodeend', []), ('ignorerest', []), ('attkshiftproj', ['byte']), ('tmprmgraphicstart', []), ('tmprmgraphicend', []), ('setfldirect', ['byte']), ('call', ['label']), ('return', []), ('setflspeed', ['speed']), ('creategasoverlays', ['gasoverlay']), ('pwrupcondjmp', ['label']), ('trgtrangecondjmp', ['short', 'label']), ('trgtarccondjmp', ['short', 'short', 'label']), ('curdirectcondjmp', ['short', 'short', 'label']), ('imgulnextid', ['sbyte', 'sbyte']), ('__3e', []), ('liftoffcondjmp', ['label']), ('warpoverlay', ['frame']), ('orderdone', ['signalid']), ('grdsprol', ['spriteid', 'sbyte', 'sbyte']), ('__43', []), ('dogrddamage', [])]
 TYPES={0: 2, 1: 2, 2: 4, 12: 14, 13: 14, 14: 16, 15: 16, 20: 22, 21: 22, 23: 24, 24: 26, 26: 28, 27: 28, 28: 28, 29: 28}
 def load_sources(raw):
+ raw=Path(raw);load_bytes((raw/'scripts/iscript.bin').read_bytes(),(raw/'arr/images.dat').read_bytes(),(raw/'arr/sprites.dat').read_bytes())
+def load_bytes(script_bytes,image_bytes,sprite_bytes):
  global b,images,sprites,headers
- raw=Path(raw);b=(raw/'scripts/iscript.bin').read_bytes();images=(raw/'arr/images.dat').read_bytes();sprites=(raw/'arr/sprites.dat').read_bytes();headers={};pos=struct.unpack_from('<H',b)[0]
+ b=script_bytes;images=image_bytes;sprites=sprite_bytes;headers={};pos=struct.unpack_from('<H',b)[0]
  while True:
   id,off=struct.unpack_from('<HH',b,pos);pos+=4
   if id==65535 and off==0:break
@@ -32,7 +34,7 @@ def debug(id,action=0):
 def trace(id,slot,target_near=None,stop_at_signal=None,include_signals=False,inherit_initial=False):
  h=headers.get(image_script(id),[])
  if slot>=len(h)or not h[slot]:return None
- p=h[slot];seen={};stack=[];frame=None if inherit_initial else 0;frames=[];overlays=[];ticks=0;hidden=False;loop=False;loopstart=0;sounds=[];fixed=None;follow=False;ended=False;signal_ticks={}
+ p=h[slot];seen={};stack=[];frame=None if inherit_initial else 0;frames=[];overlays=[];warp_overlays=[];ticks=0;hidden=False;loop=False;loopstart=0;sounds=[];fixed=None;follow=False;ended=False;signal_ticks={}
  for step in range(10000):
   state=(p,tuple(stack))
   if state in seen:loop=True;loopstart=seen[state];break
@@ -67,9 +69,10 @@ def trace(id,slot,target_near=None,stop_at_signal=None,include_signals=False,inh
   elif name=='sigorder':
    signal_ticks[str(a[0])]=ticks
    if stop_at_signal==a[0]:break
-  elif name in ['sethorpos','setvertpos','setpos','setflipstate','turnccwise','turncwise','turn1cwise','turnrand','setspawnframe','attackwith','attack','castspell','useweapon','move','gotorepeatattk','__2d','nobrkcodestart','nobrkcodeend','attkshiftproj','setflspeed','orderdone','domissiledmg','attackmelee','__0c','__3e','__43','dogrddamage','warpoverlay','creategasoverlays','switchul']:pass
+  elif name=='warpoverlay':warp_overlays.append({'frame':a[0],'tick':ticks})
+  elif name in ['sethorpos','setvertpos','setpos','setflipstate','turnccwise','turncwise','turn1cwise','turnrand','setspawnframe','attackwith','attack','castspell','useweapon','move','gotorepeatattk','__2d','nobrkcodestart','nobrkcodeend','attkshiftproj','setflspeed','orderdone','domissiledmg','attackmelee','__0c','__3e','__43','dogrddamage','creategasoverlays','switchul']:pass
   else:raise ValueError(('unknown',id,slot,name))
  else:raise ValueError(('too long',id,slot))
- track={'frames':frames,'ticks':ticks,'loop':loop,'loopStart':loopstart,'ended':ended,'overlayEvents':overlays,'overlays':list(dict.fromkeys(x['image']for x in overlays)),'sounds':sounds,'fixedDirection':fixed,'followParent':follow}
+ track={'frames':frames,'ticks':ticks,'loop':loop,'loopStart':loopstart,'ended':ended,'overlayEvents':overlays,'overlays':list(dict.fromkeys(x['image']for x in overlays)),'warpOverlayEvents':warp_overlays,'sounds':sounds,'fixedDirection':fixed,'followParent':follow}
  if include_signals:track['signalTicks']=signal_ticks
  return track

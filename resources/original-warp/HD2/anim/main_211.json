@@ -1,0 +1,293 @@
+{
+  "source": "HD2/anim/main_211.anim",
+  "format_version": "0x202",
+  "canvas_width": 308.0,
+  "canvas_height": 308.5,
+  "frame_count": 14,
+  "timing_source": "raw/scripts/iscript.bin; frames are not action ranges",
+  "layers": [
+    {
+      "slot": 0,
+      "name": "diffuse",
+      "texture_width": 968,
+      "texture_height": 428,
+      "raw_offset": 428,
+      "raw_bytes": 414432,
+      "png": "web_assets/HD2/anim/main_211.diffuse.png"
+    },
+    {
+      "slot": 7,
+      "name": "",
+      "texture_width": 4103,
+      "texture_height": 8,
+      "raw_offset": 542327876,
+      "raw_bytes": 124
+    },
+    {
+      "slot": 8,
+      "name": "",
+      "texture_width": 21088,
+      "texture_height": 6,
+      "raw_offset": 428,
+      "raw_bytes": 968
+    }
+  ],
+  "frames": [
+    {
+      "frame": 0,
+      "atlas_x": 300,
+      "atlas_y": 2,
+      "x_offset": 53,
+      "y_offset": 55,
+      "width": 209,
+      "height": 203,
+      "source_frame": {
+        "frame": 0,
+        "atlas_x": 600,
+        "atlas_y": 4,
+        "x_offset": 106,
+        "y_offset": 110,
+        "width": 418,
+        "height": 406
+      }
+    },
+    {
+      "frame": 1,
+      "atlas_x": 2,
+      "atlas_y": 2,
+      "x_offset": 6,
+      "y_offset": 7,
+      "width": 297,
+      "height": 297,
+      "source_frame": {
+        "frame": 1,
+        "atlas_x": 4,
+        "atlas_y": 4,
+        "x_offset": 12,
+        "y_offset": 14,
+        "width": 594,
+        "height": 594
+      }
+    },
+    {
+      "frame": 2,
+      "atlas_x": 156,
+      "atlas_y": 300,
+      "x_offset": 98,
+      "y_offset": 101,
+      "width": 122,
+      "height": 109,
+      "source_frame": {
+        "frame": 2,
+        "atlas_x": 312,
+        "atlas_y": 600,
+        "x_offset": 196,
+        "y_offset": 202,
+        "width": 244,
+        "height": 218
+      }
+    },
+    {
+      "frame": 3,
+      "atlas_x": 664,
+      "atlas_y": 294,
+      "x_offset": 96,
+      "y_offset": 101,
+      "width": 122,
+      "height": 115,
+      "source_frame": {
+        "frame": 3,
+        "atlas_x": 1328,
+        "atlas_y": 588,
+        "x_offset": 192,
+        "y_offset": 202,
+        "width": 244,
+        "height": 230
+      }
+    },
+    {
+      "frame": 4,
+      "atlas_x": 452,
+      "atlas_y": 304,
+      "x_offset": 83,
+      "y_offset": 99,
+      "width": 149,
+      "height": 113,
+      "source_frame": {
+        "frame": 4,
+        "atlas_x": 904,
+        "atlas_y": 608,
+        "x_offset": 166,
+        "y_offset": 198,
+        "width": 298,
+        "height": 226
+      }
+    },
+    {
+      "frame": 5,
+      "atlas_x": 790,
+      "atlas_y": 302,
+      "x_offset": 76,
+      "y_offset": 101,
+      "width": 160,
+      "height": 113,
+      "source_frame": {
+        "frame": 5,
+        "atlas_x": 1580,
+        "atlas_y": 604,
+        "x_offset": 152,
+        "y_offset": 202,
+        "width": 320,
+        "height": 226
+      }
+    },
+    {
+      "frame": 6,
+      "atlas_x": 2,
+      "atlas_y": 300,
+      "x_offset": 78,
+      "y_offset": 95,
+      "width": 152,
+      "height": 123,
+      "source_frame": {
+        "frame": 6,
+        "atlas_x": 4,
+        "atlas_y": 600,
+        "x_offset": 156,
+        "y_offset": 190,
+        "width": 304,
+        "height": 246
+      }
+    },
+    {
+      "frame": 7,
+      "atlas_x": 664,
+      "atlas_y": 154,
+      "x_offset": 88,
+      "y_offset": 89,
+      "width": 136,
+      "height": 137,
+      "source_frame": {
+        "frame": 7,
+        "atlas_x": 1328,
+        "atlas_y": 308,
+        "x_offset": 176,
+        "y_offset": 178,
+        "width": 272,
+        "height": 274
+      }
+    },
+    {
+      "frame": 8,
+      "atlas_x": 812,
+      "atlas_y": 2,
+      "x_offset": 83,
+      "y_offset": 83,
+      "width": 149,
+      "height": 149,
+      "source_frame": {
+        "frame": 8,
+        "atlas_x": 1624,
+        "atlas_y": 4,
+        "x_offset": 166,
+        "y_offset": 166,
+        "width": 298,
+        "height": 298
+      }
+    },
+    {
+      "frame": 9,
+      "atlas_x": 512,
+      "atlas_y": 2,
+      "x_offset": 82,
+      "y_offset": 81,
+      "width": 148,
+      "height": 151,
+      "source_frame": {
+        "frame": 9,
+        "atlas_x": 1024,
+        "atlas_y": 4,
+        "x_offset": 164,
+        "y_offset": 162,
+        "width": 296,
+        "height": 302
+      }
+    },
+    {
+      "frame": 10,
+      "atlas_x": 812,
+      "atlas_y": 152,
+      "x_offset": 82,
+      "y_offset": 83,
+      "width": 152,
+      "height": 147,
+      "source_frame": {
+        "frame": 10,
+        "atlas_x": 1624,
+        "atlas_y": 304,
+        "x_offset": 164,
+        "y_offset": 166,
+        "width": 304,
+        "height": 294
+      }
+    },
+    {
+      "frame": 11,
+      "atlas_x": 300,
+      "atlas_y": 206,
+      "x_offset": 84,
+      "y_offset": 83,
+      "width": 148,
+      "height": 147,
+      "source_frame": {
+        "frame": 11,
+        "atlas_x": 600,
+        "atlas_y": 412,
+        "x_offset": 168,
+        "y_offset": 166,
+        "width": 296,
+        "height": 294
+      }
+    },
+    {
+      "frame": 12,
+      "atlas_x": 512,
+      "atlas_y": 154,
+      "x_offset": 84,
+      "y_offset": 85,
+      "width": 150,
+      "height": 147,
+      "source_frame": {
+        "frame": 12,
+        "atlas_x": 1024,
+        "atlas_y": 308,
+        "x_offset": 168,
+        "y_offset": 170,
+        "width": 300,
+        "height": 294
+      }
+    },
+    {
+      "frame": 13,
+      "atlas_x": 662,
+      "atlas_y": 2,
+      "x_offset": 84,
+      "y_offset": 81,
+      "width": 146,
+      "height": 151,
+      "source_frame": {
+        "frame": 13,
+        "atlas_x": 1324,
+        "atlas_y": 4,
+        "x_offset": 168,
+        "y_offset": 162,
+        "width": 292,
+        "height": 302
+      }
+    }
+  ],
+  "source_canvas_width": 616,
+  "source_canvas_height": 617,
+  "coordinate_scale": 0.5,
+  "coordinate_note": "HD2 DDS textures use half the ANIM frame-table coordinates. Source values preserved under source_frame; atlas coordinates are PNG pixels."
+}

@@ -52,8 +52,7 @@ test('construction chooses original stages for all races and gas footprints touc
   const battle=fresh(race),u=battle.create(type,0,640,PRODUCTION_OFFSET+900);
   u.construction={time:0,total:10,started:true};
   const start=constructionVisual(u,data);u.construction.time=5;const middle=constructionVisual(u,data);
-  assert.ok(graphics[start.image]);
-  if(race!=='protoss')assert.notDeepEqual(start,middle);else assert.equal(start.warp,true);
+  if(race==='protoss'){assert.equal(start.warp,true);assert.equal(start.phase,'anchor');assert.notDeepEqual(start,middle)}else{assert.ok(graphics[start.image]);assert.notDeepEqual(start,middle)}
   u.construction=null;assert.equal(constructionVisual(u,data),null);
  }
  for(const race of ['terran','zerg','protoss']){

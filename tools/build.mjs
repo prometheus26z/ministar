@@ -32,13 +32,30 @@ console.log('Restored 6 race-specific music cues.');
  const audit=JSON.parse(fs.readFileSync(path.join(root,'resources/original-desertstrike.json'),'utf8'));
  const scx=fs.readFileSync(path.join(root,'resources/desertstrike/original.scx'));
  const chk=zlib.gunzipSync(fs.readFileSync(path.join(root,'resources/desertstrike/scenario.chk.gz')));
+ const cv5Compressed=fs.readFileSync(path.join(root,'resources/desertstrike/desert.cv5.gz')),vf4Compressed=fs.readFileSync(path.join(root,'resources/desertstrike/desert.vf4.gz'));
+ const cv5=zlib.gunzipSync(cv5Compressed),vf4=zlib.gunzipSync(vf4Compressed),sourceMap=audit.map,scenarioTileWidth=sourceMap.tileWidth,scenarioTileHeight=sourceMap.tileHeight;
+ const tileData=(x,y)=>{
+  if(x<0||y<0||x>=scenarioTileWidth||y>=scenarioTileHeight)return{buildable:false,fullyWalkable:false,unbuildable:true};
+  const tile=sourceMap.terrain[y*scenarioTileWidth+x],group=(tile&0x7fff)>>4,flags=cv5.readUInt16LE(group*52+2),mega=cv5.readUInt16LE(group*52+20+(tile&15)*2);
+  let fullyWalkable=true;for(let i=0;i<16;i++)if(!(vf4.readUInt16LE(mega*32+i*2)&1)){fullyWalkable=false;break}
+  return{buildable:!(flags&0x80)&&fullyWalkable,fullyWalkable,unbuildable:!!(flags&0x80)};
+ };
+ const productionRegion=rules.map.productionRegion,creepEligible=[];
+ for(let y=0;y<productionRegion.tileHeight;y++)for(let x=0;x<productionRegion.tileWidth;x++){
+  const cell=tileData(productionRegion.left/32+x,productionRegion.top/32+y),below=tileData(productionRegion.left/32+x,productionRegion.top/32+y+1);
+  const expected=cell.buildable&&(y+productionRegion.top/32>=scenarioTileHeight-1||!below.unbuildable);
+  if(cell.buildable!==!!productionRegion.buildable[y*productionRegion.tileWidth+x])throw Error(`Production buildability no longer matches the source tile data at ${x},${y}`);
+  creepEligible.push(Number(expected));
+ }
+ productionRegion.creepEligible=creepEligible;
+ productionRegion.creepEligibilitySource={engine:'OpenBW/openbw 4b046d5f65302b10cb0a745f0fecd37ec85b20a8 (reference implementation, not Blizzard source)',rule:'buildable and fully walkable; reject a non-bottom-row tile when the tile below is unbuildable',haloRows:1,sha256:{scenarioChk:crypto.createHash('sha256').update(chk).digest('hex'),cv5:crypto.createHash('sha256').update(cv5Compressed).digest('hex'),vf4:crypto.createHash('sha256').update(vf4Compressed).digest('hex')}};
  for(const [bytes,expected]of [[scx,audit.source.sha256],[chk,audit.source.chkSha256]])if(crypto.createHash('sha256').update(bytes).digest('hex')!==expected)throw Error('Original Desert Strike source checksum mismatch');
  if(audit.originalTriggers.length!==328||audit.originalTriggers.some((t,i)=>t.id!==i+1||!t.portStatus||!t.mappedRule))throw Error('Incomplete original trigger audit');
  if(Object.values(rules.costs).some(cost=>cost[1]!==0))throw Error('Original building costs must be minerals-only');
  const buildingSource=deriveBuildingCatalog(chk,rules);
  const humanPlayers=Object.values(SOURCE_PLAYER_BY_COMMANDER),blocked=Object.keys(buildingSource.buildingCatalog).map(Number).filter(id=>!humanPlayers.every(player=>buildingSource.buildingCatalog[id].availableByPlayer[player]));
  if(JSON.stringify(blocked)!=='[120]')throw Error(`Unexpected PUNI building catalog; expected only disabled ID 120, got ${JSON.stringify(blocked)}`);
- if(rules.map.gasSlots.length!==5||rules.map.productionRegion.buildable.length!==rules.map.productionRegion.tileWidth*rules.map.productionRegion.tileHeight)throw Error('Invalid source production geometry');
+ if(rules.map.gasSlots.length!==5||rules.map.productionRegion.buildable.length!==rules.map.productionRegion.tileWidth*rules.map.productionRegion.tileHeight||rules.map.productionRegion.creepEligible.length!==rules.map.productionRegion.tileWidth*rules.map.productionRegion.tileHeight)throw Error('Invalid source production geometry');
  const layout=rules.map.mobileLayout;if(!layout||layout.objectiveDetectionRange!==320)throw Error('Invalid mobile objective detection layout');
  for(const team of [0,1]){
   const main=layout.mains?.[team],outpost=layout.outposts?.[team],zone=layout.deploymentZones?.[team],mirror=1-team;
@@ -73,3 +90,4 @@ console.log('Restored 6 race-specific music cues.');
 // Original overlay/corpse sprites and full source-script visual timelines.
 const {restoreOriginalAnimations}=await import('./restore-original-animations.mjs');
 restoreOriginalAnimations(root);
+execFileSync('python3',[path.resolve(import.meta.dirname,'import-warp-anchor.py')],{stdio:'inherit'});

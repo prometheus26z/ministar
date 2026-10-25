@@ -1,5 +1,7 @@
-import {BUILDINGS} from './tech.js?v=0.16.12';
-import {BUILDING_WAVES,GAS_BUILDING,PRODUCTION_OFFSET,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,DESERT_STRIKE,WAVE_SECONDS,INCOME_SECONDS,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.12';
+import {BUILDINGS} from './tech.js?v=0.16.13';
+import {BUILDING_WAVES,GAS_BUILDING,PRODUCTION_OFFSET,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,DESERT_STRIKE,WAVE_SECONDS,INCOME_SECONDS,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.13';
+import {inPsionicMatrixRange,overlapsFootprints,footprintTiles} from './build-placement.js?v=0.16.13';
+import {creepTileRangeContains} from './creep.js?v=0.16.13';
 
 // Operates only through the same placement, prerequisites, payment and completion
 // methods as the player. Observations are taken from already deployed waves.
@@ -19,29 +21,54 @@ export class LaneAI{
   return true;
  }
  parent(type){const b=this.b,s=BUILDINGS[type];return this.buildings.find(u=>b.ready(u)&&u.type===(s.addon||s.morph)&&(!s.addon||!this.buildings.some(a=>a.parent===u.id)))}
- site(type,parent=null){
-  const b=this.b,s=BUILDINGS[type];
-  if(s.morph)return parent?{point:parent,reason:''}:null;
-  if(s.addon){if(!parent)return null;const p=b.placementForTeam(this.team,type,b.addonPoint(parent,type));return p.reason?null:p}
-  if(s.gas){for(const n of b.nodes.filter(n=>n.team===this.team&&n.commanderId===this.commanderId&&!n.occupiedBy)){const p=b.placementForTeam(this.team,type,n);if(!p.reason)return p}return null}
-  const [w,h]=b.footprint(type),reservedAddon=({106:107,114:115,116:117})[type]||0,reservedWidth=reservedAddon?b.footprint(reservedAddon)[0]:0,padding=reservedWidth?reservedWidth+32:0;
+ placementCandidates(type,parent=null,options={}){
+  const b=this.b,s=BUILDINGS[type];if(!s)return[];
+  if(s.morph)return parent?[{point:parent,reason:''}]:[];
+  if(s.addon){if(!parent)return[];const p=b.placementForTeam(this.team,type,b.addonPoint(parent,type),parent,options);return p.reason?[]:[p]}
+  if(s.gas){const found=[];for(const n of b.nodes.filter(n=>n.team===this.team&&n.commanderId===this.commanderId&&!n.occupiedBy)){const p=b.placementForTeam(this.team,type,n,null,options);if(!p.reason)found.push(p)}return found}
+  const [w,h]=b.footprint(type),reservedAddon=({106:107,114:115,116:117})[type]||0,reservedWidth=reservedAddon?b.footprint(reservedAddon)[0]:0,padding=reservedWidth?reservedWidth+32:0,found=[];
   for(let y=PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+h/2;y<=PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT-h/2;y+=32){
    for(let x=PRODUCTION_GROUND_X+w/2;x<=PRODUCTION_GROUND_X+PRODUCTION_GROUND_WIDTH-w/2-padding;x+=32){
-    const p=b.placementForTeam(this.team,type,{x,y});if(p.reason)continue;
-    if(padding){const reserved=b.placementForTeam(this.team,reservedAddon,{x:x+w/2+reservedWidth/2,y});if(reserved.reason)continue}
-    return p;
+    const p=b.placementForTeam(this.team,type,{x,y},null,options);if(p.reason)continue;
+    if(padding){const reserved=b.placementForTeam(this.team,reservedAddon,{x:x+w/2+reservedWidth/2,y},null,options);if(reserved.reason)continue}
+    found.push(p);
    }
   }
-  return null;
+  return found;
+ }
+ bestPylonSite(){
+  const need=this.spatialNeed,b=this.b;if(!need||need.kind!=='psi')return null;
+  const pylons=this.placementCandidates(156),targets=this.placementCandidates(need.type,need.parent,{ignorePsi:true}),pylonSize=b.footprint(156),targetSize=b.footprint(need.type);let best=null,bestScore=0;
+  for(const candidate of pylons){let score=0;for(const target of targets)if(!overlapsFootprints(candidate.point,pylonSize,target.point,targetSize)&&inPsionicMatrixRange(target.point,candidate.point))score++;
+   if(score>bestScore){best=candidate;bestScore=score}
+  }
+  return best;
+ }
+ bestCreepSourceSite(type){
+  const need=this.spatialNeed,b=this.b;if(!need||need.kind!=='creep')return null;
+  const candidates=this.placementCandidates(type),targets=this.placementCandidates(need.type,need.parent,{ignoreCreep:true}),sourceSize=b.footprint(type),field=b.creepFieldFor(this.team,this.commanderId);let best=null,bestScore=0;
+  for(const candidate of candidates){let score=0;for(const target of targets){if(overlapsFootprints(candidate.point,sourceSize,target.point,b.footprint(need.type)))continue;const footprint=footprintTiles(target.point,b.footprint(need.type));if(footprint.every(tile=>field.eligible(tile.x,tile.y)&&creepTileRangeContains(candidate.point,tile.x,tile.y))&&!field.maximumCovers(target.point,b.footprint(need.type)))score++}
+   if(score>bestScore){best=candidate;bestScore=score}
+  }
+  return best;
+ }
+ site(type,parent=null){
+  const b=this.b,s=BUILDINGS[type];if(s.morph)return parent?{point:parent,reason:''}:null;
+  if(s.addon){if(!parent)return null;const p=b.placementForTeam(this.team,type,b.addonPoint(parent,type),parent);return p.reason?null:p}
+  if(type===156&&this.spatialNeed?.kind==='psi')return this.bestPylonSite();
+  if((type===143||type===131)&&this.spatialNeed?.kind==='creep')return this.bestCreepSourceSite(type);
+  return this.placementCandidates(type,parent)[0]||null;
  }
  build(type){
   if(this.b.ownerByTeam[this.team]!==this.commanderId)return this.b.withCommander(this.commanderId,()=>this.build(type));
   const b=this.b,s=BUILDINGS[type];if(!s||!b.data.units[type]||!isLaneBuildingAvailable(type,this.commanderId))return false;
+  if(this.spatialNeed&&type!==this.spatialNeed.provider)this.spatialNeed=null;
   const parent=s.addon||s.morph?this.parent(type):null;
   if(b.teamBuildReason(this.team,type,parent,!!s.morph))return false;
   if(this.buildings.some(u=>BUILDING_WAVES[u.type])&&(this.team?b.botMoney:b.money)-b.buildingCost(type)[0]<this.profile.reserve)return false;
   const site=this.site(type,parent);if(!site)return false;
   const u=b.startConstruction(this.team,type,site,parent,!!s.morph);if(!u)return false;
+  if(this.spatialNeed?.provider===type)this.spatialNeed=null;
   this.lastBuildAt=b.time;this.decisions.push({time:b.time,type,money:(this.team?b.botMoney:b.money)});if(this.decisions.length>300)this.decisions.shift();return true;
  }
  nextRequirement(type,seen=new Set()){
@@ -49,6 +76,20 @@ export class LaneAI{
   for(const r of s.requires)if(!b.hasTeam(this.team,r))return this.buildings.some(u=>u.type===r||u.construction?.nextType===r)?null:this.nextRequirement(r,seen);
   if(s.morph&&!this.parent(type))return this.buildings.some(u=>u.type===s.morph&&u.construction)?null:this.nextRequirement(s.morph,seen);
   if(s.addon&&!this.parent(type))return this.nextRequirement(s.addon,seen);
+  if(s.psi){
+   const candidates=this.placementCandidates(type,null,{ignorePsi:true}),powered=candidates.some(p=>b.pylonsFor(p.point,this.team,this.commanderId).length);
+   if(!powered){const pending=this.buildings.filter(u=>u.type===156&&u.construction).some(pylon=>candidates.some(p=>inPsionicMatrixRange(p.point,pylon)));
+    if(pending)return null;this.spatialNeed={kind:'psi',type,parent:null,provider:156};return 156}
+  }
+  if(s.creep){
+   const candidates=this.placementCandidates(type,null,{ignoreCreep:true}),field=b.creepFieldFor(this.team,this.commanderId);
+   if(candidates.length&&!this.placementCandidates(type).length){if(candidates.some(p=>field.maximumCovers(p.point,b.footprint(type))))return null;
+    const pending=this.buildings.some(u=>u.construction&&[131,132,133,143,144,146].includes(u.type));if(pending)return null;
+    this.spatialNeed={kind:'creep',type,parent:null,provider:143};if(this.bestCreepSourceSite(143))return 143;
+    this.spatialNeed.provider=131;if(this.bestCreepSourceSite(131))return 131;this.spatialNeed=null;return null;
+   }
+   if(!candidates.length)return null;
+  }
   return type;
  }
  score(type){

@@ -1,0 +1,21 @@
+{
+  "source": "Extracted from the existing MINISTAR_Remastered_v0.2 HD2 archive; locally verified, not independently refetched from Blizzard CDN.",
+  "archiveMemberPrefix": "MINISTAR_Remastered_v0.2/",
+  "files": [
+    {
+      "path": "HD2/anim/main_211.anim",
+      "bytes": 415084,
+      "sha256": "e94c17e9531957142c490a9389ab6b79756aa994a2e5ce6f2c94b0684d6450a3"
+    },
+    {
+      "path": "HD2/anim/main_211.diffuse.png",
+      "bytes": 477535,
+      "sha256": "461acc22e00bd97da13d8f5693ce3d608f57a1e572842dd343ec1397842ef9cd"
+    },
+    {
+      "path": "HD2/anim/main_211.json",
+      "bytes": 5977,
+      "sha256": "dd7853b884f272b538e1a01da54b8a946aa8ea663cdbe4087f9500e6c0b89896"
+    }
+  ]
+}
