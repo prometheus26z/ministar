@@ -1,11 +1,11 @@
-import {LaneAI} from './lane-ai.js?v=0.16.5';
-import {transitionSeconds} from './animation.js?v=0.16.5';
-import {SATISFIES} from './tech.js?v=0.16.5';
-import {gasSlots,productionTileAllowed} from './lane-rules.js?v=0.16.5';
-import {buildingDestruction} from './presentation.js?v=0.16.5';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.5';
-import {clamp,dist} from './core.js?v=0.16.5';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.5';
+import {LaneAI} from './lane-ai.js?v=0.16.6';
+import {transitionSeconds} from './animation.js?v=0.16.6';
+import {SATISFIES} from './tech.js?v=0.16.6';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.6';
+import {buildingDestruction} from './presentation.js?v=0.16.6';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.6';
+import {clamp,dist} from './core.js?v=0.16.6';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.6';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -118,7 +118,7 @@ export class Battle extends EconomyBattle{
    while(this.incomeRemaining[team]<=1e-9){const amount=this.incomeAmount(team);if(team===0)this.money+=amount;else this.botMoney+=amount;this.incomeRemaining[team]+=INCOME_SECONDS;this.incomeTotal[team]+=amount;this.emit('income',{team,commanderId:this.ownerByTeam[team],minerals:amount})}
   }
  }
- waveProducers(team){return this.units.filter(u=>u.alive&&this.ownsProduction(u,team)&&u.def.building&&this.ready(u)&&!u.flying&&BUILDING_WAVES[u.type])}
+ waveProducers(team){return this.units.filter(u=>u.alive&&this.ownsProduction(u,team)&&isLaneBuildingAvailable(u.type,u.commanderId)&&u.def.building&&this.ready(u)&&!u.flying&&BUILDING_WAVES[u.type])}
  waveGroups(producer,poolsRemaining=1){
   if(producer.type===142&&poolsRemaining>=DESERT_STRIKE.poolBonusThreshold[producer.team])return[{unit:37,count:DESERT_STRIKE.poolBonusCount}];
   return this.waveUnitsForBuilding(producer.type)||[];
@@ -143,6 +143,7 @@ export class Battle extends EconomyBattle{
  hasTeam(team,type){return this.units.some(u=>this.ownsProduction(u,team)&&this.ready(u)&&(SATISFIES[type]||[Number(type)]).includes(u.type))}
  teamBuildReason(team,type,parent=null,morph=false){
   const spec=BUILDINGS[type];if(!spec||spec.race!==this.raceFor(team))return '건설할 수 없는 건물입니다.';
+  if(!isLaneBuildingAvailable(type,this.ownerByTeam[team]))return '원본 맵에서 건설할 수 없는 건물입니다.';
   const count=this.units.filter(u=>u.alive&&this.ownsProduction(u,team)&&(u.type===type||u.construction?.nextType===type)).length;
   if(count>=(DESERT_STRIKE.maxBuildings[type]??Infinity))return '건설 한도에 도달했습니다.';
   if(spec.gas&&this.units.filter(u=>u.alive&&this.ownsProduction(u,team)&&u.gasNode).length>=5)return '가스 시설은 최대 5개입니다.';
@@ -153,6 +154,7 @@ export class Battle extends EconomyBattle{
   if(missing.length)return '필요: '+missing.map(id=>this.data.units[id]?.name||id).join(', ');
   const money=team?this.botMoney:this.money;return money<this.buildingCost(type)[0]?'미네랄이 부족합니다.':'';
  }
+ buildingOptions(worker){return super.buildingOptions(worker).filter(type=>isLaneBuildingAvailable(type,worker?.commanderId??0))}
  buildReason(worker,type){return this.teamBuildReason(0,Number(type))}
  placementForTeam(team,type,point,parent=null){
   const size=this.footprint(type),spec=BUILDINGS[type],p={x:Math.round((point.x-size[0]/2)/32)*32+size[0]/2,y:Math.round((point.y-PRODUCTION_OFFSET-size[1]/2)/32)*32+size[1]/2+PRODUCTION_OFFSET};
@@ -177,7 +179,8 @@ export class Battle extends EconomyBattle{
 
  morphReason(unit,type){return this.teamBuildReason(0,Number(type),unit,true)}
  morph(unit,type){type=Number(type);const reason=this.morphReason(unit,type);if(reason)return this.fail(reason);const u=this.startConstruction(0,type,{point:unit,reason:''},unit,true);if(u){this.closeMenu();this.emit('change')}return !!u}
- addonOptions(unit){return Object.keys(BUILDINGS).map(Number).filter(id=>BUILDINGS[id].addon===unit?.type)}
+ morphOptions(unit){if(!unit?.productionOnly||!this.ownsProduction(unit,unit.team))return[];return super.morphOptions(unit).filter(id=>isLaneBuildingAvailable(id,unit.commanderId))}
+ addonOptions(unit){if(!unit?.productionOnly||!this.ownsProduction(unit,unit.team))return[];return super.addonOptions(unit).filter(id=>isLaneBuildingAvailable(id,unit.commanderId))}
  addonPoint(parent,type){const [w]=this.footprint(parent.type),[aw]=this.footprint(type);return{x:parent.x+w/2+aw/2,y:parent.y}}
  addonReason(parent,type){const reason=this.teamBuildReason(0,Number(type),parent);return reason||this.placementForTeam(0,Number(type),this.addonPoint(parent,type)).reason}
  addon(parent,type){type=Number(type);const reason=this.addonReason(parent,type);if(reason)return this.fail(reason);const u=this.startConstruction(0,type,this.placementForTeam(0,type,this.addonPoint(parent,type)),parent);if(u){this.closeMenu();this.emit('change')}return !!u}

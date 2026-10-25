@@ -1,5 +1,7 @@
 # Desert Strike integration — v0.15.0
 
+> Historical v0.15.0 integration record. Its Machine Shop row records the original 600-mineral UNIx cost only; it is not a current purchase permission. Its symmetric Spawning Pool threshold of 6 is superseded. Current building availability, costs, functions and production are maintained in the [README catalog](../README.md#원본-기준-건물생산-편성) and [generated original audit](desertstrike-original-audit.md).
+
 ## Delivered
 
 - SHA-256-verified original SCX/CHK and complete 328-record audit: [trigger audit](desertstrike-original-audit.md), [decoded source](../resources/original-desertstrike.json).
@@ -19,7 +21,7 @@
 | 적용 | 30 |
 | 버그 수정 | 84 |
 
-Every trigger is listed individually in the audit, including excluded engine, 3v3, leaver, development and civilian/nuclear proxy triggers. Tank creation is 3 on both sides; property indices 4 versus 8 caused the apparent count discrepancy. Pool bonus threshold is normalized to 6 on both sides.
+Every trigger is listed individually in the audit, including excluded engine, 3v3, leaver, development and civilian/nuclear proxy triggers. Tank creation is 3 on both sides; property indices 4 versus 8 caused the apparent count discrepancy. This historical report normalized the pool bonus threshold to 6 on both sides; current source-derived thresholds are team 0=6 and team 1=8.
 
 ## Building costs and actual outputs
 

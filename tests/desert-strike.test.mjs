@@ -53,7 +53,24 @@ test('all multi-unit building groups accumulate without supply limits or per-wav
   for(const {unit,count}of groups)assert.equal(b.units.filter(u=>u.laneArmy&&u.type===unit).length,count*2,'building '+type+', unit '+unit);
   assert.equal(b.money,money);assert.equal(b.gas,0);
  }
- for(const team of [0,1]){const b=fresh('zerg'),n=DESERT_STRIKE.poolBonusThreshold[team];for(let i=0;i<n;i++)producer(b,142,team);assert.equal(b.activeWave(team).get(37),(n-1)*5+6)}
+ assert.deepEqual(DESERT_STRIKE.poolBonusThreshold,[6,8]);
+ const expected={0:{0:0,1:5,5:25,6:31,7:37,8:43,9:49},1:{0:0,1:5,5:25,6:30,7:35,8:41,9:47}};
+ for(const team of [0,1])for(const n of [0,1,5,6,7,8,9]){const b=fresh('zerg');for(let i=0;i<n;i++)producer(b,142,team);assert.equal(b.activeWave(team).get(37)||0,expected[team][n],`team ${team} with ${n} pools`)}
+});
+
+test('pool bonus counts only completed living grounded pools owned by the current commander',()=>{
+ const b=fresh('zerg'),pools=Array.from({length:6},()=>producer(b,142,0));
+ pools[5].completed=false;pools[5].construction={time:0,total:100,started:true};
+ assert.equal(b.activeWave(0).get(37),25);
+ pools[5].completed=true;pools[5].construction=null;pools[4].flying=true;
+ assert.equal(b.activeWave(0).get(37),25);
+ pools[4].flying=false;b.die(pools[4],1);assert.equal(b.activeWave(0).get(37),25);
+ const teamBattle=new Battle(data,{race:'zerg',enemyRace:'zerg',teamSize:2});teamBattle.begin();teamBattle.botStep=()=>{};
+ const owned=[];teamBattle.withCommander(1,()=>{for(let i=0;i<6;i++)owned.push(producer(teamBattle,142,0))});
+ assert.equal(teamBattle.commanderWave(1).get(37),31);
+ teamBattle.withCommander(1,()=>producer(teamBattle,142,0));
+ assert.equal(teamBattle.commanderWave(1).get(37),37);
+ assert.equal(teamBattle.commanderWave(0).get(37),undefined);
 });
 
 test('building morphs charge original minerals once and replace their original wave group',()=>{

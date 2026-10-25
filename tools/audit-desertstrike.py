@@ -59,7 +59,7 @@ groups=[
  (206,208,'변환 적용','special activation notice'),
  (209,217,'변환 적용','maintainAdvance/autocast replaces periodic engine orders'),
  (218,218,'제외','Never: section-heading comment'),
- (219,276,'버그 수정','waveGroups/spawnWave: actual action counts/properties; symmetric pool threshold 6'),
+ (219,276,'버그 수정','waveGroups/spawnWave: action counts from byte +27; preserve Force1 pool threshold 6 and Force3 threshold 8'),
  (277,282,'변환 적용','waveClock ends one snapshot for each team; no owner cycling'),
  (283,293,'변환 적용','formation spawn; Never old movement excluded'),
  (294,295,'제외','Never: development cheats'),
@@ -117,17 +117,43 @@ for trigger in triggers[218:247]:
     groups=[[a['unit'],a['count']]for a in trigger['actions']if a['name']=='CreateUnitWithProperties'and not a['flags']&2]
     if buildings and groups:rules['waves'][str(buildings[0])]=groups
 rules['map']=dict(productionRegion=region,gasSlots=[[64,32],[192,32],[320,32],[64,96],[64,160]])
-rules['properties']=props;rules['poolBonusThreshold']=[6,6];rules['maxBuildings']={'166':1,'122':1,'139':1,'155':1,'170':2};rules['maxActiveUnits']={'71':3}
+poolThresholds=[None,None];poolBranches=[set(),set()]
+for trigger in triggers[218:276]:
+    owners=[owner for owner in trigger['owners'] if owner in (18,20)]
+    if len(owners)!=1:continue
+    team={18:0,20:1}[owners[0]]
+    brings=[c for c in trigger['conditions'] if c['name']=='Bring' and c['unit']==142 and c['player']==13 and not c['flags']&2]
+    outputs=[a for a in trigger['actions'] if a['name']=='CreateUnitWithProperties' and a['unit']==37 and not a['flags']&2]
+    if not brings or not outputs:continue
+    counts={a['count'] for a in outputs}
+    poolBranches[team].update(counts)
+    if 6 in counts:
+        thresholds=[c['amount'] for c in brings if c['comparison']==0 and c['amount']>1]
+        assert len(thresholds)==1 and poolThresholds[team] is None,(trigger['id'],thresholds)
+        poolThresholds[team]=thresholds[0]
+assert poolThresholds==[6,8],poolThresholds
+assert all(branches=={5,6} for branches in poolBranches),poolBranches
+rules['source']['sections']=list(dict.fromkeys([*rules['source'].get('sections',[]),'PUNI','STR ','FORC','OWNR']))
+rules['properties']=props;rules['poolBonusThreshold']=poolThresholds;rules['maxBuildings']={'166':1,'122':1,'139':1,'155':1,'170':2};rules['maxActiveUnits']={'71':3}
 rules['specials']={'115':dict(effect='heal',pulses=45,intervalCycles=13,consumeBuilding=True),'134':dict(effect='broodlings',consumeBuilding=True),'172':dict(effect='mind',requires=[165],consumeBuilding=True)}
 unix=sections['UNIx'];rules['unitOverrides']={str(i):dict(hp=struct.unpack_from('<I',unix,228+i*4)[0]/256,shield=struct.unpack_from('<H',unix,1140+i*2)[0],armor=unix[1596+i])for i in range(228)if not unix[i]}
 (ROOT/'resources/desert-strike-v1.json').write_text(json.dumps(rules,ensure_ascii=False,indent=2)+'\n')
 def desc(items):
     return '; '.join(a['name']+' '+','.join(f'{k}={v}'for k,v in a.items()if k not in ['name','text','wav','string','flags','type'] and v) for a in items)
-lines=['# Desert Strike v1.0 original audit','','Source: '+snapshot['source']['url'],'','SCX SHA-256: `'+snapshot['source']['sha256']+'`','', 'All 328 physical TRIG records below are reviewed once. Numbers are **one-based**; old `desert-strike-evidence.json` keys are **zero-based**. Full decoded conditions, actions, strings, owners and flags: `resources/original-desertstrike.json`. Rebuild with `tools/audit-desertstrike.py` from the verified extracted CHK and acquired Desert CV5/VF4.','','## Corrections to supplied plan','','- CreateUnitWithProperties byte +27 is count; uint32 +20 is property index. Marine=6, Academy=1 Firebat+1 Medic, Vessel=1, Lurker=2. Tank count is 3 on both sides; property indices differ (4 versus 8), not counts.','- Gas delays are one-shot additive SetDeaths actions (#89–100), not reset timers. No income is paid during adjustment.','- Original production is in shared team territory. The map has no per-player exclusive build rectangle. Our 33×19 upper-left crop is an explicit 1v1 adaptation, not a claimed original limit. Buildable cells in the crop: '+str(region['buildableTileCount'])+'. Source CV5 bit 0x80 plus all 16 VF4 walkable minitiles decide placement.','- The production crop retains original orientation/footprints to avoid rotating SC building sprites and gas footprints; battlefield alone rotates left→bottom. This is an explicit presentation exception.','- Countdown uses 46 game seconds; current 46/1.5 wall time is provisional. No original-engine play/replay measurement was available. Hyper cycles are 84 ms at Fastest. This unresolved timing calibration must not be reported as measured.','- Construction remains the established MiniStar 5% construction timing; original engine build timing is not claimed.','- Source nuclear proxy ownership and civilian BOOM commands are excluded explicitly; lane UI does not expose those engine commands.','- Runtime combat keeps existing SC1 stats/weapon engine. UNIx unit HP/shield/armor overrides are applied in lane mode; full original upgrade/weapon-damage parity still needs engine comparison. The fixed objective HP values and the projected paid-defense positions are MiniStar adaptations. Broodling special replaces each snapshot enemy with one broodling (the source creates a sentinel in addition to units moved into battle).','','## Trigger mapping','','| Trigger | Status | Runtime mapping / reason | Source conditions | Source actions |','|---|---|---|---|---|']
+lines=['# Desert Strike v1.0 original audit','','Source: '+snapshot['source']['url'],'','SCX SHA-256: `'+snapshot['source']['sha256']+'`','', 'All 328 physical TRIG records below are reviewed once. Numbers are **one-based**; old `desert-strike-evidence.json` keys are **zero-based**. Full decoded conditions, actions, strings, owners and flags: `resources/original-desertstrike.json`. Rebuild with `tools/audit-desertstrike.py` from the verified extracted CHK and acquired Desert CV5/VF4.','','## Corrections to supplied plan','','- Building permission comes from PUNI, prices and source names from UNIx/STR, and production groups from TRIG. A 600-mineral cost field does not make a building purchasable when PUNI denies it.','- CreateUnitWithProperties byte +27 is count; uint32 +20 is property index. Marine=6, Academy=1 Firebat+1 Medic, Vessel=1, Lurker=2. Tank count is 3 on both sides; property indices differ (4 versus 8), not counts.','- Spawning Pool bonus thresholds are Force1/team 0=6 (#275/#276) and Force3/team 1=8 (#246/#247). The bonus count is 6; below the threshold each pool outputs 5.','- Gas delays are one-shot additive SetDeaths actions (#89–100), not reset timers. No income is paid during adjustment.','- Original production is in shared team territory. The map has no per-player exclusive build rectangle. Our 33×19 upper-left crop is an explicit 1v1 adaptation, not a claimed original limit. Buildable cells in the crop: '+str(region['buildableTileCount'])+'. Source CV5 bit 0x80 plus all 16 VF4 walkable minitiles decide placement.','- The production crop retains original orientation/footprints to avoid rotating SC building sprites and gas footprints; battlefield alone rotates left→bottom. This is an explicit presentation exception.','- Countdown uses 46 game seconds; current 46/1.5 wall time is provisional. No original-engine play/replay measurement was available. Hyper cycles are 84 ms at Fastest. This unresolved timing calibration must not be reported as measured.','- Construction remains the established MiniStar 5% construction timing; original engine build timing is not claimed.','- Source nuclear proxy ownership and civilian BOOM commands are excluded explicitly; lane UI does not expose those engine commands.','- Runtime combat keeps existing SC1 stats/weapon engine. UNIx unit HP/shield/armor overrides are applied in lane mode; full original upgrade/weapon-damage parity still needs engine comparison. The fixed objective HP values and the projected paid-defense positions are MiniStar adaptations. Broodling special replaces each snapshot enemy with one broodling (the source creates a sentinel in addition to units moved into battle).','','## Trigger mapping','','| Trigger | Status | Runtime mapping / reason | Source conditions | Source actions |','|---|---|---|---|---|']
 for t in triggers:
     esc=lambda s:s.replace('|','/').replace('\n',' ').replace('\r','')
     lines.append(f"| #{t['id']} | {t['portStatus']} | {esc(t['mappedRule'])} | {esc(desc(t['conditions']))} | {esc(desc(t['actions']))} |")
-lines+=['','## Original building costs and actual production','','| Building ID | Minerals | Gas | Unit ID × count |','|---|---:|---:|---|']
+lines+=['','## Original building availability (PUNI)','','P1/P2/P3/P5/P6/P7 are human slots. PUNI use-default and per-player override bytes are both applied.','', '| Building ID | P1 | P2 | P3 | P5 | P6 | P7 |','|---:|:---:|:---:|:---:|:---:|:---:|:---:|']
+puni=sections['PUNI'];humanPlayers=[0,1,2,4,5,6]
+for id in rules['costs']:
+    availability=[]
+    for player in humanPlayers:
+        override=puni[player*228+int(id)];useDefault=puni[2964+player*228+int(id)]!=0;defaultAvailable=puni[2736+int(id)]!=0
+        availability.append(useDefault and defaultAvailable or not useDefault and override!=0)
+    mark=lambda available:'허용' if available else '금지'
+    lines.append(f"| {id} | "+' | '.join(mark(value) for value in availability)+' |')
+lines+=['','## Original building costs and actual production','','The following are source fields; PUNI availability above determines whether they can be purchased in MiniStar.','', '| Building ID | Minerals | Gas | Unit ID × count |','|---|---:|---:|---|']
 for id,cost in rules['costs'].items():lines.append(f"| {id} | {cost[0]} | {cost[1]} | "+', '.join(f'{u} × {n}'for u,n in rules['waves'].get(id,[]))+' |')
 (ROOT/'docs/desertstrike-original-audit.md').write_text('\n'.join(lines)+'\n')
 print('Audited',len(triggers),'triggers;',region['buildableTileCount'],'buildable crop cells')

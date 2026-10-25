@@ -1,4 +1,5 @@
 import fs from 'node:fs';import path from 'node:path';import zlib from 'node:zlib';import crypto from 'node:crypto';
+import {deriveBuildingCatalog,SOURCE_PLAYER_BY_COMMANDER} from './desert-strike-source.mjs';
 const root=path.resolve(import.meta.dirname,'..'),meta=JSON.parse(fs.readFileSync(path.join(root,'resources/manifest.json'))),packed=Buffer.concat(meta.parts.map(p=>Buffer.from(fs.readFileSync(path.join(root,'resources',p),'utf8'),'base64')));
 if(crypto.createHash('sha256').update(packed).digest('hex')!==meta.sha256)throw Error('Asset bundle checksum mismatch');
 const raw=zlib.gunzipSync(packed);if(raw.subarray(0,8).toString()!=='MSTAR001')throw Error('Invalid asset bundle');let offset=8,count=0;
@@ -31,6 +32,9 @@ console.log('Restored 6 race-specific music cues.');
  for(const [bytes,expected]of [[scx,audit.source.sha256],[chk,audit.source.chkSha256]])if(crypto.createHash('sha256').update(bytes).digest('hex')!==expected)throw Error('Original Desert Strike source checksum mismatch');
  if(audit.originalTriggers.length!==328||audit.originalTriggers.some((t,i)=>t.id!==i+1||!t.portStatus||!t.mappedRule))throw Error('Incomplete original trigger audit');
  if(Object.values(rules.costs).some(cost=>cost[1]!==0))throw Error('Original building costs must be minerals-only');
+ const buildingSource=deriveBuildingCatalog(chk,rules);
+ const humanPlayers=Object.values(SOURCE_PLAYER_BY_COMMANDER),blocked=Object.keys(buildingSource.buildingCatalog).map(Number).filter(id=>!humanPlayers.every(player=>buildingSource.buildingCatalog[id].availableByPlayer[player]));
+ if(JSON.stringify(blocked)!=='[120]')throw Error(`Unexpected PUNI building catalog; expected only disabled ID 120, got ${JSON.stringify(blocked)}`);
  if(rules.map.gasSlots.length!==5||rules.map.productionRegion.buildable.length!==rules.map.productionRegion.tileWidth*rules.map.productionRegion.tileHeight)throw Error('Invalid source production geometry');
  const field=audit.map.locations.find(location=>location.name==='Playing field');
  if(!field||field.left!==0||field.top!==0)throw Error('Invalid original battlefield crop');
@@ -51,7 +55,7 @@ console.log('Restored 6 race-specific music cues.');
   outposts[team]={...pointOnBattlefield(unit.x,unit.y),owner,source:{x:unit.x,y:unit.y}};
  }
  rules.map.objectives={...(rules.map.objectives||{}),outposts};
- fs.writeFileSync(path.join(root,'dist/desert-strike-data.js'),'// Extracted from original map sections; see resources/desert-strike-v1.json.\nexport const DESERT_STRIKE='+JSON.stringify(rules)+';\n');
+ fs.writeFileSync(path.join(root,'dist/desert-strike-data.js'),'// Extracted from original map sections; see resources/desert-strike-v1.json.\nexport const DESERT_STRIKE='+JSON.stringify({...rules,...buildingSource})+';\n');
  console.log('Restored original Desert Strike economy and production data.');
 }
 

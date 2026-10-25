@@ -1,5 +1,5 @@
-import {BUILDINGS} from './tech.js?v=0.16.0';
-import {BUILDING_WAVES,GAS_BUILDING,PRODUCTION_OFFSET,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,DESERT_STRIKE,WAVE_SECONDS,INCOME_SECONDS} from './lane-rules.js?v=0.16.0';
+import {BUILDINGS} from './tech.js?v=0.16.6';
+import {BUILDING_WAVES,GAS_BUILDING,PRODUCTION_OFFSET,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,DESERT_STRIKE,WAVE_SECONDS,INCOME_SECONDS,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.6';
 
 // Operates only through the same placement, prerequisites, payment and completion
 // methods as the player. Observations are taken from already deployed waves.
@@ -24,11 +24,11 @@ export class LaneAI{
   if(s.morph)return parent?{point:parent,reason:''}:null;
   if(s.addon){if(!parent)return null;const p=b.placementForTeam(this.team,type,b.addonPoint(parent,type));return p.reason?null:p}
   if(s.gas){for(const n of b.nodes.filter(n=>n.team===this.team&&n.commanderId===this.commanderId&&!n.occupiedBy)){const p=b.placementForTeam(this.team,type,n);if(!p.reason)return p}return null}
-  const [w,h]=b.footprint(type),padding= s.race==='terran'&&[106,113,114,116].includes(type)?64:0;
+  const [w,h]=b.footprint(type),reservedAddon=({106:107,114:115,116:117})[type]||0,reservedWidth=reservedAddon?b.footprint(reservedAddon)[0]:0,padding=reservedWidth?reservedWidth+32:0;
   for(let y=PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+h/2;y<=PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT-h/2;y+=32){
    for(let x=PRODUCTION_GROUND_X+w/2;x<=PRODUCTION_GROUND_X+PRODUCTION_GROUND_WIDTH-w/2-padding;x+=32){
     const p=b.placementForTeam(this.team,type,{x,y});if(p.reason)continue;
-    if(padding){const reserved=b.placementForTeam(this.team,120,{x:x+w/2+32,y});if(reserved.reason)continue}
+    if(padding){const reserved=b.placementForTeam(this.team,reservedAddon,{x:x+w/2+reservedWidth/2,y});if(reserved.reason)continue}
     return p;
    }
   }
@@ -36,7 +36,7 @@ export class LaneAI{
  }
  build(type){
   if(this.b.ownerByTeam[this.team]!==this.commanderId)return this.b.withCommander(this.commanderId,()=>this.build(type));
-  const b=this.b,s=BUILDINGS[type];if(!s||!b.data.units[type])return false;
+  const b=this.b,s=BUILDINGS[type];if(!s||!b.data.units[type]||!isLaneBuildingAvailable(type,this.commanderId))return false;
   const parent=s.addon||s.morph?this.parent(type):null;
   if(b.teamBuildReason(this.team,type,parent,!!s.morph))return false;
   if(this.buildings.some(u=>BUILDING_WAVES[u.type])&&(this.team?b.botMoney:b.money)-b.buildingCost(type)[0]<this.profile.reserve)return false;
@@ -45,7 +45,7 @@ export class LaneAI{
   this.lastBuildAt=b.time;this.decisions.push({time:b.time,type,money:(this.team?b.botMoney:b.money)});if(this.decisions.length>300)this.decisions.shift();return true;
  }
  nextRequirement(type,seen=new Set()){
-  const b=this.b,s=BUILDINGS[type];if(!s||seen.has(type))return null;seen.add(type);
+  const b=this.b,s=BUILDINGS[type];if(!s||seen.has(type)||!isLaneBuildingAvailable(type,this.commanderId))return null;seen.add(type);
   for(const r of s.requires)if(!b.hasTeam(this.team,r))return this.buildings.some(u=>u.type===r||u.construction?.nextType===r)?null:this.nextRequirement(r,seen);
   if(s.morph&&!this.parent(type))return this.buildings.some(u=>u.type===s.morph&&u.construction)?null:this.nextRequirement(s.morph,seen);
   if(s.addon&&!this.parent(type))return this.nextRequirement(s.addon,seen);
@@ -78,14 +78,14 @@ export class LaneAI{
   const techPlan={terran:[113,114,123,116,117,118,107],zerg:[135,132,141,138,133,140,137,136],protoss:[164,163,165,155,171,167,169,170,159]}[b.raceFor(this.team)];
   const desiredTier=Math.max(0,Math.min(techPlan.length,Math.floor((b.time/WAVE_SECONDS-this.profile.techStart)/this.profile.techWaves)+1));
   if(b.difficulty==='easy'&&producers.length>=2+Math.floor(b.time/(WAVE_SECONDS*5)))return;
-  for(const target of techPlan.slice(0,desiredTier)){
+  for(const target of techPlan.slice(0,desiredTier).filter(type=>isLaneBuildingAvailable(type,this.commanderId))){
    if(buildings.some(u=>u.type===target||u.construction?.nextType===target)||b.hasTeam(this.team,target))continue;
    const next=this.nextRequirement(target);if(next){this.reservation={type:next,reason:'technology'};if(this.build(next))this.reservation=null;return}
   }
   // Beginner AI expands in small stages rather than flooding the map with
   // cheap buildings while waiting for its next technology decision.
   if(b.difficulty==='easy'&&producers.length>=2+desiredTier)return;
-  const candidates=Object.keys(BUILDING_WAVES).map(Number).filter(type=>BUILDINGS[type]?.race===b.raceFor(this.team)&&(techPlan.indexOf(type)<0||techPlan.indexOf(type)<desiredTier)).map(type=>({type,parent:this.parent(type)})).filter(({type,parent})=>['','미네랄이 부족합니다.'].includes(b.teamBuildReason(this.team,type,parent,!!BUILDINGS[type].morph)));
+  const candidates=Object.keys(BUILDING_WAVES).map(Number).filter(type=>isLaneBuildingAvailable(type,this.commanderId)&&BUILDINGS[type]?.race===b.raceFor(this.team)&&(techPlan.indexOf(type)<0||techPlan.indexOf(type)<desiredTier)).map(type=>({type,parent:this.parent(type)})).filter(({type,parent})=>['','미네랄이 부족합니다.'].includes(b.teamBuildReason(this.team,type,parent,!!BUILDINGS[type].morph)));
   candidates.sort((a,c)=>this.score(c.type)-this.score(a.type)||a.type-c.type);
   if(candidates[0]){this.reservation={type:candidates[0].type,reason:'production'};if(this.build(candidates[0].type))this.reservation=null}
  }

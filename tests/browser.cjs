@@ -53,6 +53,76 @@ async function testTeamModes(browser,url){
   assert.deepEqual(errors,[]);
  }finally{await context.close()}
 }
+async function testBuildingCatalogUI(browser,url){
+ const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ try{
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+': '+r.url())});
+  await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__catalogTest={get battle(){return battle}};'}));
+  await page.goto(url);await page.locator('#title').waitFor({state:'visible'});
+  const choose=async race=>{await page.locator(`button[data-race=${race}]`).click();await page.locator('#deploy').click();await page.locator('#spaceToggle').waitFor({state:'visible'});await page.locator('#spaceToggle').click()};
+  const inject=async race=>page.evaluate(race=>{
+   const b=window.__catalogTest.battle;b.money=10000;const offset=2304,groundX=96,groundY=736,groundWidth=1056,groundHeight=608;
+   const put=(type,x,y,unfinished=false)=>{const u=b.create(type,0,x,y);u.productionOnly=true;u.startingBase=false;u.completed=!unfinished;if(unfinished)u.construction={time:0,total:1000,started:true,cost:[...b.buildingCost(type)],original:null};return u.id};
+   const out={};
+   if(race==='terran'){
+    out.factory=put(113,960,offset+880);out.academy=put(112,900,offset+1050);out.comsat=put(106,420,offset+920);out.starport=put(114,820,offset+1150);out.covertProducer=put(117,1150,offset+1250);out.nonproducer=put(116,300,offset+920,true);out.tower=put(122,1050,offset+920);
+    let facility=null;
+    for(let y=offset+groundY+96;y<=offset+groundY+groundHeight-96&&!facility;y+=32)for(let x=groundX+96;x<=groundX+groundWidth-96&&!facility;x+=32){
+     const site=b.placementForTeam(0,116,{x,y});if(site.reason)continue;
+     const candidate=put(116,site.point.x,site.point.y);const parent=b.units.find(u=>u.id===candidate);
+     if(!b.placementForTeam(0,117,b.addonPoint(parent,117),parent).reason)facility=candidate;
+     else b.units.splice(b.units.findIndex(u=>u.id===candidate),1);
+    }
+    out.facility=facility||put(116,250,offset+800);
+   }else if(race==='zerg'){
+    out.hatch=put(131,300,offset+900);out.pool=put(142,420,offset+900);out.evolution=put(139,900,offset+1000);out.lair=put(132,500,offset+1150);out.queens=put(138,650,offset+1150);out.hive=put(133,800,offset+1150);out.spire=put(141,900,offset+1250);out.creep=put(143,1050,offset+1250);out.special=put(134,1150,offset+1000,true);
+   }else{
+    out.robo=put(155,300,offset+900);out.pylon=put(156,500,offset+900);out.stargate=put(167,800,offset+900);out.special=put(172,1050,offset+1000,true);out.citadel=put(163,700,offset+1100);
+   }
+   return out;
+  },race);
+  const select=async id=>page.evaluate(id=>window.__catalogTest.battle.select([id],false),id);
+  const close=async()=>{if(await page.locator('#commands').isVisible())await page.locator('#closeCommands').click()};
+  const openBuild=async()=>{await page.locator('#commandButton').click();await page.locator('#commands').waitFor({state:'visible'})};
+  const openWaves=async()=>{await page.locator('#productionButton').click();await page.locator('#commands').waitFor({state:'visible'})};
+
+  await choose('terran');let ids=await inject('terran');
+  await select(ids.factory);assert.match(await page.locator('#order').innerText(),/골리앗 3기/);
+  await openBuild();assert.equal(await page.getByRole('button',{name:/머신샵/}).count(),0,'PUNI-disabled Machine Shop is absent from factory add-ons and the build catalog');
+  assert.equal(await page.locator('#commandGrid').evaluate(el=>el.innerText.includes('머신샵')),false);await close();
+  await select(ids.facility);await openBuild();
+  const covert=page.getByRole('button',{name:/^코버트 옵스 부착/}),physics=page.getByRole('button',{name:/^피직스 랩 부착/});
+  assert.match(await covert.innerText(),/1000 미네랄/);assert.match(await covert.innerText(),/시즈 탱크 3기/);assert.equal(await covert.isDisabled(),false);
+  assert.match(await physics.innerText(),/1500 미네랄/);assert.match(await physics.innerText(),/배틀크루저 2기/);assert.equal(await physics.isDisabled(),false);
+  await page.screenshot({path:'/tmp/ministar-building-catalog-terran.png',fullPage:true});await close();
+  await select(ids.comsat);await openBuild();assert.match(await page.getByRole('button',{name:/^콤샛 스테이션 부착/}).innerText(),/사이언스 베슬 1기/);assert.match(await page.getByRole('button',{name:/^뉴클리어 사일로 부착/}).innerText(),/고스트 4기/);await close();
+  await select(ids.starport);await openBuild();assert.match(await page.getByRole('button',{name:/^컨트롤 타워 부착/}).innerText(),/병력 HP 회복.*자동 발동·소모/);await close();
+  await select(ids.academy);await openBuild();assert.match(await page.getByRole('button',{name:/아카데미 건설/}).innerText(),/파이어뱃 1기.*메딕 1기/);await close();
+  ids.special=await page.evaluate(()=>{const b=window.__catalogTest.battle,u=b.create(115,0,1100,3500);u.productionOnly=true;u.completed=false;u.construction={time:0,total:1000,started:true,cost:[...b.buildingCost(115)],original:null};return u.id});
+  await select(ids.nonproducer);assert.match(await page.locator('#order').innerText(),/건설 중.*탱크·배틀크루저 테크/);await openWaves();assert.match(await page.locator('#commandGrid').innerText(),/현재 출격 유닛을 생성하지 않습니다.*탱크·배틀크루저 테크/);await close();
+  await select(ids.tower);assert.match(await page.locator('#order').innerText(),/미사일 터렛 해금.*최대 1개/);
+
+  await page.evaluate(()=>window.__catalogTest.battle.finish(true,'catalog test'));await page.locator('#toTitle').click();await choose('zerg');ids=await inject('zerg');
+  await select(ids.hatch);assert.match(await page.locator('#order').innerText(),/건설 기반 · 레어 변태/);await openBuild();assert.match(await page.getByRole('button',{name:/^레어 변태/}).innerText(),/러커 2기/);await close();
+  await select(ids.lair);await openBuild();assert.match(await page.getByRole('button',{name:/하이브 변태/}).innerText(),/러커 2기.*오버로드 1기/);await close();
+  await select(ids.spire);await openBuild();assert.match(await page.getByRole('button',{name:/그레이터 스파이어 변태/}).innerText(),/가디언 1기.*디바우러 1기/);await close();
+  await select(ids.creep);await openBuild();assert.match(await page.getByRole('button',{name:/^스포어 콜로니 변태/}).innerText(),/본진에 대공 방어시설 배치/);assert.match(await page.getByRole('button',{name:/^성큰 콜로니 변태/}).innerText(),/본진에 지상 방어시설 배치/);await close();
+  await select(ids.pool);assert.match(await page.locator('#order').innerText(),/저글링 5기/);await openBuild();assert.match(await page.getByRole('button',{name:/스포닝 풀 건설/}).innerText(),/저글링 5~6기/);await close();
+  await select(ids.evolution);assert.match(await page.locator('#order').innerText(),/스포어 콜로니 해금.*최초 완성 시 100 미네랄.*최대 1개/);
+  await select(ids.special);assert.match(await page.locator('#order').innerText(),/건설 중.*브루들링으로 전환.*자동 발동·소모/);await openWaves();assert.match(await page.locator('#commandGrid').innerText(),/현재 출격 유닛을 생성하지 않습니다.*브루들링으로 전환/);await close();
+  await page.screenshot({path:'/tmp/ministar-building-catalog-zerg.png',fullPage:true});
+
+  await page.evaluate(()=>window.__catalogTest.battle.finish(true,'catalog test'));await page.locator('#toTitle').click();await choose('protoss');ids=await inject('protoss');
+  await select(ids.robo);assert.match(await page.locator('#order').innerText(),/옵저버토리·로보틱스 서포트 베이 해금 · 최대 1개/);await openBuild();assert.match(await page.getByRole('button',{name:/옵저버토리 건설/}).innerText(),/옵저버 2기/);assert.match(await page.getByRole('button',{name:/로보틱스 서포트 베이 건설/}).innerText(),/리버 2기/);await close();
+  await select(ids.pylon);assert.match(await page.locator('#order').innerText(),/기존 보급 건물 · 출격 수량 증가·추가 해금 없음/);
+  await select(ids.stargate);assert.match(await page.locator('#order').innerText(),/스카웃 2기 · 커세어 1기/);
+  await select(ids.special);assert.match(await page.locator('#order').innerText(),/건설 중.*절반을 아군으로 전환.*자동 발동·소모/);await openWaves();assert.match(await page.locator('#commandGrid').innerText(),/현재 출격 유닛을 생성하지 않습니다.*절반을 아군으로 전환/);await close();
+  await select(ids.citadel);assert.match(await page.locator('#order').innerText(),/다크 템플러 1기 · 다크 아콘 1기/);
+  await page.screenshot({path:'/tmp/ministar-building-catalog-protoss.png',fullPage:true});
+  for(const viewport of [{width:320,height:568},{width:390,height:844}]){await page.setViewportSize(viewport);await openBuild();const layout=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth,commands:document.querySelector('#commands').scrollWidth,grid:document.querySelector('#commandGrid').scrollWidth,gridWidth:document.querySelector('#commandGrid').clientWidth}));assert.ok(layout.document<=viewport.width,JSON.stringify(layout));assert.ok(layout.grid<=layout.gridWidth+1,JSON.stringify(layout));await close()}
+  assert.deepEqual(errors,[]);
+ }finally{await context.close()}
+}
 (async()=>{const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{browser=await chromium.launch({headless:true});await testLegacyMigration(browser);await testLegacyMigration(browser,true);const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+': '+r.url())});await page.addInitScript(()=>{window.__spriteDraws=new Set();const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(image,...args){if(image?.src)window.__spriteDraws.add(image.src);return draw.call(this,image,...args)}});await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__visualTest={get battle(){return battle},get placement(){return placementPoint},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));await page.goto('http://127.0.0.1:'+server.address().port+'/ministar/');await page.locator('#title').waitFor({state:'visible'});// Every select uses an overlay: no Android picker, layout shift or viewport overflow.
 for(const viewport of [{width:405,height:594},{width:390,height:600},{width:360,height:640},{width:412,height:740},{width:390,height:844},{width:320,height:568},{width:844,height:390},{width:1280,height:800}]){
  await page.setViewportSize(viewport);
@@ -159,7 +229,7 @@ await page.evaluate(()=>{const b=window.__visualTest.battle;b.die(b.outpostDefen
 await page.waitForFunction(()=>[...window.__spriteDraws].some(url=>url.includes('assets/sprites/215_'))&&[...window.__spriteDraws].some(url=>url.includes('destruction-assets/217-')));
 await page.screenshot({path:'/tmp/ministar-building-explosion.png',fullPage:true});await page.waitForTimeout(1300);
 assert.ok(await page.evaluate(()=>window.__visualTest.battle.wrecks.length>0));await page.screenshot({path:'/tmp/ministar-building-rubble.png',fullPage:true});
-assert.equal(await page.locator('#offline').count(),0);assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);assert.deepEqual(errors,[]);await testTeamModes(browser,'http://127.0.0.1:'+server.address().port+'/ministar/');console.log('390 × 844: empty production setup, fixed wave status, building placement, background pause, custom dropdowns and legacy cache migration passed.')}finally{await browser?.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
+assert.equal(await page.locator('#offline').count(),0);assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);assert.deepEqual(errors,[]);const url='http://127.0.0.1:'+server.address().port+'/ministar/';await testTeamModes(browser,url);await testBuildingCatalogUI(browser,url);console.log('390 × 844 and 320 × 568: original UI, production/building catalog, lane permissions, team modes and legacy cache migration passed.')}finally{await browser?.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
 
 
 

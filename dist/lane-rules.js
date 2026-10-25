@@ -1,4 +1,4 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.0';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.6';
 export {DESERT_STRIKE};
 export const WAVE_SECONDS=DESERT_STRIKE.waveGameSeconds/1.5;
 export const INCOME_SECONDS=DESERT_STRIKE.incomeCycles*DESERT_STRIKE.hyperCycleSeconds;
@@ -17,6 +17,11 @@ export function productionTileAllowed(x,y,team=0){
  return tx>=0&&ty>=0&&tx<region.tileWidth&&ty<region.tileHeight&&!!region.buildable[ty*region.tileWidth+tx];
 }
 export const GAS_BUILDING=Object.freeze({terran:110,zerg:149,protoss:157});
+export const SOURCE_PLAYER_BY_COMMANDER=Object.freeze({0:0,1:1,2:2,3:4,4:5,5:6});
+export function isLaneBuildingAvailable(type,commanderId=0){
+ const player=SOURCE_PLAYER_BY_COMMANDER[commanderId],catalog=DESERT_STRIKE.buildingCatalog?.[Number(type)]?.availableByPlayer;
+ return Number.isInteger(player)&&Array.isArray(catalog)&&catalog.length===12&&catalog[player]===true;
+}
 
 export const BUILDING_COSTS=Object.freeze(DESERT_STRIKE.costs);
 export const BUILDING_WAVES=Object.freeze(Object.fromEntries(Object.entries(DESERT_STRIKE.waves).map(([type,groups])=>[type,Object.freeze(groups.map(([unit,count])=>Object.freeze({unit,count})))])));

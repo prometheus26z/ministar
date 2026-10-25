@@ -1,0 +1,5430 @@
+{
+  "kind": "read-only preimplementation audit; normative changes are in LUNA-BUILDING-CATALOG-SPEC.md",
+  "baselineCommit": "bda0d73866e03b27f69e28ea92a02ff5e1b429c1",
+  "sourceScxSha256": "91d5acdf5770a8a95949707b7cdd4b189ce37ae2fdb08b1df2b8d02f096ec814",
+  "sourceChkSha256": "97f43b790d781a37e9ca6b649125598d05d4f324795375cb1acab7b524683518",
+  "sectionSha256": {
+    "PUNI": "5bb2ddc97253cf57bd4c84d83db94c10ac98be4a3ee778c27d57230086efb06d",
+    "UNIx": "e00ff710fcac86d94a2dd303becff1dfcec70c854c583257144df3e9393c2476",
+    "STR ": "2f73eddc4e963ba2b6af36081b4fc55147936ba046d95c96585f327de565e4c8",
+    "TRIG": "b1d731c04939f9d5bd0436b78df618bea289f255e1d4a4327a23229eba3b0615",
+    "FORC": "9195098c1151b9ac39604e6ea0bee2d1d3185612ffb010324d7a8a5ccfa52b56",
+    "OWNR": "d58f91f37c4356d3187a4bed4e990950d9ee21c1799784ff90341aa21494cb83"
+  },
+  "sourcePlayerByCommander": {
+    "0": 0,
+    "1": 1,
+    "2": 2,
+    "3": 4,
+    "4": 5,
+    "5": 6
+  },
+  "originalPoolBonusThresholdByMiniStarTeam": [
+    6,
+    8
+  ],
+  "baselineRuntimePoolBonusThreshold": [
+    6,
+    6
+  ],
+  "buildings": [
+    {
+      "id": 106,
+      "name": "커맨드 센터",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 200,
+      "gas": 0,
+      "sourceNameStringId": 37,
+      "sourceName": "build SCVs",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [],
+        "supply": 10,
+        "townhall": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 107,
+      "name": "콤샛 스테이션",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 900,
+      "gas": 0,
+      "sourceNameStringId": 47,
+      "sourceName": "1 Science Vessel",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          112
+        ],
+        "addon": 106
+      },
+      "productionTriggerIds": [
+        240,
+        269
+      ]
+    },
+    {
+      "id": 108,
+      "name": "뉴클리어 사일로",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 500,
+      "gas": 0,
+      "sourceNameStringId": 44,
+      "sourceName": "4 Ghost",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          117
+        ],
+        "addon": 106
+      },
+      "productionTriggerIds": [
+        236,
+        265
+      ]
+    },
+    {
+      "id": 109,
+      "name": "서플라이 디포",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 150,
+      "gas": 0,
+      "sourceNameStringId": 43,
+      "sourceName": "2 Vultures",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [],
+        "supply": 8
+      },
+      "productionTriggerIds": [
+        245,
+        274
+      ]
+    },
+    {
+      "id": 110,
+      "name": "리파이너리",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 600,
+      "gas": 0,
+      "sourceNameStringId": 78,
+      "sourceName": "Income +            (T)",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [],
+        "gas": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 111,
+      "name": "배럭",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 330,
+      "gas": 0,
+      "sourceNameStringId": 36,
+      "sourceName": "6 Marines",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          106
+        ]
+      },
+      "productionTriggerIds": [
+        243,
+        272
+      ]
+    },
+    {
+      "id": 112,
+      "name": "아카데미",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 250,
+      "gas": 0,
+      "sourceNameStringId": 33,
+      "sourceName": "1 Firebat, 1 Medic",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          111
+        ]
+      },
+      "productionTriggerIds": [
+        220,
+        249
+      ]
+    },
+    {
+      "id": 113,
+      "name": "팩토리",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 600,
+      "gas": 0,
+      "sourceNameStringId": 39,
+      "sourceName": "3 Goliath",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          111
+        ]
+      },
+      "productionTriggerIds": [
+        244,
+        273
+      ]
+    },
+    {
+      "id": 114,
+      "name": "스타포트",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 550,
+      "gas": 0,
+      "sourceNameStringId": 42,
+      "sourceName": "2 Wraiths",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          113
+        ]
+      },
+      "productionTriggerIds": [
+        241,
+        270
+      ]
+    },
+    {
+      "id": 115,
+      "name": "컨트롤 타워",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 2750,
+      "gas": 0,
+      "sourceNameStringId": 264,
+      "sourceName": "Heal & Repair!",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [],
+        "addon": 114
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 116,
+      "name": "사이언스 퍼실리티",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 200,
+      "gas": 0,
+      "sourceNameStringId": 41,
+      "sourceName": "Tech: Siege Tank, Battle C.",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          114
+        ]
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 117,
+      "name": "코버트 옵스",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 1000,
+      "gas": 0,
+      "sourceNameStringId": 46,
+      "sourceName": "3 Siege Tanks",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [],
+        "addon": 116
+      },
+      "productionTriggerIds": [
+        225,
+        254
+      ]
+    },
+    {
+      "id": 118,
+      "name": "피직스 랩",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 1500,
+      "gas": 0,
+      "sourceNameStringId": 45,
+      "sourceName": "2 Battlecruiser",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [],
+        "addon": 116
+      },
+      "productionTriggerIds": [
+        221,
+        250
+      ]
+    },
+    {
+      "id": 120,
+      "name": "머신샵",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 600,
+      "gas": 0,
+      "sourceNameStringId": 0,
+      "sourceName": "",
+      "availableByPlayer": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sourceDefaultAvailable": 0,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [],
+        "addon": 113
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 122,
+      "name": "엔지니어링 베이",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 50,
+      "gas": 0,
+      "sourceNameStringId": 38,
+      "sourceName": "Tech: Turret",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          106
+        ]
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 123,
+      "name": "아머리",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 1000,
+      "gas": 0,
+      "sourceNameStringId": 34,
+      "sourceName": "2 Valkyries",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          113
+        ]
+      },
+      "productionTriggerIds": [
+        239,
+        268
+      ]
+    },
+    {
+      "id": 124,
+      "name": "미사일 터렛",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 200,
+      "gas": 0,
+      "sourceNameStringId": 40,
+      "sourceName": "3x Missile Turret",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          122
+        ]
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 125,
+      "name": "벙커",
+      "race": "terran",
+      "usesDefaultUnitSettings": false,
+      "minerals": 300,
+      "gas": 0,
+      "sourceNameStringId": 35,
+      "sourceName": "3x Bunker",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "terran",
+        "requires": [
+          111
+        ]
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 131,
+      "name": "해처리",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 100,
+      "gas": 0,
+      "sourceNameStringId": 24,
+      "sourceName": "build Drones",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [],
+        "supply": 1,
+        "townhall": true,
+        "creepSource": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 132,
+      "name": "레어",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 360,
+      "gas": 0,
+      "sourceNameStringId": 27,
+      "sourceName": "2 Lurkers, build Drones",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          142
+        ],
+        "morph": 131,
+        "supply": 1,
+        "townhall": true,
+        "creepSource": true
+      },
+      "productionTriggerIds": [
+        230,
+        259
+      ]
+    },
+    {
+      "id": 133,
+      "name": "하이브",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 400,
+      "gas": 0,
+      "sourceNameStringId": 25,
+      "sourceName": "2 Lurker, 1 Overlord, build D.",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          138
+        ],
+        "morph": 132,
+        "supply": 1,
+        "townhall": true,
+        "creepSource": true
+      },
+      "productionTriggerIds": [
+        229,
+        258
+      ]
+    },
+    {
+      "id": 134,
+      "name": "나이더스 커널",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 3000,
+      "gas": 0,
+      "sourceNameStringId": 265,
+      "sourceName": "Broodling!",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          133
+        ],
+        "creep": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 135,
+      "name": "히드라리스크 덴",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 250,
+      "gas": 0,
+      "sourceNameStringId": 26,
+      "sourceName": "3 Hydralisks",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          142
+        ],
+        "creep": true
+      },
+      "productionTriggerIds": [
+        228,
+        257
+      ]
+    },
+    {
+      "id": 136,
+      "name": "디파일러 마운드",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 600,
+      "gas": 0,
+      "sourceNameStringId": 20,
+      "sourceName": "2 Defiler",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          133
+        ],
+        "creep": true
+      },
+      "productionTriggerIds": [
+        223,
+        252
+      ]
+    },
+    {
+      "id": 137,
+      "name": "그레이터 스파이어",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 200,
+      "gas": 0,
+      "sourceNameStringId": 23,
+      "sourceName": "1 Guardian, 1 Devourer",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          133
+        ],
+        "morph": 141,
+        "creep": true
+      },
+      "productionTriggerIds": [
+        227,
+        256
+      ]
+    },
+    {
+      "id": 138,
+      "name": "퀸즈 네스트",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 350,
+      "gas": 0,
+      "sourceNameStringId": 28,
+      "sourceName": "1 Queen",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          132
+        ],
+        "creep": true
+      },
+      "productionTriggerIds": [
+        233,
+        262
+      ]
+    },
+    {
+      "id": 139,
+      "name": "에볼루션 챔버",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 0,
+      "gas": 0,
+      "sourceNameStringId": 21,
+      "sourceName": "Tech: Spore Colony",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          131
+        ],
+        "creep": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 140,
+      "name": "울트라리스크 캐번",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 350,
+      "gas": 0,
+      "sourceNameStringId": 32,
+      "sourceName": "1 Ultralisk",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          133
+        ],
+        "creep": true
+      },
+      "productionTriggerIds": [
+        238,
+        267
+      ]
+    },
+    {
+      "id": 141,
+      "name": "스파이어",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 260,
+      "gas": 0,
+      "sourceNameStringId": 29,
+      "sourceName": "1 Mutalisk, 2 Scourges",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          132
+        ],
+        "creep": true
+      },
+      "productionTriggerIds": [
+        231,
+        260
+      ]
+    },
+    {
+      "id": 142,
+      "name": "스포닝 풀",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 50,
+      "gas": 0,
+      "sourceNameStringId": 18,
+      "sourceName": "5-6 Zerglings",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          131
+        ],
+        "creep": true
+      },
+      "productionTriggerIds": [
+        246,
+        247,
+        275,
+        276
+      ]
+    },
+    {
+      "id": 143,
+      "name": "크립 콜로니",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 0,
+      "gas": 0,
+      "sourceNameStringId": 19,
+      "sourceName": "Expand / build Defenses",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          131
+        ],
+        "creep": true,
+        "creepSource": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 144,
+      "name": "스포어 콜로니",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 200,
+      "gas": 0,
+      "sourceNameStringId": 30,
+      "sourceName": "3x Spore Colony",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          139
+        ],
+        "morph": 143,
+        "creep": true,
+        "creepSource": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 146,
+      "name": "성큰 콜로니",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 200,
+      "gas": 0,
+      "sourceNameStringId": 31,
+      "sourceName": "3x Sunken Colony",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [
+          142
+        ],
+        "morph": 143,
+        "creep": true,
+        "creepSource": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 149,
+      "name": "익스트랙터",
+      "race": "zerg",
+      "usesDefaultUnitSettings": false,
+      "minerals": 500,
+      "gas": 0,
+      "sourceNameStringId": 79,
+      "sourceName": "Income +            (Z)",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "zerg",
+        "requires": [],
+        "gas": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 154,
+      "name": "넥서스",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 200,
+      "gas": 0,
+      "sourceNameStringId": 57,
+      "sourceName": "build Probes",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [],
+        "supply": 9,
+        "townhall": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 155,
+      "name": "로보틱스 퍼실리티",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 0,
+      "gas": 0,
+      "sourceNameStringId": 157,
+      "sourceName": "Tech: Reaver, Observer",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          164
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 156,
+      "name": "파일런",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 100,
+      "gas": 0,
+      "sourceNameStringId": 60,
+      "sourceName": "Expand",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [],
+        "supply": 8
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 157,
+      "name": "어시밀레이터",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 600,
+      "gas": 0,
+      "sourceNameStringId": 22,
+      "sourceName": "Income +            (P)",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [],
+        "gas": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 159,
+      "name": "옵저버토리",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 700,
+      "gas": 0,
+      "sourceNameStringId": 58,
+      "sourceName": "2 Observers",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          155
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": [
+        232,
+        261
+      ]
+    },
+    {
+      "id": 160,
+      "name": "게이트웨이",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 280,
+      "gas": 0,
+      "sourceNameStringId": 56,
+      "sourceName": "4 Zealots",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          154
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": [
+        242,
+        271
+      ]
+    },
+    {
+      "id": 162,
+      "name": "포톤 캐논",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 250,
+      "gas": 0,
+      "sourceNameStringId": 59,
+      "sourceName": "3x Photon Cannon",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          166
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 163,
+      "name": "시타델 오브 아둔",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 675,
+      "gas": 0,
+      "sourceNameStringId": 52,
+      "sourceName": "1 Dark Templar, 1 Dark A.",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          164
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": [
+        224,
+        253
+      ]
+    },
+    {
+      "id": 164,
+      "name": "사이버네틱스 코어",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 350,
+      "gas": 0,
+      "sourceNameStringId": 53,
+      "sourceName": "2 Dragoons",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          160
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": [
+        226,
+        255
+      ]
+    },
+    {
+      "id": 165,
+      "name": "템플러 아카이브",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 700,
+      "gas": 0,
+      "sourceNameStringId": 63,
+      "sourceName": "1 High Templar, 1 Archon",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          163
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": [
+        237,
+        266
+      ]
+    },
+    {
+      "id": 166,
+      "name": "포지",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 0,
+      "gas": 0,
+      "sourceNameStringId": 55,
+      "sourceName": "Tech: Photon Cannon",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          154
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": []
+    },
+    {
+      "id": 167,
+      "name": "스타게이트",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 1100,
+      "gas": 0,
+      "sourceNameStringId": 62,
+      "sourceName": "2 Scouts, 1 Corsair",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          164
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": [
+        235,
+        264
+      ]
+    },
+    {
+      "id": 169,
+      "name": "플릿 비콘",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 800,
+      "gas": 0,
+      "sourceNameStringId": 54,
+      "sourceName": "1 Carrier",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          167
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": [
+        222,
+        251
+      ]
+    },
+    {
+      "id": 170,
+      "name": "아비터 트리뷰널",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 1000,
+      "gas": 0,
+      "sourceNameStringId": 51,
+      "sourceName": "1 Arbiter",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          167,
+          165
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": [
+        219,
+        248
+      ]
+    },
+    {
+      "id": 171,
+      "name": "로보틱스 서포트 베이",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 1200,
+      "gas": 0,
+      "sourceNameStringId": 61,
+      "sourceName": "2 Reavers",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          155
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": [
+        234,
+        263
+      ]
+    },
+    {
+      "id": 172,
+      "name": "실드 배터리",
+      "race": "protoss",
+      "usesDefaultUnitSettings": false,
+      "minerals": 3500,
+      "gas": 0,
+      "sourceNameStringId": 237,
+      "sourceName": "Mind Control!",
+      "availableByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourceDefaultAvailable": 1,
+      "sourceUseDefaultByPlayer": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "sourcePlayerOverrides": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "existingMiniStarBuildSpec": {
+        "race": "protoss",
+        "requires": [
+          160
+        ],
+        "psi": true
+      },
+      "productionTriggerIds": []
+    }
+  ],
+  "productionTriggers": [
+    {
+      "triggerId": 219,
+      "sourceIndex": 218,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 170,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 170,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 71,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "21c85fc9a681c18e5bdfe884774eb91cd07bff5a045d9afde3cb27d97d280a38"
+    },
+    {
+      "triggerId": 220,
+      "sourceIndex": 219,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 112,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 112,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 32,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 34,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "d1d6b8659ad7b34f9874bc28fed27ec69d915327cc3074eec8da48ec21e45e06"
+    },
+    {
+      "triggerId": 221,
+      "sourceIndex": 220,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 118,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 118,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 12,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "9d46f49598e2157c6ca79fc9c02895e2a45ed0df4bc6eb604ad1a5bd9f54e778"
+    },
+    {
+      "triggerId": 222,
+      "sourceIndex": 221,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 169,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 169,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 72,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "5e78a3af767b70e84d0301458c8de3a3d74b69ca08ac3ef7b4388e4e05cc148a"
+    },
+    {
+      "triggerId": 223,
+      "sourceIndex": 222,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 136,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 136,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 46,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "9f679233cafcb6100925729b7b0daca795fd3856de3acab7a84e4f17fb5bca7e"
+    },
+    {
+      "triggerId": 224,
+      "sourceIndex": 223,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 163,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 163,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 61,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 63,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "0d612b8917c8cfb935372f1a6e49cf9e25cbd09fca1e888311736cff6f1115b5"
+    },
+    {
+      "triggerId": 225,
+      "sourceIndex": 224,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 117,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 117,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 27,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 5,
+          "type": 11,
+          "count": 3,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "93076c657642b03c0c78942ec793c88f4e287f65097a00fe82f6e6030820eed5"
+    },
+    {
+      "triggerId": 226,
+      "sourceIndex": 225,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 164,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 164,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 66,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "6f91ffb3db84f718ef2111f935c7b2829ab58d95b5ec9ddffcf8ccacf001272c"
+    },
+    {
+      "triggerId": 227,
+      "sourceIndex": 226,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 137,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 137,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 44,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 62,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "1cb7d4a16ace0602737a39b14acaa75d768a58c64937138d183a1bd1b6bfef5b"
+    },
+    {
+      "triggerId": 228,
+      "sourceIndex": 227,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 135,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 135,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 38,
+          "type": 11,
+          "count": 3,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "1adfe826bf0d458c608aa14a9d0bfb20e84a1d7de08fcd0c5d7feb077a95ad49"
+    },
+    {
+      "triggerId": 229,
+      "sourceIndex": 228,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 133,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 133,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 3,
+          "unit": 103,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        },
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 42,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "58d1a766449814bd9f505d5b7f4dad1d68652b75103ff761dcb5ecced4cd77a8"
+    },
+    {
+      "triggerId": 230,
+      "sourceIndex": 229,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 132,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 132,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 3,
+          "unit": 103,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "3a0b145e717f7fa72eb3047ba19cc03f0869b64d70b14e592ef27797f25faf24"
+    },
+    {
+      "triggerId": 231,
+      "sourceIndex": 230,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 141,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 141,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 43,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 47,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "b0a6f1fe40dc63e2cc0849e749159317c701cbdaecedd61c9d80a8151935cc84"
+    },
+    {
+      "triggerId": 232,
+      "sourceIndex": 231,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 159,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 159,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 84,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "a2ca97436600d5e3956ba965e1c1c971c5fa35dcf06bb2c9ae87cc3694bdcd66"
+    },
+    {
+      "triggerId": 233,
+      "sourceIndex": 232,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 138,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 138,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 45,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "42e9614f38f2d45adf422d5e09e1687fb4c460c2de84390278166f0b90c22947"
+    },
+    {
+      "triggerId": 234,
+      "sourceIndex": 233,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 171,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 171,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 83,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "34a214ecd1b69f83a4d5a62ffcefc67fede1b60b1f323787115af6a6569d5f21"
+    },
+    {
+      "triggerId": 235,
+      "sourceIndex": 234,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 167,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 167,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 70,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        },
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 60,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "1f28cfb6d5a11239676786e156b8429ab5c416f30597cf7a085c55ca7bf2ad3a"
+    },
+    {
+      "triggerId": 236,
+      "sourceIndex": 235,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 108,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 108,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 1,
+          "type": 11,
+          "count": 4,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "c049c1e4143ed76e85f9ae5ada2f1866912c82de903bfa66c1c12d612fc39902"
+    },
+    {
+      "triggerId": 237,
+      "sourceIndex": 236,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 165,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 165,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 68,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 67,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "aa9c84aaa490ed44b322093fe010069c24a72465ceea22fb64294446e92fd2f1"
+    },
+    {
+      "triggerId": 238,
+      "sourceIndex": 237,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 140,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 140,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 39,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "fb94d6141a33e2204f8196ce1f8ecdecdda3ac8d827c7186979aa0b9924b1c04"
+    },
+    {
+      "triggerId": 239,
+      "sourceIndex": 238,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 123,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 123,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 58,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "c2ccd64a3464b609a57539ff2b46f498ff416322df15ba38b19af81ec1432729"
+    },
+    {
+      "triggerId": 240,
+      "sourceIndex": 239,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 107,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 107,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 9,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "ce23d3af3049a5728ec3fe0b4df020f95e51c7debd07e9c09a3d9fca155773eb"
+    },
+    {
+      "triggerId": 241,
+      "sourceIndex": 240,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 114,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 114,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 8,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "1ebd8f31434b62ecbbf32c5a060cbffb0655aa5baa5e87f7da1592094b569dbe"
+    },
+    {
+      "triggerId": 242,
+      "sourceIndex": 241,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 160,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 160,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 65,
+          "type": 11,
+          "count": 4,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "36af3565090a6fe264db6f5008ea7fb8502c25ffe0d7bfcf63d67834c691906c"
+    },
+    {
+      "triggerId": 243,
+      "sourceIndex": 242,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 111,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 111,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 0,
+          "type": 11,
+          "count": 6,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "912e02d8634d02c89bffd966288f7129a0d0ea2e311834113a7fb1d7e37f7015"
+    },
+    {
+      "triggerId": 244,
+      "sourceIndex": 243,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 113,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 113,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 3,
+          "type": 11,
+          "count": 3,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "b880ffa00887b35c0d905ab3ce130f97caf0e6f1402000411187f48247987da8"
+    },
+    {
+      "triggerId": 245,
+      "sourceIndex": 244,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 109,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 109,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 2,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "2d0ba944ba7c55da8199e5c3af62fb6ecdeb55eaa18e6e5944382b63330963de"
+    },
+    {
+      "triggerId": 246,
+      "sourceIndex": 245,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 142,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 8,
+          "unit": 142,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 37,
+          "type": 11,
+          "count": 6,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "b8863306743c547123469d99458cca2e05bca2e5c33a6e7646f428a0def5bce2"
+    },
+    {
+      "triggerId": 247,
+      "sourceIndex": 246,
+      "team": 1,
+      "owners": [
+        20
+      ],
+      "buildingId": 142,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 142,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        },
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 7,
+          "unit": 142,
+          "comparison": 1,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 13,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 7,
+          "propertyIndex": 4,
+          "unit": 37,
+          "type": 11,
+          "count": 5,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "2eff5326c68083c190ee2b2be3ab27a30b48c0a2596ee0abcfbe62306bce52ca"
+    },
+    {
+      "triggerId": 248,
+      "sourceIndex": 247,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 170,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 170,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 71,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "66b49bbe28d99b88ec8075c26eb02452095005a5fd01b2e8e9dfc870856b6eb7"
+    },
+    {
+      "triggerId": 249,
+      "sourceIndex": 248,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 112,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 112,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 32,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 34,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "1f522876282c6424a66ad1764d458e5ce07203aec14bc0e3bdbc09d575c9ece2"
+    },
+    {
+      "triggerId": 250,
+      "sourceIndex": 249,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 118,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 118,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 12,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "1d9f7dd4d5b23f0bf078c60f42506f018fa1b600338f81f96220ce4f65b4c615"
+    },
+    {
+      "triggerId": 251,
+      "sourceIndex": 250,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 169,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 169,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 72,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "ce2a2bebbe18be492383bd33ba7b3d97d1d2597a957af7b0257cd2702c3fdbca"
+    },
+    {
+      "triggerId": 252,
+      "sourceIndex": 251,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 136,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 136,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 46,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "956ba8b225f8848a12ce8533275055afa4ea48fe3ef4f9612392ad2754d19fa1"
+    },
+    {
+      "triggerId": 253,
+      "sourceIndex": 252,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 163,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 163,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 61,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 63,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "c145312ba16a240c212db83dc5495f0e5de60cce592eec6182781f09dc583469"
+    },
+    {
+      "triggerId": 254,
+      "sourceIndex": 253,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 117,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 117,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 28,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 8,
+          "unit": 5,
+          "type": 11,
+          "count": 3,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "95d724aa221b1b9f744e4317f60e9e4e4848b23221ecf6e02194b719918d0bc7"
+    },
+    {
+      "triggerId": 255,
+      "sourceIndex": 254,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 164,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 164,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 66,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "598aa7911825914e471c35a19992b8fd286d72b10090d81ab9ee846cfe709464"
+    },
+    {
+      "triggerId": 256,
+      "sourceIndex": 255,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 137,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 137,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 44,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 62,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "8a114ad4e60efc5b75f403e200e05e556ddf28790f6f178bb728f94488a53cfe"
+    },
+    {
+      "triggerId": 257,
+      "sourceIndex": 256,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 135,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 135,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 38,
+          "type": 11,
+          "count": 3,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "78dc81714d396f559ade35b0afa36a46ca06521d16b4e9f5ac7490b9b4593292"
+    },
+    {
+      "triggerId": 258,
+      "sourceIndex": 257,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 133,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 133,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 3,
+          "unit": 103,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        },
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 42,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "75267a293a6a9639d33ad771015092cf2a86e2ad2a98eae1c752d27617c9049d"
+    },
+    {
+      "triggerId": 259,
+      "sourceIndex": 258,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 132,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 132,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 3,
+          "unit": 103,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "894310a922d8b201e4e97ca468b658cd183270e54f250774015006d2fe2bde06"
+    },
+    {
+      "triggerId": 260,
+      "sourceIndex": 259,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 141,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 141,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 43,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 47,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "b12d44a30522ac3805494ed7a48bcc1b29193d3cc19e3ba15a33f131e2817aa5"
+    },
+    {
+      "triggerId": 261,
+      "sourceIndex": 260,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 159,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 159,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 84,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "128c97bf006fe80afef3e89fa89786ecd141ac34225a9db4169baf1bab4d784b"
+    },
+    {
+      "triggerId": 262,
+      "sourceIndex": 261,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 138,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 138,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 45,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "83b77490d81d3366278e6454e62433bc4d683426a05e3d5ac5c10ff745b64659"
+    },
+    {
+      "triggerId": 263,
+      "sourceIndex": 262,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 171,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 171,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 83,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "d644e750b41842db5c3100925398420eeaa8184faff122464a6f1842a729237e"
+    },
+    {
+      "triggerId": 264,
+      "sourceIndex": 263,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 167,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 167,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 70,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        },
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 60,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "f98b3fdff77b07700d74c5d021d704a0a2cf408c2796df98232d749d8bbc43d9"
+    },
+    {
+      "triggerId": 265,
+      "sourceIndex": 264,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 108,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 108,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 1,
+          "type": 11,
+          "count": 4,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "4f996af708445504a511869bde59b4ebfa075b5a76361abf4ac17aef492071ec"
+    },
+    {
+      "triggerId": 266,
+      "sourceIndex": 265,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 165,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 165,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 68,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        },
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 67,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "2f31059579f4a264db72fce61085bf77dc4ad45586e39487de20c26af916f52d"
+    },
+    {
+      "triggerId": 267,
+      "sourceIndex": 266,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 140,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 140,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 39,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "f7560b2266727c9b165ee401f754e60fc0516ae68633221ac4e0e37c778c2440"
+    },
+    {
+      "triggerId": 268,
+      "sourceIndex": 267,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 123,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 123,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 58,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "81af76e154811b1927fecdff5926c400035658b8266d8bee26442bbc2d149115"
+    },
+    {
+      "triggerId": 269,
+      "sourceIndex": 268,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 107,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 107,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 9,
+          "type": 11,
+          "count": 1,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "e0507679efeaf7faa824d44b10a2dada8295abbebeee85b91305dddef5e227b5"
+    },
+    {
+      "triggerId": 270,
+      "sourceIndex": 269,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 114,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 114,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 8,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "55defd4c4a8647d1f8bb2ad34c79339a7949c14a5026ff5ececa369d70f7b6b3"
+    },
+    {
+      "triggerId": 271,
+      "sourceIndex": 270,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 160,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 160,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 65,
+          "type": 11,
+          "count": 4,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "7fe3d999cf27a2239b84a59b4f4ceac30b748da1556bb67e573f1a37f7219be6"
+    },
+    {
+      "triggerId": 272,
+      "sourceIndex": 271,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 111,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 111,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 0,
+          "type": 11,
+          "count": 6,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "15520daa0c29f8a450aa9c2db3f99b2ac078f4887712d8a0266be9ced4277544"
+    },
+    {
+      "triggerId": 273,
+      "sourceIndex": 272,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 113,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 113,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 3,
+          "type": 11,
+          "count": 3,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "ba3ab9eca21d8f5ff8f61e27bec4cf08531e14e302b1519031bb26196c2a1f1f"
+    },
+    {
+      "triggerId": 274,
+      "sourceIndex": 273,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 109,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 109,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 2,
+          "type": 11,
+          "count": 2,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "5452f65ebee0538b92a223270b92ea5c4bbdd3a73eb52d4477a850cdfc2ac4b9"
+    },
+    {
+      "triggerId": 275,
+      "sourceIndex": 274,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 142,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 6,
+          "unit": 142,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 37,
+          "type": 11,
+          "count": 6,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "7f71e0aea756eadf55a0c525e6361a4ce5894682c85393f2c1307c157db80ad7"
+    },
+    {
+      "triggerId": 276,
+      "sourceIndex": 275,
+      "team": 0,
+      "owners": [
+        18
+      ],
+      "buildingId": 142,
+      "bringConditions": [
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 5,
+          "unit": 142,
+          "comparison": 1,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        },
+        {
+          "location": 19,
+          "player": 13,
+          "amount": 1,
+          "unit": 142,
+          "comparison": 0,
+          "type": 3,
+          "resource": 0,
+          "flags": 0
+        }
+      ],
+      "outputs": [
+        {
+          "location": 11,
+          "string": 0,
+          "wav": 0,
+          "time": 0,
+          "player": 3,
+          "propertyIndex": 4,
+          "unit": 37,
+          "type": 11,
+          "count": 5,
+          "flags": 0
+        }
+      ],
+      "recordSha256": "1d6869615bc3dc78e951aaa7b932c1a6f20c3907f457fbe35df9a9121b7e8531"
+    }
+  ]
+}
