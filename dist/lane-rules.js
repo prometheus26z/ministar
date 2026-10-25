@@ -1,4 +1,4 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.10';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.11';
 export {DESERT_STRIKE};
 export const WAVE_SECONDS=DESERT_STRIKE.waveGameSeconds/1.5;
 export const INCOME_SECONDS=DESERT_STRIKE.incomeCycles*DESERT_STRIKE.hyperCycleSeconds;
@@ -25,6 +25,7 @@ export function isLaneBuildingAvailable(type,commanderId=0){
 
 export const BUILDING_COSTS=Object.freeze(DESERT_STRIKE.costs);
 export const BUILDING_WAVES=Object.freeze(Object.fromEntries(Object.entries(DESERT_STRIKE.waves).map(([type,groups])=>[type,Object.freeze(groups.map(([unit,count])=>Object.freeze({unit,count})))])));
+export function spawningPoolYield(completedPools,team){const count=BUILDING_WAVES[142][0].count,threshold=DESERT_STRIKE.poolBonusThreshold[team];return count+(completedPools+1>=threshold?DESERT_STRIKE.poolBonusCount-count:0)}
 export const TECH_IDS=Object.freeze({stim:0,lockdown:1,emp:2,mine:3,siege:5,irradiate:7,yamato:8,cloak:9,ghostCloak:10,burrow:11,broodlings:13,plague:15,consume:16,ensnare:17,storm:19,hallucinate:20,recall:21,stasis:22,restore:24,web:25,mind:27,flare:30,maelstrom:31,lurker:32});
 export function constructionSeconds(data,type){return Math.max(.2,(Number(data?.units?.[type]?.buildTime)||40)*.05)}
 export function buildingCost(race,type){const cost=BUILDING_COSTS[type];if(!cost)throw Error('Missing Desert Strike building cost: '+type);return [...cost]}

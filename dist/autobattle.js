@@ -1,11 +1,12 @@
-import {LaneAI} from './lane-ai.js?v=0.16.10';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.10';
-import {SATISFIES} from './tech.js?v=0.16.10';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.10';
-import {buildingDestruction} from './presentation.js?v=0.16.10';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.10';
-import {clamp,dist} from './core.js?v=0.16.10';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.10';
+import {LaneAI} from './lane-ai.js?v=0.16.11';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.11';
+import {SATISFIES} from './tech.js?v=0.16.11';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.11';
+import {buildingDestruction} from './presentation.js?v=0.16.11';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.11';
+import {clamp,dist} from './core.js?v=0.16.11';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.11';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.11';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -376,6 +377,7 @@ export class Battle extends EconomyBattle{
   if(abilities.includes('siege')&&!u.sieged&&this.nearby(u,260).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<260))this.cast(u,'siege');
   if(abilities.includes('cloak')&&!u.cloaked&&u.energy>=25&&this.nearby(u,240).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<240))this.cast(u,'cloak');
   if(u.type!==103&&abilities.includes('burrow')&&!u.burrowed&&this.nearby(u,110).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<110))this.cast(u,'burrow');
+  if((u.spellThinkAt||0)<=this.time&&(u.spellReadyAt||0)<=this.time){u.spellThinkAt=this.time+.25;const pick=chooseAutomatedSpell(this,u,abilities);if(pick&&this.cast(u,pick.key,pick.point,pick.target))u.spellReadyAt=this.time+.8}
  }
  step(dt){
   this.inSimulationStep=true;this.deploymentBudget=[8,8];

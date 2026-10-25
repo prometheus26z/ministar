@@ -28,7 +28,7 @@ test('all 50 building explanations reflect source production, current roles and 
  assert.equal(Object.keys(BUILDINGS).length,50);assert.equal(Object.keys(DESERT_STRIKE.costs).length,50);assert.equal(Object.keys(BUILDING_WAVES).length,28);
  for(const id of Object.keys(BUILDINGS).map(Number)){
   const groups=BUILDING_WAVES[id];
-  if(groups){const expected=groups.map(({unit,count})=>`${data.units[unit].name} ${id===142?'5~6':count}기`).join(' · ');assert.equal(waveDescription(id,groups,data),expected,`building ${id}`)}
+  if(groups){const expected=groups.map(({unit,count})=>`${data.units[unit].name} ${count}기`).join(' · ');assert.equal(waveDescription(id,groups,data),expected,`building ${id}`)}
   else assert.equal(waveDescription(id,null,data),DESERT_STRIKE.buildingRoles[id],`building ${id} role`);
  }
  assert.equal(waveDescription(120,null,data),'원본 맵에서 건설 불가');
