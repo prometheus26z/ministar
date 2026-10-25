@@ -1,9 +1,28 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.9';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.10';
 
 export function healthBarPixels(nominal){
  let original=Math.max(19,Math.min(81,Math.floor(nominal)));
  original-=((original-1)%3);
  return Math.round(Math.max(19,original)*.85);
+}
+
+const bodyBounds=new WeakMap();
+function buildingBodyBounds(graphic,unit){
+ if(graphic&&bodyBounds.has(graphic))return bodyBounds.get(graphic);
+ const indices=(graphic?.tracks?.idle?.frames||[]).map(frame=>frame[0]).filter(Number.isInteger),frames=[...new Set(indices.length?indices:[0])].map(i=>graphic?.frames?.[i]).filter(f=>f?.[4]>0&&f?.[5]>0);
+ let bounds;
+ if(frames.length){
+  // Match sprite(): frame offsets and dimensions are rendered at half scale.
+  const left=Math.min(...frames.map(f=>(f[2]-graphic.canvas[0]/2)*.5)),right=Math.max(...frames.map(f=>(f[2]-graphic.canvas[0]/2+f[4])*.5));
+  bounds={width:right-left,center:(left+right)/2,bottom:Math.max(...frames.map(f=>(f[3]-graphic.canvas[1]/2+f[5])*.5))};
+ }else bounds={width:unit.def.footprint?.[0]||unit.r*2,center:0,bottom:unit.r};
+ if(graphic)bodyBounds.set(graphic,bounds);return bounds;
+}
+export function healthBarLayout(unit,graphic,zoom){
+ let pixels,center=0,bottom=unit.r;
+ if(unit.def.building){const bounds=buildingBodyBounds(graphic,unit);pixels=Math.max(3,Math.round(bounds.width*.85*zoom));center=bounds.center;bottom=bounds.bottom}
+ else pixels=healthBarPixels(graphic?.healthBarSize||unit.def.healthBarSize||unit.def.footprint?.[0]||unit.r*2);
+ const width=pixels/zoom;return{pixels,width,x:unit.x+center-width/2,y:unit.y+bottom+5/zoom};
 }
 
 export function constructionVisual(unit,data){

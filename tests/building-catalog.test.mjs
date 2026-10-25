@@ -66,6 +66,8 @@ function sourceProduction(trig,candidateIds){
 test('original CHK evidence, costs, names, PUNI permission and building catalog match independently decoded bytes',()=>{
  assert.deepEqual(SOURCE_PLAYER_BY_COMMANDER,{0:0,1:1,2:2,3:4,4:5,5:6});
  const sections=sourceSections(chk),puni=sections.get('PUNI'),unix=sections.get('UNIx'),str=sections.get('STR ');
+ assert.equal(unix[142],0);assert.equal(unix.readUInt16LE(2280+142*2),50,'source Spawning Pool cost');
+ assert.equal(unix[111],0);assert.equal(unix.readUInt16LE(2280+111*2),330,'source Barracks cost');
  for(const tag of ['PUNI','UNIx','STR ','FORC','OWNR'])assert.deepEqual(sections.get(tag),Buffer.from(evidence[tag],'base64'),`${tag} evidence bytes`);
  assert.deepEqual(readChkSections(chk).get('PUNI'),puni);
  const ids=Object.keys(BUILDINGS).map(Number).sort((a,b)=>a-b),sourceIds=Object.keys(rules.costs).map(Number).sort((a,b)=>a-b);

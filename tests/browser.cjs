@@ -84,7 +84,7 @@ async function testBuildingCatalogUI(browser,url){
   const select=async id=>page.evaluate(id=>window.__catalogTest.battle.select([id],false),id);
   const close=async()=>{if(await page.locator('#commands').isVisible())await page.locator('#closeCommands').click()};
   const openBuild=async()=>{await page.locator('#commandButton').click();await page.locator('#commands').waitFor({state:'visible'})};
-  const openWaves=async()=>{await page.locator('#productionButton').click();await page.locator('#commands').waitFor({state:'visible'})};
+  const openWaves=async()=>{await page.locator('#productionButton').click();await page.locator('#commands').waitFor({state:'visible'});assert.doesNotMatch(await page.locator('#commandGrid').innerText(),/매 \d+초|자동 출격/)};
 
   await choose('terran');let ids=await inject('terran');
   await select(ids.factory);assert.match(await page.locator('#order').innerText(),/골리앗 3기/);
@@ -107,7 +107,7 @@ async function testBuildingCatalogUI(browser,url){
   await select(ids.lair);await openBuild();assert.match(await page.getByRole('button',{name:/하이브 변태/}).innerText(),/러커 2기.*오버로드 1기/);await close();
   await select(ids.spire);await openBuild();assert.match(await page.getByRole('button',{name:/그레이터 스파이어 변태/}).innerText(),/가디언 1기.*디바우러 1기/);await close();
   await select(ids.creep);await openBuild();assert.match(await page.getByRole('button',{name:/^스포어 콜로니 변태/}).innerText(),/본진에 대공 방어시설 배치/);assert.match(await page.getByRole('button',{name:/^성큰 콜로니 변태/}).innerText(),/본진에 지상 방어시설 배치/);await close();
-  await select(ids.pool);assert.match(await page.locator('#order').innerText(),/저글링 5기/);await openBuild();assert.match(await page.getByRole('button',{name:/스포닝 풀 건설/}).innerText(),/저글링 5~6기/);await close();
+  await select(ids.pool);assert.match(await page.locator('#order').innerText(),/^저글링 5기$/);assert.doesNotMatch(await page.locator('#order').innerText(),/자동.*출격|매.*초/);await openBuild();assert.match(await page.getByRole('button',{name:/스포닝 풀 건설/}).innerText(),/저글링 5~6기/);await close();
   await select(ids.evolution);assert.match(await page.locator('#order').innerText(),/스포어 콜로니 해금.*최초 완성 시 100 미네랄.*최대 1개/);
   await select(ids.special);assert.match(await page.locator('#order').innerText(),/건설 중.*브루들링으로 전환.*자동 발동·소모/);await openWaves();assert.match(await page.locator('#commandGrid').innerText(),/현재 출격 유닛을 생성하지 않습니다.*브루들링으로 전환/);await close();
   await page.screenshot({path:'/tmp/ministar-building-catalog-zerg.png',fullPage:true});

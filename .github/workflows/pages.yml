@@ -50,6 +50,8 @@ jobs:
             /tmp/ministar-original-deaths.png
             /tmp/ministar-upright-terrain.png
             /tmp/ministar-performance-mobile.png
+            /tmp/ministar-health-bar-174.png
+            /tmp/ministar-health-bar-142.png
             /tmp/ministar-browser-performance.json
       - name: Configure Pages
         uses: actions/configure-pages@v5
