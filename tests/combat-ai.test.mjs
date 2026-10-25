@@ -90,15 +90,18 @@ test('damage does not pull a unit off an enemy already attacking it',()=>{
 
 test('lane Lurkers march unburrowed, burrow for ground threats, and resume marching after they leave range',()=>{
  const b=lane('zerg'),lurker=b.spawnUnit(103,0,0,1,b.main);
- assert.ok(lurker);assert.equal(lurker.burrowed,false);assert.equal(lurker.action,'unburrow');assert.equal(lurker.order,'attackmove');
+ assert.ok(lurker);assert.equal(lurker.burrowed,false);assert.equal(lurker.lurkerState,'ground');assert.equal(lurker.action,'idle');assert.equal(lurker.order,'attackmove');
  assert.ok(b.availableAbilities(lurker).includes('burrow'),'Lurker can use its innate burrow ability');
- for(let i=0;i<30&&lurker.lurkerTransition>0;i++)b.tickUnit(lurker,.1);
  const enemy=b.create(0,1,lurker.x+60,lurker.y);
- b.tickUnit(lurker,.05);assert.equal(lurker.burrowed,true);assert.equal(lurker.action,'burrow');
+ b.tickUnit(lurker,.05);assert.equal(lurker.lurkerState,'burrowing');assert.equal(lurker.burrowed,true);assert.equal(lurker.action,'burrow');
  for(let i=0;i<30&&lurker.lurkerTransition>0;i++)b.tickUnit(lurker,.1);
+ assert.equal(lurker.lurkerState,'burrowed');
  assert.equal(lurker.burrowed,true,'a Lurker stays burrowed while a ground target is in weapon range');
  enemy.x=lurker.x+420;b.tickUnit(lurker,.05);
- assert.equal(lurker.burrowed,false);assert.equal(lurker.action,'unburrow');assert.equal(lurker.order,'attackmove');assert.ok(lurker.goal);
+ assert.equal(lurker.lurkerState,'unburrowing');assert.equal(lurker.burrowed,true);assert.equal(lurker.action,'unburrow');assert.equal(lurker.order,'hold');
+ assert.equal(b.canSee(1,lurker),false,'a Lurker remains hidden throughout its exit animation until it is exposed');
+ for(let i=0;i<30&&lurker.lurkerTransition>0;i++)b.tickUnit(lurker,.1);
+ assert.equal(lurker.lurkerState,'ground');assert.equal(lurker.burrowed,false);assert.equal(lurker.order,'attackmove');assert.ok(lurker.goal);
 });
 test('Medic follows an injured ally, heals while stationary, and charges energy for HP restored',()=>{
  const b=combat(),medic=b.create(34,0,200,200),patient=b.create(0,0,350,200);patient.hp=patient.maxHp-10;

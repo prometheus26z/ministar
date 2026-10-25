@@ -41,6 +41,8 @@ upright.save(root/'resources/desertstrike/upright-field.webp','WEBP',lossless=Tr
 metadata_path=root/'resources/desertstrike/upright-field.json'
 metadata=json.loads(metadata_path.read_text())
 metadata['sourceSha256']=hashlib.sha256((root/'resources/desertstrike/upright-field.webp').read_bytes()).hexdigest()
+metadata['mobileCrop']=[0,0,640,1024]
+metadata['mobileLayout']='MiniStar continuous sand-field presentation crop, no elevation or terrain collision'
 metadata['recoveredFrom']={'operation':'Rendered directly from original Desert cv5/vx4ex/vr4/wpe and MTXM, then cropped without rotation.'}
 metadata_path.write_text(json.dumps(metadata,indent=2)+'\n')
 render_battlefield(upright).save(dest/'battlefield.webp','WEBP',quality=90,method=6)

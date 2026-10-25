@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {layeredActionSeconds,pose,teamImage,transitionSeconds} from '../dist/animation.js';
+import {layeredActionSeconds,pose,steadyStartSeconds,teamImage,transitionSeconds} from '../dist/animation.js';
 
 test('animation aliases keep moving, attacking, and dying sprites on their original tracks',()=>{
  const graphic={turns:true,frames:Array.from({length:64},(_,i)=>[i,0,0,0,32,32]),images:{blue:'blue.webp'},tracks:{
@@ -36,9 +36,25 @@ test('Archon and Dark Archon graphics retain complete directional action tracks'
 });
 
 test('Lurker burrow transitions use the playable frames and omit the trailing hold',()=>{
- const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url))),g=data.graphics[921];
+ const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));Object.assign(data.graphics,JSON.parse(fs.readFileSync(new URL('../dist/original-animation-data.json',import.meta.url))));const g=data.graphics[921];
  assert.equal(transitionSeconds(g,'burrow'),20/24);
- assert.equal(transitionSeconds(g,'unburrow'),7/24);
+ const seed=713,seconds=transitionSeconds(g,'unburrow',.45,seed),poseAtEnd=pose(g,'unburrow',seconds,0,{seed});
+ assert.equal(poseAtEnd.frame,170,'the seeded exit animation and countdown reach the same final frame');
+ const wait=g.tracks.unburrow.frames[0][2].randomWait;
+ assert.ok(seconds>=(wait[0]+4)/24&&seconds<=(wait[1]+4)/24,'the seeded exit duration includes the exact script wait and four transform frames');
+ assert.equal(g.tracks.unburrow.frames[0][0],null,'unburrow waits inherit the last buried frame');
+ assert.equal(g.tracks.unburrow.frames[0][2].inheritFrame,true);
+ assert.equal(pose(g,'attack',0,0,{inheritedFrame:408}).frame,408,'attack waits inherit the buried Lurker pose');
+});
+
+test('direct Archon spawns enter the steady idle loop and Lurker weapon script resolves image 961',()=>{
+ const source=JSON.parse(fs.readFileSync(new URL('../dist/original-animation-data.json',import.meta.url))),darkArchon=source[925],start=steadyStartSeconds(darkArchon,'idle',{seed:1});
+ assert.ok(start>0);
+ assert.notEqual(pose(darkArchon,'idle',0,0).frame,pose(darkArchon,'idle',0,0,{skipSpawnIntro:true}).frame);
+ assert.equal(pose(darkArchon,'idle',0,0,{skipSpawnIntro:true}).frame,pose(darkArchon,'idle',start,0).frame);
+ assert.equal(source[961].frames.length,7);
+ assert.equal(source[961].tracks.idle.ticks,11);
+ assert.ok(source[985].tracks.attack.overlayEvents.some(event=>event.image===961));
 });
 
 test('entrypoint and legacy migration use the package cache version',()=>{

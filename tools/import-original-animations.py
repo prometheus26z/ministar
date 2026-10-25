@@ -11,6 +11,7 @@ base=json.load(open(ROOT/'dist/assets/data.json'))['graphics'];graphics={};slots
 paths=sorted((SOURCE/'HD2/anim').glob('*.anim'));ids=sorted(set([int(p.stem.split('_')[1])for p in paths]+[153,442]))
 for id in ids:
  source_id={153:151,442:427}.get(id,id);path=(SOURCE/f'HD2/anim/main_{source_id:03d}.anim')
+ if not path.is_file():continue
  b=path.read_bytes();magic,version,unused,layers,entries=struct.unpack_from('<I4H',b);assert magic==0x4d494e41 and entries==1
  count,ref,cw,ch,fp=struct.unpack_from('<4HI',b,332);assert ref==65535
  names=[b[12+i*32:44+i*32].split(b'\0')[0].decode()for i in range(10)]
@@ -36,10 +37,12 @@ for id in ids:
  g['turns']=bool(iscript.images[999*4+id]);g['drawFunction']=iscript.images[999*8+id];g['sourceImage']=source_id;g['iscriptId']=iscript.image_script(id)
  tracks={}
  for action,slot in slots.items():
-  try:t=iscript.trace(id,slot)
+  try:t=iscript.trace(id,slot,stop_at_signal=4 if action=='unburrow' else None,include_signals=action in ['burrow','unburrow'],inherit_initial=id==921 and action=='unburrow')
   except ValueError as e:
    assert e.args[0][0]=='conditional'and e.args[0][3]=='trgtrangecondjmp',e
    threshold=e.args[0][4][0];t=iscript.trace(id,slot,False);t['rangeVariants']={'threshold':threshold,'near':iscript.trace(id,slot,True)}
+  if t and action=='burrow' and '4' in t.get('signalTicks',{}):t['transitionTicks']=t['signalTicks']['4']
+  if t and action=='unburrow' and '4' in t.get('signalTicks',{}):t['transitionSignal']=4
   tracks[action]=t
  g['tracks']=tracks
  if id in [134,925]:g['persistentOverlays']=tracks['idle']['overlayEvents']
@@ -51,9 +54,21 @@ for key,original in base.items():
  try:death=iscript.trace(int(key),1)
  except (ValueError,KeyError):continue
  if not death:continue
- if any(frame[0]>=len(original['frames'])for frame in death['frames']):raise ValueError('Source frame missing for '+key)
+ if any(frame[0] is not None and frame[0]>=len(original['frames'])for frame in death['frames']):raise ValueError('Source frame missing for '+key)
  g={**original,'tracks':{**original['tracks'],'death':death},'sourceImage':int(key),'iscriptId':iscript.image_script(int(key))}
  graphics[key]=g
+# Compile the Lurker and its hidden weapon graphic from checked source scripts.
+# Their frame atlases already live in the shared base sprite bundle.
+for key,actions in {'921':{'attack':2,'airAttack':3,'walk':11,'burrow':25,'unburrow':26},'985':{'idle':0,'attack':2}}.items():
+ original=base.get(key)
+ if not original:continue
+ tracks=dict(original.get('tracks',{}))
+ for action,slot in actions.items():
+  track=iscript.trace(int(key),slot,stop_at_signal=4 if action=='unburrow' else None,include_signals=action in ['burrow','unburrow'],inherit_initial=int(key)==921 and action=='unburrow')
+  if track and action=='burrow' and '4' in track.get('signalTicks',{}):track['transitionTicks']=track['signalTicks']['4']
+  if track and action=='unburrow' and '4' in track.get('signalTicks',{}):track['transitionSignal']=4
+  tracks[action]=track
+ graphics[key]={**original,'tracks':tracks,'sourceImage':int(key),'iscriptId':iscript.image_script(int(key))}
 # Neutral/effect layers and image aliases often share the same original texture.
 # Store identical sprite sheets once, without changing any frame metadata.
 textures={};used=set()

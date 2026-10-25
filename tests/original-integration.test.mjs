@@ -11,6 +11,7 @@ const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
 const fresh=(race='terran',enemyRace=race)=>{const b=new Battle(data,{race,enemyRace});b.begin();return b};
 const complete=(b,type,team=0)=>{const u=b.create(type,team,640,PRODUCTION_OFFSET+1100);u.productionOnly=true;return u};
+const drainDeployments=b=>{let guard=0;while(b.pendingDeployments.some(queue=>queue.length)){b.deploymentBudget=[8,8];assert.ok(b.drainPendingDeployments().length,'rear zone has deployable space');if(++guard>100)throw Error('deployment queue did not drain')}};
 function producerWithClearAddon(b,type,addon){
  for(let y=PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+96;y<=PRODUCTION_OFFSET+PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT-96;y+=32)for(let x=PRODUCTION_GROUND_X+96;x<=PRODUCTION_GROUND_X+PRODUCTION_GROUND_WIDTH-96;x+=32){
   const site=b.placementForTeam(0,type,{x,y});if(site.reason)continue;
@@ -94,15 +95,20 @@ test('production crop uses original buildable mask and L-shaped geyser centers w
  assert.equal(mask.reduce((n,v)=>n+v,0),606);
 });
 
-test('battlefield outposts preserve legacy source-derived gameplay positions independently of upright scenery',()=>{
+test('source temples stay source-derived while mobile objectives use the symmetric adapted layout',()=>{
  const outposts=DESERT_STRIKE.map.objectives.outposts;
  assert.deepEqual(outposts[0],{x:1856/3,y:1632,owner:3,source:{x:624,y:1008}});
  assert.deepEqual(outposts[1],{x:1856/3,y:416,owner:7,source:{x:2448,y:1008}});
+ const layout=DESERT_STRIKE.map.mobileLayout;
+ assert.deepEqual(layout.mains,{'0':{x:640,y:1760},'1':{x:640,y:288}});
+ assert.deepEqual(layout.outposts,{'0':{x:640,y:1280},'1':{x:640,y:768}});
+ assert.equal(layout.mains[0].y-layout.outposts[0].y,480);assert.equal(layout.outposts[1].y-layout.mains[1].y,480);
  const b=fresh();
- assert.deepEqual({x:b.playerOutpost.x,y:b.playerOutpost.y},{x:outposts[0].x,y:outposts[0].y});
- assert.deepEqual({x:b.enemyOutpost.x,y:b.enemyOutpost.y},{x:outposts[1].x,y:outposts[1].y});
- assert.deepEqual(b.laneObjective(0),{id:'outpost-1',x:outposts[1].x,y:outposts[1].y});
- assert.deepEqual(b.laneObjective(1),{id:'outpost-0',x:outposts[0].x,y:outposts[0].y});
+ assert.deepEqual({x:b.main.x,y:b.main.y},layout.mains[0]);assert.deepEqual({x:b.core.x,y:b.core.y},layout.mains[1]);
+ assert.deepEqual({x:b.playerOutpost.x,y:b.playerOutpost.y},layout.outposts[0]);
+ assert.deepEqual({x:b.enemyOutpost.x,y:b.enemyOutpost.y},layout.outposts[1]);
+ assert.deepEqual(b.laneObjective(0),{id:'outpost-1',...layout.outposts[1]});
+ assert.deepEqual(b.laneObjective(1),{id:'outpost-0',...layout.outposts[0]});
 });
 
 test('gas capacity, slot reservation, destruction reuse and simultaneous completion counters',()=>{
@@ -123,9 +129,9 @@ test('shared construction checks prerequisites, geometry and payment for player 
  }
 });
 
-test('tribunal and active-arbiter limits are separate and symmetric; source properties preserve disabled shields',()=>{
- const b=fresh('protoss');for(const team of [0,1]){complete(b,167,team);complete(b,165,team);complete(b,170,team);complete(b,170,team);assert.match(b.teamBuildReason(team,170),/한도/);for(let i=0;i<4;i++)b.spawnWave(team);assert.equal(b.units.filter(u=>u.alive&&u.team===team&&u.type===71).length,3)}
- const m=b.spawnUnit(0,0,0,1,b.main);assert.equal(m.shield,0);const lurker=b.spawnUnit(103,0,0,1,b.main);assert.equal(lurker.burrowed,false);assert.equal(lurker.action,'unburrow');assert.equal(lurker.order,'attackmove');assert.ok(lurker.lurkerTransition>0);
+test('tribunal and active-arbiter limits are separate and symmetric; deployed Lurkers begin on the ground',()=>{
+ const b=fresh('protoss');for(const team of [0,1]){complete(b,167,team);complete(b,165,team);complete(b,170,team);complete(b,170,team);assert.match(b.teamBuildReason(team,170),/한도/);for(let i=0;i<4;i++){b.spawnWave(team);drainDeployments(b)}assert.equal(b.units.filter(u=>u.alive&&u.team===team&&u.type===71).length,3)}
+ const spawning=fresh('protoss');spawning.deploymentBudget=[8,8];const m=spawning.spawnUnit(0,0,0,1,spawning.main);assert.equal(m.shield,0);const lurker=spawning.spawnUnit(103,0,0,1,spawning.main);assert.equal(lurker.burrowed,false);assert.equal(lurker.lurkerState,'ground');assert.equal(lurker.action,'idle');assert.equal(lurker.order,'attackmove');assert.ok(lurker.y>spawning.main.y);
 });
 
 test('special buildings consume once, heal in pulses, replace finite enemy snapshot, and require Archives',()=>{
@@ -140,7 +146,7 @@ export function simulate(race,enemyRace=race){
  const b=fresh(race,enemyRace),history=[];let next=WAVE_SECONDS;
  for(let time=0;time<30*WAVE_SECONDS+.25;time+=.25){
   b.time=time;b.tickIncome(.25);for(const u of [...b.units])if(u.construction)b.tickBotConstruction(u,.25);b.tickSpecials(.25);b.botStep(.25);
-  if(time+.25>=next){b.ai.observe();const snapshot=b.ai.snapshot();snapshot.wave=history.length+1;const before=b.units.filter(u=>u.alive&&u.team===1&&u.laneArmy).length;b.spawnWave(1);const deployed=b.units.filter(u=>u.alive&&u.team===1&&u.laneArmy).length-before;assert.equal(deployed,snapshot.units);snapshot.deployed=deployed;history.push(snapshot);b.waveHistory.push(snapshot);b.units=b.units.filter(u=>!u.laneArmy);next+=WAVE_SECONDS}
+  if(time+.25>=next){b.ai.observe();const snapshot=b.ai.snapshot();snapshot.wave=history.length+1;const before=b.units.filter(u=>u.alive&&u.team===1&&u.laneArmy).length;b.spawnWave(1);drainDeployments(b);const deployed=b.units.filter(u=>u.alive&&u.team===1&&u.laneArmy).length-before;assert.equal(deployed,snapshot.units);snapshot.deployed=deployed;history.push(snapshot);b.waveHistory.push(snapshot);b.units=b.units.filter(u=>!u.laneArmy);next+=WAVE_SECONDS}
  }
  assert.equal(history.length,30);return {b,history};
 }

@@ -6,6 +6,7 @@ import {GAS_BUILDING,INCOME_SECONDS} from '../dist/lane-rules.js';
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url))),extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
 const fresh=(teamSize=3,race='terran',random=()=>0)=>{const b=new Battle(data,{teamSize,race,enemyRace:race,random,difficulty:'hard'});b.begin();return b};
+const drainDeployments=b=>{let guard=0;while(b.pendingDeployments.some(queue=>queue.length)){b.deploymentBudget=[8,8];assert.ok(b.drainPendingDeployments().length,'rear-zone queue has space');if(++guard>100)throw Error('deployment queue did not drain')}};
 test('1v1, 2v2 and 3v3 create real independent commanders, five gas slots each and shared team objectives',()=>{
  for(const size of [1,2,3]){const b=fresh(size);assert.equal(b.teamSize,size);assert.equal(b.commanders.length,size*2);assert.equal(b.commanders.filter(c=>c.human).length,1);assert.equal(b.nodes.length,size*10);
   for(const team of [0,1])assert.equal(b.commanders.filter(c=>c.team===team).length,size);
@@ -35,7 +36,7 @@ test('every commander has its own five-facility cap and gas investment timer',()
 test('simultaneous team waves use each commander production once without hidden multipliers or overlap',()=>{
  for(const size of [1,2,3]){const b=fresh(size);b.botStep=()=>{};
   for(const c of b.commanders){if(c.slot)c.ai.step=()=>{};b.withCommander(c.id,()=>{const u=b.create(111,c.team,500,3200);u.productionOnly=true})}
-  b.waveClock=.01;b.step(.01);
+  b.waveClock=.01;b.step(.01);drainDeployments(b);
   for(const c of b.commanders)assert.equal(b.units.filter(u=>u.laneArmy&&u.commanderId===c.id).length,6);
   const army=b.units.filter(u=>u.laneArmy);assert.equal(army.length,size*12);assert.equal(new Set(army.map(u=>`${u.x},${u.y}`)).size,army.length);assert.equal(b.waveHistory[0].commanders.length,size*2);
  }

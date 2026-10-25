@@ -11,6 +11,7 @@ const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.me
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
 for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);
 const fresh=(race='terran',difficulty='normal')=>{const battle=new Battle(data,{race,enemyRace:race,difficulty});battle.begin();return battle};
+const flushPending=battle=>{let guard=0;while(battle.pendingDeployments.some(queue=>queue.length)){battle.deploymentBudget=[8,8];const spawned=battle.drainPendingDeployments();assert.ok(spawned.length,'rear deployment space is available');if(++guard>100)throw Error('deployment queue did not drain')}};
 
 test('eight Marines form a horizontal rank across producers and keep separate advance lanes',()=>{
  for(const team of [0,1]){
@@ -29,7 +30,7 @@ test('eight Marines form a horizontal rank across producers and keep separate ad
 
 test('extra wave members spawn in following ranks without overlapping the first eight',()=>{
  const battle=fresh();for(let i=0;i<6;i++){const b=battle.create(111,0,200+i*150,PRODUCTION_OFFSET+900);b.productionOnly=true;b.completed=true}
- battle.spawnWave(0);const army=battle.units.filter(u=>u.laneArmy);
+ battle.spawnWave(0);flushPending(battle);const army=battle.units.filter(u=>u.laneArmy);
  assert.equal(new Set(army.map(u=>`${u.x},${u.y}`)).size,36);
  assert.ok(new Set(army.map(u=>u.y)).size>=5);
 });
@@ -81,6 +82,21 @@ test('all races begin with a production base, fixed objectives and five original
  }
 });
 
+test('main and outpost buildings detect cloaked enemies while enemies outside both detector ranges stay hidden',()=>{
+ const battle=fresh(),darkTemplar=battle.create(63,1,0,0);darkTemplar.cloaked=true;
+ darkTemplar.x=battle.main.x+250;darkTemplar.y=battle.main.y;assert.equal(battle.canSee(0,darkTemplar),true,'the main base detector reveals a nearby cloaked unit');
+ darkTemplar.x=battle.main.x+350;assert.equal(battle.canSee(0,darkTemplar),false,'ordinary vision and the outpost do not reveal it outside detector range');
+ const marine=battle.create(65,0,darkTemplar.x-80,darkTemplar.y);assert.equal(battle.canAttackTarget(marine,darkTemplar),false);assert.equal(battle.inspect(darkTemplar),false);
+ darkTemplar.x=battle.playerOutpost.x+250;darkTemplar.y=battle.playerOutpost.y;assert.equal(battle.canSee(0,darkTemplar),true,'the outpost detector covers its own approaches');
+ darkTemplar.x=battle.playerOutpost.x+350;assert.equal(battle.canSee(0,darkTemplar),false);
+});
+
+test('lane production prevents templar fusion from removing the Dark Templar pair',()=>{
+ const battle=fresh('protoss'),templars=[battle.create(61,0,560,900),battle.create(61,0,720,900)];battle.select(templars.map(unit=>unit.id),false);
+ const before=templars.map(unit=>[unit.alive,unit.hp]);assert.ok(!battle.productionOptions(templars[0]).includes(63));assert.match(battle.trainReason(templars[0],63),/합체/);assert.equal(battle.train(templars[0],63),false);
+ assert.deepEqual(templars.map(unit=>[unit.alive,unit.hp]),before);
+});
+
 test('gas buildings use the original race-specific mineral cost and reserve their site while building for five percent time',()=>{
  for(const race of ['terran','zerg','protoss']){
   const battle=fresh(race),type=GAS_BUILDING[race],node=battle.nodes.find(entry=>entry.team===0&&entry.kind==='gas');
@@ -114,19 +130,22 @@ test('completed production buildings always spawn their fixed wave, including un
   battle.supplyCap=()=>0;
   assert.equal(battle.setAutoProduction(producer,null),false);
   battle.spawnWave(0);
+  flushPending(battle);
   assert.equal(battle.units.filter(entry=>entry.team===0&&entry.type===unit&&!entry.productionOnly&&!entry.def.building).length,count);
  }
  const battle=fresh('terran');
  for(let i=0;i<2;i++){const producer=battle.create(111,0,320+i*160,PRODUCTION_OFFSET+768);producer.productionOnly=true;producer.completed=true}
  battle.supplyCap=()=>0;battle.spawnWave(0);
+ flushPending(battle);
  assert.equal(battle.units.filter(entry=>entry.team===0&&entry.type===0&&!entry.productionOnly&&!entry.def.building).length,12);
  assert.equal(BUILDING_WAVES[111][0].unit,0);
 });
 
-test('the central water blocks both side bypasses and waves attack the outpost before the main',()=>{
+test('the field stays flat and unblocked while waves attack the outpost before the main',()=>{
  const battle=fresh('terran');
- assert.equal(battle.map.blocked(128,900),true);
- assert.equal(battle.map.blocked(1152,900),true);
+ assert.deepEqual(battle.map.rocks,[]);
+ assert.equal(battle.map.blocked(128,900),false);
+ assert.equal(battle.map.blocked(1152,900),false);
  assert.equal(battle.map.blocked(640,900),false);
  const marine=battle.spawnUnit(0,0,0,1,{x:640,y:battle.main.y});
  assert.equal(marine.goal.y,battle.enemyOutpost.y);

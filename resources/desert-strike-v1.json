@@ -1722,7 +1722,45 @@
         64,
         160
       ]
-    ]
+    ],
+    "mobileLayout": {
+      "mains": {
+        "0": {
+          "x": 640,
+          "y": 1760
+        },
+        "1": {
+          "x": 640,
+          "y": 288
+        }
+      },
+      "outposts": {
+        "0": {
+          "x": 640,
+          "y": 1280
+        },
+        "1": {
+          "x": 640,
+          "y": 768
+        }
+      },
+      "deploymentZones": {
+        "0": {
+          "left": 32,
+          "top": 1856,
+          "right": 1248,
+          "bottom": 2016
+        },
+        "1": {
+          "left": 32,
+          "top": 32,
+          "right": 1248,
+          "bottom": 192
+        }
+      },
+      "objectiveDetectionRange": 320,
+      "adaptation": "MiniStar mobile layout; not source SCX coordinates"
+    }
   },
   "properties": [
     {
