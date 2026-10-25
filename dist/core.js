@@ -1,6 +1,7 @@
-import {UnitGrid} from './spatial.js?v=0.16.11';
-import {layeredActionSeconds} from './animation.js?v=0.16.11';
-export const VERSION='0.16.11';
+import {UnitGrid} from './spatial.js?v=0.16.12';
+import {layeredActionSeconds} from './animation.js?v=0.16.12';
+import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellEdgeInRange} from './spell-rules.js?v=0.16.12';
+export const VERSION='0.16.12';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
@@ -45,7 +46,12 @@ export class Battle{
   else if(u.def.abilities.includes(command)&&this.cast(u,command,point,target))applied++;
  }
  if(!applied)return false;this.emit('command',{command,point,applied});this.emit('voice',{unit:list[0],kind:'yes'});this.closeMenu();this.emit('change');return true;}
- cast(u,key,p,target){if(!u.alive||u.loaded||u.buffs.stasis>0||u.buffs.lockdown>0||u.buffs.maelstrom>0)return false;const s=SPELLS[key];if(!s)return false;if(u.energy<s[2]&&!(key==='cloak'&&u.cloaked))return false;if(s[3]==='enemy'&&(!target?.alive||target.team===u.team||!this.canSee(u.team,target)))return false;if(s[3]==='ally'&&(!target?.alive||target.team!==u.team))return false;if(s[3]==='point'&&!p)return false;if(target&&dist(u,target)>340&&key!=='recall')return false;if(p&&dist(u,p)>380&&key!=='recall')return false;
+ cast(u,key,p,target){if(!u?.alive||u.hallucination||u.loaded||u.hidden||u.productionOnly||u.def.building||u.buffs.stasis>0||u.buffs.lockdown>0||u.buffs.maelstrom>0)return false;const s=SPELLS[key],rule=SPELL_RULES[key];if(!s)return false;if(u.energy<s[2]&&!(key==='cloak'&&u.cloaked))return false;if(s[3]==='enemy'&&(!target?.alive||target.team===u.team||target.loaded||target.hidden||target.productionOnly||!this.canSee(u.team,target)))return false;if(s[3]==='ally'&&(!target?.alive||target.team!==u.team||target.loaded||target.hidden||target.productionOnly))return false;if(s[3]==='point'&&(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)))return false;if(target&&key!=='recall'&&!spellEdgeInRange(this,u,target,key))return false;if(p&&key!=='recall'&&dist(u,p)>(rule?.range??380))return false;
+  if(key==='feedback'&&!feedbackTargetValid(target)||key==='broodlings'&&!broodlingsTargetValid(target)||key==='mind'&&!mindTargetValid(u,target))return false;
+  if(key==='irradiate'&&(!target?.def.organic||target.def.building))return false;
+  if(key==='matrix'&&(target.def.building||target.matrix>0))return false;
+  if(key==='lockdown'&&(!target.def.mechanical||target.def.building))return false;
+  if(key==='consume'&&(!target.def.organic||target.def.building||target.team!==u.team||target.commanderId!==u.commanderId||target===u))return false;
   if(key==='stim'){if(u.hp<=10)return false;u.hp-=10;u.buffs.stim=15}
   else if(key==='siege'){u.sieged=!u.sieged;u.goal=null;u.path=[];u.order='hold'}
   else if(key==='cloak'){u.cloaked=!u.cloaked;if(!u.cloaked)return true}
@@ -54,23 +60,24 @@ export class Battle{
   else if(key==='unload'){for(const id of u.passengers){const a=this.units.find(a=>a.id===id);if(a){a.loaded=null;a.x=clamp(u.x+Math.random()*45-22,20,1260);a.y=clamp(u.y+Math.random()*45-22,20,2028)}}u.passengers=[]}
   else if(key==='repair'){if(!target.def.mechanical||target===u)return false;u.order='repair';u.target=target;this.setGoal(u,target,'repair');u.target=target}
   else if(key==='mine'){if(!u.mines)return false;u.mines--;const m=this.create(13,u.team,p.x,p.y);m.burrowed=true;m.order='hold'}
-  else if(key==='matrix')target.matrix=250;
-  else if(key==='lockdown'){if(!target.def.mechanical)return false;target.buffs.lockdown=45}
-  else if(key==='mind'){if(target.def.building)return false;target.team=u.team;u.shield=0;this.pruneGroups()}
-  else if(key==='irradiate'){target.buffs.irradiate=25;target.irradiateOwner=u.team}
+  else if(key==='matrix'){target.matrix=rule.shield;target.buffs.matrix=rule.duration}
+  else if(key==='lockdown')target.buffs.lockdown=rule.duration
+  else if(key==='mind'){if(target.hallucination)this.die(target);else{const passengers=(target.passengers||[]).map(id=>this.units.find(a=>a.id===id)).filter(Boolean);target.team=u.team;target.commanderId=u.commanderId;target.target=null;target.goal=null;target.path=[];target.order='attackmove';target.laneArmy=!!u.laneArmy;if(target.laneArmy&&typeof this.laneObjective==='function'){this.setAdvanceGoal(target,this.laneObjective(u.team));target.laneObjectiveId=this.laneObjective(u.team).id}for(const a of passengers){a.team=u.team;a.commanderId=u.commanderId;a.target=null;a.goal=null;a.path=[];a.laneArmy=!!u.laneArmy}this.spatial?.update(target)}u.shield=0;this.pruneGroups()}
+  else if(key==='irradiate'){target.buffs.irradiate=rule.duration;target.irradiateOwner=u.team}
   else if(key==='yamato'){const p={x:u.x,y:u.y,endX:target.x,endY:target.y,target,source:u,team:u.team,image:536,elapsed:0,speed:420,damage:260,spell:true,type:3,splash:[]};p.visual=this.addProjectileVisual(p);p.visualId=p.visual.id;this.projectiles.push(p)}
-  else if(key==='restore')target.buffs={};
-  else if(key==='flare')target.buffs.blind=300;
-  else if(key==='broodlings'){if(!target.def.organic||target.def.air||target.def.building)return false;this.hitUnit(target,target.hp+target.shield+500,u.team,3);for(let i=0;i<2;i++)this.create(40,u.team,target.x+i*22,target.y)}
+  else if(key==='restore'){for(const effect of ['ensnare','irradiate','lockdown','maelstrom','plague','blind'])target.buffs[effect]=0;target.parasite=null;target.irradiateOwner=null}
+  else if(key==='flare')target.buffs.blind=Infinity
+  else if(key==='broodlings'){const x=target.x,y=target.y;this.die(target,u.team);for(let i=0;i<2;i++){const def=this.data.units[40],point=typeof this.deploymentPoint==='function'?this.deploymentPoint(def,u.team,{x:x+(i?10:-10),y:y+(i?10:-10)},20):{x:x+(i?10:-10),y:y+(i?10:-10)};if(point){const a=this.create(40,u.team,point.x,point.y);a.laneArmy=!!u.laneArmy;a.commanderId=u.commanderId;a.expiresAt=this.time+1800/24;if(a.laneArmy&&typeof this.laneObjective==='function'){this.setAdvanceGoal(a,this.laneObjective(u.team));a.laneObjectiveId=this.laneObjective(u.team).id}}}}
   else if(key==='consume'){if(!target.def.organic||target===u)return false;this.die(target);u.energy=Math.min(u.def.energy,u.energy+50)}
-  else if(key==='feedback'){this.hitUnit(target,target.energy,u.team,3);target.energy=0}
-  else if(key==='hallucinate'){if(target.def.building)return false;for(let i=0;i<2;i++){const a=this.create(target.type,u.team,target.x+25*(i+1),target.y);a.hallucination=true;a.buffs.hallucination=60}}
+  else if(key==='feedback'){const damage=target.energy;target.energy=0;this.hitUnit(target,damage,u.team,3,null,u)}
+  else if(key==='hallucinate'){if(target.def.building)return false;for(let i=0;i<2;i++){const a=this.create(target.type,u.team,target.x+25*(i+1),target.y);a.hallucination=true;a.laneArmy=!!u.laneArmy;a.commanderId=u.commanderId;a.buffs.hallucination=SPELL_RULES.hallucinate.duration}}
   else if(key==='parasite')target.parasite=u.team;
   else if(key==='recall'){for(const a of this.allies.filter(a=>dist(a,p)<110&&!a.def.building&&!a.loaded)){a.x=u.x+Math.random()*80-40;a.y=u.y+Math.random()*80-40;a.goal=null;a.path=[]}}
-  else if(key==='emp'){for(const a of this.units.filter(a=>a.alive&&dist(a,p)<96)){a.shield=0;a.energy=0}}
-  else{const durations={storm:3,swarm:30,web:20,plague:20,ensnare:30,stasis:15,maelstrom:12};this.areas.push({kind:key,x:p.x,y:p.y,r:key==='storm'?64:96,left:durations[key]||12,duration:durations[key]||12,team:u.team});}
+  else if(key==='emp'){for(const a of this.nearby(p,rule.radius).filter(a=>a.alive&&a!==u&&!a.buffs.stasis&&pointInSpellArea(a,p,rule.radius))){a.shield=0;a.energy=0}}
+  else if(['ensnare','maelstrom','stasis','plague'].includes(key)){const r=rule.radius,duration=rule.duration;for(const a of this.nearby(p,r).filter(a=>a.alive&&!a.loaded&&a!==u&&pointInSpellArea(a,p,r))){if(key==='ensnare'){if(!a.def.building&&!a.burrowed&&!a.buffs.stasis)a.buffs.ensnare=duration}else if(key==='maelstrom'){if(a.def.organic&&!a.def.building&&!a.buffs.stasis)a.buffs.maelstrom=duration}else if(key==='stasis'){if(!a.def.building&&!a.buffs.stasis)a.buffs.stasis=duration}else if(key==='plague'&&!a.def.building&&!a.buffs.stasis)a.buffs.plague=duration}}
+  else{const duration=rule?.duration??12;this.areas.push({kind:key,x:p.x,y:p.y,r:key==='storm'?rule.radius:rule?.radius||96,halfWidth:rule?.halfWidth,halfHeight:rule?.halfHeight,left:duration,duration,team:u.team,tick:key==='storm'?0:rule?.interval??0,hitIds:new Set()});}
   if(key==='recall'||key==='unload')for(const a of this.units)this.spatial?.update(a);
-  u.energy=Math.max(0,u.energy-s[2]);this.emit('change');return true;
+  u.energy=Math.max(0,u.energy-s[2]);if(!['burrow','siege','cloak'].includes(key)){u.action='cast';u.animTime=0}const spellPoint=p??(target?{x:target.x,y:target.y}:null);if(spellPoint&&['emp','storm','ensnare','maelstrom','plague','stasis','web','swarm'].includes(key))this.effects.push({kind:'spell',spell:key,x:spellPoint.x,y:spellPoint.y,team:u.team,left:.45,duration:.45});this.emit('spell',{casterId:u.id,commanderId:u.commanderId,team:u.team,key,targetId:target?.id??null,point:spellPoint,energyAfter:u.energy});this.emit('change');return true;
  }
  detectedBy(team,u){
   for(const detector of this.nearby(u,(this.spatial?.maxSight||0)+u.r)){
@@ -83,7 +90,7 @@ export class Battle{
   }
   return false;
  }
- canSee(team,u){if(u.team===team)return true;const friends=this.units.filter(a=>a.alive&&!a.loaded&&a.team===team),canObserve=a=>(a.def.air||u.def.air||this.map.heightAt(a.x,a.y)>=this.map.heightAt(u.x,u.y))&&dist(a,u)<(a.buffs.blind>0?64:a.def.sight)+u.r;if(!friends.some(canObserve)&&u.parasite!==team)return false;if((u.cloaked||u.burrowed)&&!u.buffs.ensnare&&!this.detectedBy(team,u))return false;return true;}
+ canSee(team,u){if(u.team===team)return true;const friends=this.units.filter(a=>a.alive&&!a.loaded&&a.team===team),canObserve=a=>(a.def.air||u.def.air||this.map.heightAt(a.x,a.y)>=this.map.heightAt(u.x,u.y))&&dist(a,u)<(a.buffs.blind>0?64:a.def.sight)+u.r;if(!friends.some(canObserve)&&u.parasite!==team)return false;const revealed=!u.burrowed&&(u.buffs.ensnare>0||u.buffs.maelstrom>0||u.buffs.plague>0);if((u.cloaked||u.burrowed)&&!revealed&&!this.detectedBy(team,u))return false;return true;}
  updateVision(){this.fog.fill(0);for(const u of this.units.filter(u=>u.alive&&!u.loaded&&(u.team===0||u.parasite===0))){const r=u.buffs.blind>0?64:u.def.sight;for(let y=Math.max(0,Math.floor((u.y-r)/32));y<=Math.min(63,Math.floor((u.y+r)/32));y++)for(let x=Math.max(0,Math.floor((u.x-r)/32));x<=Math.min(39,Math.floor((u.x+r)/32));x++)if(Math.hypot(x*32+16-u.x,y*32+16-u.y)<r+24)this.explored[y*40+x]=this.fog[y*40+x]=1;}}
  weapon(u,target){if(u.type===103?u.lurkerState!=='burrowed':u.burrowed)return null;const type=u.sieged?30:u.type,def=this.data.units[type]||u.def,w=this.data.weapons[target.def.air?def.airWeapon:def.groundWeapon];if(!w||!w.damage||target.def.air&&!w.air||!target.def.air&&!w.ground)return null;return w;}
  addProjectileVisual(projectile){const id=this.nextProjectileVisualId++,direction=(Math.round(Math.atan2(projectile.endX-projectile.x,projectile.y-projectile.endY)*16/Math.PI)+32)%32,visual={id,shotId:id,kind:'projectile',weaponId:projectile.weapon?.id??null,impactImage:projectile.impactImage??null,image:projectile.image,team:projectile.team,sourceId:projectile.source?.id??null,targetId:projectile.target?.id??null,missed:!!projectile.missed,x:projectile.x,y:projectile.y,startX:projectile.x,startY:projectile.y,endX:projectile.endX,endY:projectile.endY,direction,age:0,flightElapsed:0,arrived:false,firstRendered:false,trail:[]};this.projectileVisuals.push(visual);if(this.projectileVisuals.length>512)this.projectileVisuals.splice(0,this.projectileVisuals.length-512);return visual;}
@@ -192,9 +199,10 @@ export class Battle{
  tickUnit(u,dt){
   if(!u.alive){u.animTime+=dt;u.visualTime=(u.visualTime||0)+dt;return}
   if(u.loaded){const transport=this.units.find(a=>a.id===u.loaded);if(transport){u.x=transport.x;u.y=transport.y}return}
-  for(const k in u.buffs)u.buffs[k]=Math.max(0,u.buffs[k]-dt);
+  const oldIrradiate=u.buffs.irradiate||0,oldPlague=u.buffs.plague||0,irradiateOwner=u.irradiateOwner;for(const k in u.buffs)if(u.buffs[k]!==Infinity)u.buffs[k]=Math.max(0,u.buffs[k]-dt);if(oldIrradiate>0&&u.buffs.irradiate===0)u.irradiateOwner=null;if(oldPlague>0&&u.buffs.plague===0)u.plagueOwner=null;if(u.buffs.matrix===0)u.matrix=0;
   if(u.buffs.hallucination===0&&u.hallucination){this.die(u);return}
-  if(u.buffs.irradiate>0)for(const t of this.nearby(u,40).filter(a=>a.alive&&a.def.organic&&dist(a,u)<40))this.hurt(t,10*dt,u.irradiateOwner,3,true);
+  const irradiateDt=Math.min(dt,oldIrradiate);if(irradiateDt>0){const owner=irradiateOwner??u.team,targets=u.burrowed?[u]:this.nearby(u,this.spatialRange(32,true)).filter(a=>a.alive&&!a.def.building&&a.def.organic&&(a===u||!a.burrowed)&&this.edgeDistance(u,a)<=32);for(const t of targets)this.hurt(t,(SPELL_RULES.irradiate.damage/SPELL_RULES.irradiate.duration)*irradiateDt,owner,3,true)}
+  const plagueDt=Math.min(dt,oldPlague);if(plagueDt>0&&u.hp>1)u.hp=Math.max(1,u.hp-(SPELL_RULES.plague.damage/SPELL_RULES.plague.duration)*plagueDt);
   if(u.cloaked&&!u.def.cloak){u.energy-=.9*dt;if(u.energy<=0)u.cloaked=false}else u.energy=Math.min(u.def.energy,u.energy+.5625*dt);
   if(u.shield<u.def.shield)u.shield=Math.min(u.def.shield,u.shield+.65*dt);
   if(u.def.race==='zerg')u.hp=Math.min(u.maxHp,u.hp+.015*dt);
@@ -207,8 +215,8 @@ export class Battle{
   if(u.order==='repair'&&u.target?.alive){const t=u.target;if(this.edgeDistance(u,t)<=20&&this.money>0){const amount=Math.min(12*dt,t.maxHp-t.hp,this.money*4);t.hp+=amount;this.money-=amount/4}else this.move(u,t,dt);return;}
   const mayAttack=u.order!=='move';let target=null;
   if(mayAttack){const w=u.target&&this.weapon(u,u.target),edge=u.target&&this.edgeDistance(u,u.target),holdValid=u.order!=='hold'||w&&edge<=w.range&&edge>=(w.minRange||0);if(this.canAttackTarget(u,u.target)&&holdValid&&(u.order==='focus'||dist(u,u.target)<=u.def.sight+u.r+u.target.r)){target=u.target;u.targetReviewClock=(u.targetReviewClock||0)-dt;if(u.order!=='focus'&&u.targetReviewClock<=0){target=this.betterTarget(u,target);u.targetReviewClock=.45}}else{u.target=null;target=this.acquireTarget(u)}if(target&&target!==u.target){u.target=target;u.attackPathTarget=null;u.attackPath=[];u.attackStall=0}}
-  if(target&&mayAttack){const w=this.weapon(u,target),edge=this.edgeDistance(u,target),inRange=edge<=w.range&&edge>=(w.minRange||0),inWeb=this.areas.some(a=>a.kind==='web'&&dist(a,u)<a.r),inSwarm=!target.def.air&&this.areas.some(a=>a.kind==='swarm'&&dist(a,target)<a.r);
-   if(inRange){u.combatMoving=true;u.attackPath=[];u.attackPathTarget=target.id;u.attackStall=0;u.attackRetries=0;if(u.cooldown===0&&!inWeb&&!(inSwarm&&w.range>40&&!(u.type===103&&w.id===109)))this.attack(u,target,w);return}
+  if(target&&mayAttack){const w=this.weapon(u,target),edge=this.edgeDistance(u,target),inRange=edge<=w.range&&edge>=(w.minRange||0),inWeb=this.areas.some(a=>a.kind==='web'&&!u.def.air&&Math.abs(u.x-a.x)<=a.halfWidth+u.r&&Math.abs(u.y-a.y)<=a.halfHeight+u.r),inSwarm=!target.def.air&&this.areas.some(a=>a.kind==='swarm'&&Math.abs(target.x-a.x)<=a.halfWidth+target.r&&Math.abs(target.y-a.y)<=a.halfHeight+target.r);
+  if(inRange){u.combatMoving=true;u.attackPath=[];u.attackPathTarget=target.id;u.attackStall=0;u.attackRetries=0;if(u.cooldown===0&&!inWeb&&!(inSwarm&&w.range>40&&!(u.type===103&&w.id===109)))this.attack(u,target,w);return}
    if(u.order!=='hold'){
     u.combatMoving=true;u.aiClock-=dt;
     if(u.attackPathTarget!==target.id||!u.attackPath?.length&&u.aiClock<=0||u.attackTargetPoint&&dist(u.attackTargetPoint,target)>20){const approach=this.approachPath(u,target,Math.max(w.minRange||0,w.range-3));u.attackTargetPoint={x:target.x,y:target.y};u.attackPathTarget=target.id;u.attackPath=approach?.path||[];u.aiClock=.55;if(!approach){u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.25;u.target=null;u.attackPathTarget=null}}
@@ -224,7 +232,7 @@ export class Battle{
  simulateStep(dt){this.time+=dt;this.timeLeft=Math.max(0,(this.timeLimit??300)-this.time);for(const u of [...this.units]){this.tickUnit(u,dt);this.spatial?.update(u)};this.tickLurkerSpines(dt);const mobile=this.units.filter(u=>u.alive&&!u.loaded&&!u.def.building&&!u.sieged&&!u.burrowed);this.separateUnits(mobile,dt);
 
   for(const p of this.projectiles){p.elapsed+=dt;if(p.target?.alive&&!p.missed){p.endX=p.target.x;p.endY=p.target.y}const d=Math.hypot(p.endX-p.x,p.endY-p.y),n=p.speed*dt;if(p.visual){p.visual.endX=p.endX;p.visual.endY=p.endY;p.visual.flightElapsed=p.elapsed;if(p.visual.trail.length===0||Math.hypot(p.x-p.visual.trail.at(-1).x,p.y-p.visual.trail.at(-1).y)>=2){p.visual.trail.push({x:p.x,y:p.y});if(p.visual.trail.length>3)p.visual.trail.shift()}}if(d<=n){p.done=true;if(p.spell){if(p.target?.alive)this.hitUnit(p.target,p.damage,p.team,p.type,null,p.source)}else if(p.weapon)this.weaponImpact(p.target,p.weapon,p.damage,p.team,p.type,{x:p.endX,y:p.endY},p.missed,p.source);if(p.visual){p.visual.arrived=true;p.visual.x=p.endX;p.visual.y=p.endY;p.visual.endX=p.endX;p.visual.endY=p.endY;p.visual.flightElapsed=p.elapsed}}else{p.x+=(p.endX-p.x)/d*n;p.y+=(p.endY-p.y)/d*n;if(p.visual){p.visual.x=p.x;p.visual.y=p.y;p.visual.direction=(Math.round(Math.atan2(p.endX-p.x,p.y-p.endY)*16/Math.PI)+32)%32}}}this.projectiles=this.projectiles.filter(p=>!p.done);
-  for(const a of this.areas){a.left-=dt;for(const u of this.nearby(a,a.r).filter(u=>u.alive&&!u.loaded&&dist(u,a)<a.r)){if(a.kind==='storm')this.hurt(u,112/3*dt,a.team,3,true);if(a.kind==='plague'&&u.hp>1)u.hp=Math.max(1,u.hp-15*dt);if(a.kind==='ensnare')u.buffs.ensnare=2;if(a.kind==='stasis')u.buffs.stasis=Math.max(u.buffs.stasis||0,a.left);if(a.kind==='maelstrom'&&u.def.organic)u.buffs.maelstrom=Math.max(u.buffs.maelstrom||0,a.left)}}this.areas=this.areas.filter(a=>a.left>0);this.effects=this.effects.filter(f=>(f.left-=dt)>0);this.tickProjectileVisuals(dt);this.visionTimer-=dt;if(this.visionTimer<=0){this.visionTimer=.15;this.updateVision()}if(!this.core?.alive)this.finish(true,'적 핵심 건물을 파괴했습니다.');else if(!this.allies.length)this.finish(false,'아군 병력이 전멸했습니다.');else if(this.timeLeft<=0)this.finish(false,'전투 제한시간이 종료되었습니다.');}
+  const stormHits=new Set();for(const a of this.areas){a.left-=dt;if(a.kind==='storm'){a.tick-=dt;if(a.tick<=0&&(a.pulses||0)<8){a.pulses=(a.pulses||0)+1;for(const u of this.nearby(a,a.r).filter(u=>u.alive&&!u.loaded&&!stormHits.has(u.id)&&dist(u,a)<a.r)){stormHits.add(u.id);this.hurt(u,SPELL_RULES.storm.damage,a.team,3,true)}a.tick+=SPELL_RULES.storm.interval}}}this.areas=this.areas.filter(a=>a.left>0);this.effects=this.effects.filter(f=>(f.left-=dt)>0);this.tickProjectileVisuals(dt);this.visionTimer-=dt;if(this.visionTimer<=0){this.visionTimer=.15;this.updateVision()}if(!this.core?.alive)this.finish(true,'적 핵심 건물을 파괴했습니다.');else if(!this.allies.length)this.finish(false,'아군 병력이 전멸했습니다.');else if(this.timeLeft<=0)this.finish(false,'전투 제한시간이 종료되었습니다.');}
  separateUnits(mobile,dt){
   const order=new Map(mobile.map((u,i)=>[u,i]));
   for(let i=0;i<mobile.length;i++){

@@ -78,6 +78,10 @@ button:active{background:#283722}button.active,button[aria-pressed=true]{color:#
 #commandGrid .command-card small{white-space:normal;line-height:1.35;letter-spacing:0;color:#a4b5a1;font-size:9px}
 #commandGrid .command-card b{line-height:1.35;word-break:keep-all}
 #commandGrid .command-card:disabled{opacity:.5}
+#commandGrid .building-card{position:relative;padding-top:28px}
+#commandGrid .building-card>.command-cost{position:absolute;top:5px;right:6px;display:inline-flex;align-items:center;gap:3px;min-height:18px;color:#dfe8cc;font:600 10px/18px ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;pointer-events:none}
+#commandGrid .building-card>.command-cost img{display:block;width:15px;height:15px;object-fit:contain}
+#commandGrid .building-card>.command-building-icon{width:32px;height:28px;object-fit:contain}
 #commandHint{font-size:10px;color:#8d9b96;line-height:1.5;margin:0 0 10px}
 #productionQueue{max-width:100%;margin-top:5px}
 .production-progress{position:relative;background:#060d09;border:1px solid #536850;min-height:19px;overflow:hidden}

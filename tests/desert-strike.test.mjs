@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {Battle} from '../dist/autobattle.js';
-import {DESERT_STRIKE,BUILDING_COSTS,BUILDING_WAVES,GAS_BUILDING,PRODUCTION_OFFSET,WAVE_SECONDS,INCOME_SECONDS} from '../dist/lane-rules.js';
+import {DESERT_STRIKE,BUILDING_COSTS,BUILDING_WAVES,GAS_BUILDING,PRODUCTION_OFFSET,WAVE_SECONDS,INCOME_SECONDS,spawningPoolYield} from '../dist/lane-rules.js';
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
@@ -57,6 +57,12 @@ test('all multi-unit building groups accumulate without supply limits or per-wav
  assert.deepEqual(DESERT_STRIKE.poolBonusThreshold,[6,8]);
  const expected={0:{0:0,1:5,5:25,6:31,7:37,8:43,9:49},1:{0:0,1:5,5:25,6:30,7:35,8:41,9:47}};
  for(const team of [0,1])for(const n of [0,1,5,6,7,8,9]){const b=fresh('zerg');for(let i=0;i<n;i++)producer(b,142,team);assert.equal(b.activeWave(team).get(37)||0,expected[team][n],`team ${team} with ${n} pools`)}
+});
+
+test('Spawning Pool preview shows the exact added Zergling count at each original team threshold',()=>{
+ assert.equal(spawningPoolYield(0,0),5);assert.equal(spawningPoolYield(4,0),5);assert.equal(spawningPoolYield(5,0),6);assert.equal(spawningPoolYield(6,0),6);
+ assert.equal(spawningPoolYield(6,1),5);assert.equal(spawningPoolYield(7,1),6);assert.equal(spawningPoolYield(8,1),6);
+ for(const [team,threshold]of [[0,6],[1,8]]){const b=fresh('zerg');for(let i=0;i<threshold-1;i++)producer(b,142,team);assert.equal(spawningPoolYield(b.waveProducers(team).filter(u=>u.type===142).length,team),6)}
 });
 
 test('pool bonus counts only completed living grounded pools owned by the current commander',()=>{

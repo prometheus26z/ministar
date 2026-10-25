@@ -1,4 +1,4 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.11';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.12';
 
 export function healthBarPixels(nominal){
  let original=Math.max(19,Math.min(81,Math.floor(nominal)));
@@ -45,7 +45,7 @@ export function constructionVisual(unit,data){
 export function waveDescription(type,groups,data){
  const id=Number(type);
  if(!groups?.length)return DESERT_STRIKE.buildingRoles?.[id]||'출격 없음';
- return groups.map(({unit,count})=>`${data.units[unit].name} ${id===142?'5~6':count}기`).join(' · ');
+ return groups.map(({unit,count})=>`${data.units[unit].name} ${count}기`).join(' · ');
 }
 
 export function buildingDestruction(unit){
