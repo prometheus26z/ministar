@@ -18,14 +18,14 @@ Continue PR #1 on `codex/fix-map-combat-lurker-animations` in `prometheus26z/min
 
 ## Follow-up implementation
 
-The handoff follow-up is implemented locally on this branch. The remaining items below distinguish verified work from the one source-data limitation.
+The handoff follow-up is implemented on `codex/fix-map-combat-lurker-animations` at commit `9164fdd5f8a0c71b1836153a8a9d1f5b50809c48`. GitHub Actions run 41 passed. The remaining items below distinguish verified work from the one source-data limitation.
 
 - A clean `npm run build` restored all 1,205 packed assets and all 68 original animation files. `npm run audit:animations` reports zero missing overlay graphics.
 - `npm test` passes 109 JavaScript tests and 3 Python tests. The map geometry regression now reads the two placed Temple objects (unit 174, owners 3 and 7), rather than nearby Start Location markers (unit 214).
 - The build derives the battlefield positions from those original Temple placements using the terrain's 90-degree rotation and centered crop. Team 0 is at (618.667, 1632); team 1 is at (618.667, 416). Battle setup and the attack-move objective use those derived coordinates.
 - The death-visual cap is 12 seconds. The longest recovered playable-unit death/corpse track is 11.25 seconds (Ultralisk), so it is no longer cut off by the previous 8-second cap. A mobile DPR-2 stress profile with 76 units, 40 retained corpses and 12-second corpse visibility measured an 11.6 ms p95 frame callback (under the 16.7 ms 60 Hz budget); no pose cache was added.
 - Both Chromium suites pass: the general 390 × 844 mobile/cache test and the original layered-sprite/death-timing suite. A mixed Archon/Lurker mobile wave with retained corpses was also inspected in the real renderer.
-- `git diff --check` is clean. CI for the pending follow-up commit still needs to run after the branch is pushed.
+- `git diff --check` is clean. CI run 41 passed the clean resource build, animation audit, full test suite, mobile browser test, and visual artifact upload. The deploy job was skipped for this PR.
 
 ### Remaining source-data limitation
 
