@@ -6,7 +6,7 @@ import {waveDescription} from '../dist/presentation.js';
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
-const fresh=()=>{const b=new Battle(data);b.begin();return b};
+const fresh=()=>{const b=new Battle(data,{enemyRace:'terran'});b.begin();return b};
 
 test('enemy inspection highlights a living unit without selecting it for allied commands',()=>{
  const b=fresh(),enemy=b.outpostDefenses[1][0],ally=b.outpostDefenses[0][0];

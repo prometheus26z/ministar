@@ -10,7 +10,7 @@ const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
 for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);
-const fresh=(race='terran',difficulty='normal')=>{const battle=new Battle(data,{race,difficulty});battle.begin();return battle};
+const fresh=(race='terran',difficulty='normal')=>{const battle=new Battle(data,{race,enemyRace:race,difficulty});battle.begin();return battle};
 
 test('eight Marines form a horizontal rank across producers and keep separate advance lanes',()=>{
  for(const team of [0,1]){

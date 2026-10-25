@@ -1,12 +1,14 @@
-import {LaneAI} from './lane-ai.js?v=0.15.0';
-import {SATISFIES} from './tech.js?v=0.15.0';
-import {gasSlots,productionTileAllowed} from './lane-rules.js?v=0.15.0';
-import {buildingDestruction} from './presentation.js?v=0.15.0';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.15.0';
-import {clamp,dist} from './core.js?v=0.15.0';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.15.0';
+import {LaneAI} from './lane-ai.js?v=0.15.1';
+import {SATISFIES} from './tech.js?v=0.15.1';
+import {gasSlots,productionTileAllowed} from './lane-rules.js?v=0.15.1';
+import {buildingDestruction} from './presentation.js?v=0.15.1';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.15.1';
+import {clamp,dist} from './core.js?v=0.15.1';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.15.1';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
+export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
+export function randomEnemyRace(random=Math.random){return ENEMY_RACES[Math.min(2,Math.max(0,Math.floor(random()*3)))]}
 
 export class Battle extends EconomyBattle{
  constructor(data,options={}){
@@ -21,7 +23,7 @@ export class Battle extends EconomyBattle{
   this.builder=null;
   this.wrecks=[];this.outpostDefenses=[[],[]];this.incomeRemaining=[INCOME_SECONDS,INCOME_SECONDS];this.gasInvestmentLevel=[0,0];
   this.menuMode='build';
-  this.enemyRace=options.enemyRace||this.race;
+  this.enemyRace=ENEMY_RACES.includes(options.enemyRace)?options.enemyRace:randomEnemyRace(options.random);
   this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
  }
  get battleTimeScale(){return 1}

@@ -7,7 +7,7 @@ import {Battle as LaneBattle} from '../dist/autobattle.js';
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
-const lane=(race='protoss')=>{const b=new LaneBattle(data,{race,difficulty:'easy'});b.begin();b.botStep=()=>{};b.waveClock=99999;return b};
+const lane=(race='protoss')=>{const b=new LaneBattle(data,{race,enemyRace:race,difficulty:'easy'});b.begin();b.botStep=()=>{};b.waveClock=99999;return b};
 const combat=()=>{const b=new CombatBattle(data,{race:'terran'});b.phase='battle';return b};
 
 test('eight Protoss Zealots reach and damage the durable temple outpost',()=>{

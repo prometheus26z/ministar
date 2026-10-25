@@ -6,7 +6,7 @@ import {DESERT_STRIKE,BUILDING_COSTS,BUILDING_WAVES,GAS_BUILDING,PRODUCTION_OFFS
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
-const fresh=(race='terran')=>{const b=new Battle(data,{race});b.begin();b.botStep=()=>{};return b};
+const fresh=(race='terran')=>{const b=new Battle(data,{race,enemyRace:race});b.begin();b.botStep=()=>{};return b};
 const producer=(b,type,team=0)=>{const u=b.create(type,team,640,PRODUCTION_OFFSET+900);u.productionOnly=true;return u};
 function gas(b,slot,team=0,ready=true){const n=b.nodes.find(n=>n.team===team&&n.slot===slot),u=producer(b,GAS_BUILDING[b.race],team);u.x=n.x;u.y=n.y;u.gasNode=n.id;n.occupiedBy=u.id;u.completed=ready;if(!ready)u.construction={time:0,total:100,started:true};return u}
 

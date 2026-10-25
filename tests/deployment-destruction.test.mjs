@@ -6,7 +6,7 @@ import {buildingDestruction} from '../dist/presentation.js';
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
-const fresh=(race='terran')=>{const b=new Battle(data,{race});b.begin();b.weapon=()=>null;b.autoCast=()=>{};return b};
+const fresh=(race='terran')=>{const b=new Battle(data,{race,enemyRace:race});b.begin();b.weapon=()=>null;b.autoCast=()=>{};return b};
 
 test('36-unit waves on both sides spawn clear of HQ and turrets and every member leaves the base',()=>{
  for(const team of [0,1]){

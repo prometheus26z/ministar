@@ -17,11 +17,11 @@ async function testLegacyMigration(browser,direct=false){
    await caches.open('other-app-cache');
   },legacyHtml);
   await page.reload();assert.equal(await page.locator('#legacy').innerText(),'v0.1.1');
-  legacy=false;if(direct)await page.goto(url+'?v=0.15.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
+  legacy=false;if(direct)await page.goto(url+'?v=0.15.1');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
   await page.locator('#title').waitFor({state:'visible'});
-  assert.equal(await page.locator('.top small').innerText(),'v0.15.0');
+  assert.equal(await page.locator('.top small').innerText(),'v0.15.1');
   assert.equal(await page.locator('#offline').count(),0);
-  assert.equal(new URL(page.url()).searchParams.get('v'),'0.15.0');
+  assert.equal(new URL(page.url()).searchParams.get('v'),'0.15.1');
   assert.deepEqual(await page.evaluate(async()=>(await caches.keys()).sort()),['other-app-cache']);
   assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);
   assert.equal(await page.evaluate(()=>localStorage.getItem('ministar.records')),'[{"win":true}]');
@@ -43,7 +43,7 @@ for(const viewport of [{width:405,height:594},{width:390,height:600},{width:360,
  assert.equal(before.y,after.y);assert.equal(before.height,after.height);
  assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=viewport.width&&box.y+box.height<=viewport.height);
  assert.equal(await page.locator('select:visible').count(),0);
- await page.getByRole('option',{name:'어려움 · 강화 방어선'}).click();
+ await page.getByRole('option',{name:'어려움 · 적극 대응'}).click();
  assert.equal(await page.locator('#difficulty').inputValue(),'hard');
  assert.equal(await page.getByRole('listbox').count(),0);
  await page.locator('#difficultyTrigger').click();await page.keyboard.press('Escape');
