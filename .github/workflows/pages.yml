@@ -24,6 +24,8 @@ jobs:
           node-version: '22'
       - name: Restore and verify original resources
         run: npm run build
+      - name: Verify generated building catalog documentation
+        run: npm run docs:buildings:check
       - name: Verify complete original animation assets
         run: npm run audit:animations
       - name: Test simulation, static server and resource paths

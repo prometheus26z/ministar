@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {Battle} from '../dist/autobattle.js';
 import {waveDescription} from '../dist/presentation.js';
+import {DESERT_STRIKE,BUILDING_WAVES,isLaneBuildingAvailable} from '../dist/lane-rules.js';
+import {BUILDINGS} from '../dist/tech.js';
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
@@ -20,6 +22,18 @@ test('construction labels include every output group and non-producing structure
  const b=fresh();assert.equal(waveDescription(111,b.waveUnitsForBuilding(111),data),'마린 6기');
  assert.equal(waveDescription(112,b.waveUnitsForBuilding(112),data),'파이어뱃 1기 · 메딕 1기');
  assert.match(waveDescription(106,b.waveUnitsForBuilding(106),data),/건설 기반/);
+});
+
+test('all 50 building explanations reflect source production, current roles and lane PUNI catalog',()=>{
+ assert.equal(Object.keys(BUILDINGS).length,50);assert.equal(Object.keys(DESERT_STRIKE.costs).length,50);assert.equal(Object.keys(BUILDING_WAVES).length,28);
+ for(const id of Object.keys(BUILDINGS).map(Number)){
+  const groups=BUILDING_WAVES[id];
+  if(groups){const expected=groups.map(({unit,count})=>`${data.units[unit].name} ${id===142?'5~6':count}기`).join(' · ');assert.equal(waveDescription(id,groups,data),expected,`building ${id}`)}
+  else assert.equal(waveDescription(id,null,data),DESERT_STRIKE.buildingRoles[id],`building ${id} role`);
+ }
+ assert.equal(waveDescription(120,null,data),'원본 맵에서 건설 불가');
+ assert.equal(isLaneBuildingAvailable(120,0),false);assert.equal(isLaneBuildingAvailable(117,0),true);
+ assert.equal(BUILDINGS[117].addon,116);assert.equal(BUILDINGS[120].addon,113,'the non-lane Brood War production graph remains intact');
 });
 
 function setup(crew){const b=fresh(),bunker=b.makeBunker(0,640,1568);for(const u of b.units)if(u!==bunker&&u.garrison)u.garrison=[];bunker.garrison=crew;return{b,bunker}}
