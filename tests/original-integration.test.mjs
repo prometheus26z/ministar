@@ -51,7 +51,7 @@ test('shared construction checks prerequisites, geometry and payment for player 
 
 test('tribunal and active-arbiter limits are separate and symmetric; source properties preserve disabled shields',()=>{
  const b=fresh('protoss');for(const team of [0,1]){complete(b,167,team);complete(b,165,team);complete(b,170,team);complete(b,170,team);assert.match(b.teamBuildReason(team,170),/한도/);for(let i=0;i<4;i++)b.spawnWave(team);assert.equal(b.units.filter(u=>u.alive&&u.team===team&&u.type===71).length,3)}
- const m=b.spawnUnit(0,0,0,1,b.main);assert.equal(m.shield,0);const lurker=b.spawnUnit(103,0,0,1,b.main);assert.equal(lurker.burrowed,true);
+ const m=b.spawnUnit(0,0,0,1,b.main);assert.equal(m.shield,0);const lurker=b.spawnUnit(103,0,0,1,b.main);assert.equal(lurker.burrowed,false);assert.equal(lurker.action,'unburrow');assert.equal(lurker.order,'attackmove');assert.ok(lurker.lurkerTransition>0);
 });
 
 test('special buildings consume once, heal in pulses, replace finite enemy snapshot, and require Archives',()=>{
