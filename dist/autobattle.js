@@ -1,12 +1,12 @@
-import {LaneAI} from './lane-ai.js?v=0.16.12';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.12';
-import {SATISFIES} from './tech.js?v=0.16.12';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.12';
-import {buildingDestruction} from './presentation.js?v=0.16.12';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.12';
-import {clamp,dist} from './core.js?v=0.16.12';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.12';
-import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.12';
+import {LaneAI} from './lane-ai.js?v=0.16.13';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.13';
+import {SATISFIES} from './tech.js?v=0.16.13';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.13';
+import {buildingDestruction} from './presentation.js?v=0.16.13';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.13';
+import {clamp,dist} from './core.js?v=0.16.13';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.13';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.13';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -33,7 +33,7 @@ export class Battle extends EconomyBattle{
  }
  get battleTimeScale(){return 1}
  get timeScale(){return 1}
- powered(unit){if(unit?.sourceProducer)return this.units.some(u=>u.id===unit.sourceProducer&&this.ready(u));if(unit?.productionOnly&&unit.def.race==='protoss')return true;return super.powered(unit)}
+  powered(unit){if(unit?.sourceProducer)return this.units.some(u=>u.id===unit.sourceProducer&&this.ready(u));return super.powered(unit)}
  get nextWave(){return Math.max(0,this.waveClock)}
  get supply(){return this.allies.filter(u=>u.commanderId===0&&!u.hidden&&!u.def.building&&!u.egg).reduce((n,u)=>n+u.def.supply,0)}
  supplyCap(team=0){return Math.min(200,this.units.filter(u=>u.alive&&u.team===team&&u.commanderId===this.ownerByTeam[team]&&this.ready(u)).reduce((n,u)=>n+(this.race==='zerg'&&[131,132,133].includes(u.type)?10:BUILDINGS[u.type]?.supply||(u.type===42?8:0)),0))}
@@ -57,7 +57,7 @@ export class Battle extends EconomyBattle{
  begin(){
   if(this.phase!=='title')return false;
   this.phase='battle';this.paused=false;this.time=0;this.timeLeft=Infinity;this.ownerByTeam=[0,3];this.commanders=[];
-  this.units=[];this.projectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;
+  this.units=[];this.creepFields.clear();this.creepClock=0;this.projectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;
   this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
   this.money=DESERT_STRIKE.startingMinerals;this.gas=0;this.botMoney=DESERT_STRIKE.startingMinerals;this.botGas=0;this.maxSupply=200;
   this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.waveClock=WAVE_SECONDS;
@@ -68,7 +68,7 @@ export class Battle extends EconomyBattle{
   for(const team of [0,1])for(const node of gasSlots(team))this.addGasNode(team,node.x,node.y,node.slot);
   for(const team of [0,1]){const town=this.create(BASE[this.raceFor(team)],team,640,PRODUCTION_OFFSET+1056);town.productionOnly=true;town.startingBase=true;}
   this.installDefenses(0,player);this.installDefenses(1,enemy);
-  this.incomeRemaining=[INCOME_SECONDS,INCOME_SECONDS];this.gasInvestmentLevel=[0,0];for(const [key,id]of Object.entries(TECH_IDS))if(DESERT_STRIKE.technologies[id]?.researched)this.researched.add(key);this.installCommanders();this.refreshSupply();this.updateVision();this.select([],false);this.emit('phase');this.emit('change');return true;
+  this.incomeRemaining=[INCOME_SECONDS,INCOME_SECONDS];this.gasInvestmentLevel=[0,0];for(const [key,id]of Object.entries(TECH_IDS))if(DESERT_STRIKE.technologies[id]?.researched)this.researched.add(key);this.installCommanders();this.initializeCreepFields();this.refreshSupply();this.updateVision();this.select([],false);this.emit('phase');this.emit('change');return true;
  }
  emit(type,rest={}){if(this.commanderScopeDepth){this.commanderEvents.push([type,rest]);return}return super.emit(type,rest)}
  commanderIdFor(team,slot=0){return team*3+slot}
@@ -159,18 +159,22 @@ export class Battle extends EconomyBattle{
  }
  buildingOptions(worker){return super.buildingOptions(worker).filter(type=>isLaneBuildingAvailable(type,worker?.commanderId??0))}
  buildReason(worker,type){return this.teamBuildReason(0,Number(type))}
- placementForTeam(team,type,point,parent=null){
+  placementForTeam(team,type,point,parent=null,{ignorePsi=false,ignoreCreep=false}={}){
   const size=this.footprint(type),spec=BUILDINGS[type],p={x:Math.round((point.x-size[0]/2)/32)*32+size[0]/2,y:Math.round((point.y-PRODUCTION_OFFSET-size[1]/2)/32)*32+size[1]/2+PRODUCTION_OFFSET};
   let gasNode=null;
   if(spec?.gas){gasNode=this.nodes.find(n=>n.team===team&&n.commanderId===this.ownerByTeam[team]&&!n.occupiedBy&&dist(n,point)<56);if(!gasNode)return {point:p,reason:'비어 있는 가스 지점에 건설하세요.'};p.x=gasNode.x;p.y=gasNode.y}
   for(let y=p.y-size[1]/2+16;y<p.y+size[1]/2;y+=32)for(let x=p.x-size[0]/2+16;x<p.x+size[0]/2;x+=32)if(!productionTileAllowed(x,y,team))return {point:p,reason:'건설할 수 없는 지형입니다.'};
   for(const u of this.units)if(u.alive&&this.ownsProduction(u,team)&&u.def.building&&u!==parent){const [w,h]=this.footprint(u.type);if(Math.abs(u.x-p.x)<(w+size[0])/2&&Math.abs(u.y-p.y)<(h+size[1])/2)return {point:p,reason:'건물이 겹칩니다.'}}
-  for(const n of this.nodes)if(n.team===team&&n.commanderId===this.ownerByTeam[team]&&n!==gasNode&&Math.abs(n.x-p.x)<(128+size[0])/2&&Math.abs(n.y-p.y)<(64+size[1])/2)return {point:p,reason:'가스 지점과 겹칩니다.'};
+   for(const n of this.nodes)if(n.team===team&&n.commanderId===this.ownerByTeam[team]&&n!==gasNode&&Math.abs(n.x-p.x)<(128+size[0])/2&&Math.abs(n.y-p.y)<(64+size[1])/2)return {point:p,reason:'가스 지점과 겹칩니다.'};
+   const commanderId=this.ownerByTeam[team];
+   if(spec?.psi&&!ignorePsi&&!this.pylonsFor(p,team,commanderId).length)return {point:p,reason:'파일런의 전력 범위 안에 건설하세요.'};
+   if(spec?.creep&&!ignoreCreep&&!this.onCreep(p,size,team,commanderId))return {point:p,reason:'크립 위에 건설하세요.'};
   return {point:p,reason:'',gasNode};
  }
  placement(worker,type,point){const reason=this.buildReason(worker,Number(type));return reason?{point,reason}:this.placementForTeam(0,Number(type),point)}
- startConstruction(team,type,result,parent=null,morph=false){
-  const reason=this.teamBuildReason(team,type,parent,morph);if(reason||result.reason)return false;
+  startConstruction(team,type,result,parent=null,morph=false){
+   const reason=this.teamBuildReason(team,type,parent,morph);if(reason)return false;
+   if(!morph){if(!result?.point)return false;result=this.placementForTeam(team,type,result.point,parent);if(result.reason)return false}
   const def=this.data.units[type],cost=this.buildingCost(type);if(team)this.botMoney-=cost[0];else this.money-=cost[0];
   this.spendingHistory.push({time:this.time,team,commanderId:this.ownerByTeam[team],type,minerals:cost[0]});
   if(morph){parent.completed=false;parent.construction={time:0,total:this.constructionSeconds(type),started:true,cost:[...cost],original:{type:parent.type,hp:parent.hp,shield:parent.shield},nextType:type};return parent}
@@ -286,11 +290,11 @@ export class Battle extends EconomyBattle{
  botBuild(plan){return this.ai.build(plan.type)}
  botBuildGas(){return this.ai.build(GAS_BUILDING[this.enemyRace])}
  botStep(dt){this.ai.step(dt)}
- tickBotConstruction(u,dt){
+  tickBotConstruction(u,dt){
   const c=u.construction;if(!c)return false;
   u.animTime+=dt;c.time=Math.min(c.total,c.time+dt);const def=this.data.units[c.nextType||u.type];
   if(!c.original){u.hp=Math.min(u.maxHp,u.hp+u.maxHp*.9*dt/c.total);u.shield=Math.min(u.def.shield,u.shield+u.def.shield*.9*dt/c.total)}
-  if(c.time>=c.total){if(c.nextType){u.type=c.nextType;u.def=this.data.units[u.type];u.maxHp=u.def.hp;u.hp=u.maxHp;u.shield=u.def.shield}u.completed=true;u.construction=null;u.action='idle';this.deployDefense(u);this.emit('change')}
+   if(c.time>=c.total){if(c.nextType){u.type=c.nextType;u.def=this.data.units[u.type];u.maxHp=u.def.hp;u.hp=u.maxHp;u.shield=u.def.shield}u.completed=true;u.construction=null;u.action='idle';if(BUILDINGS[u.type]?.creepSource)this.registerCreepSource(u);this.deployDefense(u);this.emit('change')}
   return true;
  }
  deployDefense(u){

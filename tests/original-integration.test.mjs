@@ -122,6 +122,7 @@ test('gas capacity, slot reservation, destruction reuse and simultaneous complet
 
 test('shared construction checks prerequisites, geometry and payment for player and AI',()=>{
  for(const race of ['terran','zerg','protoss']){const b=fresh(race);const type={terran:111,zerg:142,protoss:160}[race];b.botMoney=10000;
+  if(race==='protoss'){assert.ok(b.ai.build(156));const pylon=b.units.find(u=>u.team===1&&u.type===156&&u.construction);b.tickBotConstruction(pylon,pylon.construction.total)}
   const before=b.botMoney;assert.ok(b.ai.build(type));const u=b.units.find(u=>u.team===1&&u.type===type&&u.construction);assert.equal(b.botMoney,before-b.buildingCost(type)[0]);assert.equal(b.activeWave(1).size,0);
   b.tickBotConstruction(u,u.construction.total);assert.ok(b.activeWave(1).size>0);b.die(u,0);assert.equal(b.activeWave(1).size,0);
   assert.equal(b.ai.build({terran:118,zerg:140,protoss:169}[race]),false,'cannot skip prerequisites');

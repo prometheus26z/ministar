@@ -206,3 +206,5 @@ body[data-inspect=no] #panel .unit-info::before{display:none}
 @media(max-width:370px){.match-settings .select-trigger{font-size:9px}}
 
 #productionSide,#productionSeat{top:104px}
+
+#bootRetry{min-width:130px;margin-top:8px}

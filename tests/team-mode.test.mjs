@@ -16,11 +16,11 @@ test('1v1, 2v2 and 3v3 create real independent commanders, five gas slots each a
  assert.equal(fresh(100).teamSize,1);
 });
 test('allied construction and prerequisites are isolated while buildings at matching board positions coexist',()=>{
- const b=fresh(3,'protoss',()=>.9),ally=b.commanders.find(c=>c.id===1);ally.economy.minerals=5000;const playerMoney=b.money;
+ const b=fresh(3,'protoss',()=>.9),ally=b.commanders.find(c=>c.id===1);ally.economy.minerals=5000+b.buildingCost(156)[0];const playerMoney=b.money;
  const cyber=b.withCommander(1,()=>{const u=b.create(164,0,700,3300);u.productionOnly=true;return u});
  assert.equal(cyber.commanderId,1);assert.equal(b.hasTeam(0,164),false);assert.equal(b.withCommander(1,()=>b.hasTeam(0,164)),true);assert.match(b.teamBuildReason(0,163),/필요/);
- b.withCommander(1,()=>{assert.ok(ally.ai.build(160));assert.equal(b.money,4720)});assert.equal(ally.economy.minerals,4720);assert.equal(b.money,playerMoney);
- const allied=b.units.find(u=>u.commanderId===1&&u.type===160);b.money=1000;assert.equal(b.placement(b.builder,160,allied).reason,'');
+ b.withCommander(1,()=>{assert.ok(ally.ai.build(156));const pylon=b.units.find(u=>u.commanderId===1&&u.type===156&&u.construction);b.tickBotConstruction(pylon,pylon.construction.total);assert.ok(ally.ai.build(160));assert.equal(b.money,4720)});assert.equal(ally.economy.minerals,4720);assert.equal(b.money,playerMoney);
+ const allied=b.units.find(u=>u.commanderId===1&&u.type===160);b.withCommander(0,()=>{const pylon=b.create(156,0,allied.x+(allied.x<640?160:-160),allied.y);pylon.productionOnly=true});b.money=1000;assert.equal(b.placement(b.builder,160,allied).reason,'');
  b.inspect(allied);assert.equal(b.selected.length,0);assert.equal(b.inspectedUnit,allied);assert.equal(b.commanderWave(1,allied.id).size,0,'unfinished allied buildings do not produce');
  const balance=b.money,events=[];b.on(e=>{if(e.type==='change')events.push(b.money)});b.withCommander(1,()=>b.tickBotConstruction(allied,100));assert.ok(events.every(m=>m===balance),'UI events must observe restored human economy');assert.equal(b.commanderWave(1).get(65),4);assert.equal(b.commanderWave(0).size,0);
 });

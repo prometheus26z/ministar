@@ -1,7 +1,7 @@
-import {UnitGrid} from './spatial.js?v=0.16.12';
-import {layeredActionSeconds} from './animation.js?v=0.16.12';
-import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellEdgeInRange} from './spell-rules.js?v=0.16.12';
-export const VERSION='0.16.12';
+import {UnitGrid} from './spatial.js?v=0.16.13';
+import {layeredActionSeconds} from './animation.js?v=0.16.13';
+import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellEdgeInRange} from './spell-rules.js?v=0.16.13';
+export const VERSION='0.16.13';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.

@@ -1,4 +1,4 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.12';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.13';
 
 export function healthBarPixels(nominal){
  let original=Math.max(19,Math.min(81,Math.floor(nominal)));
@@ -39,7 +39,12 @@ export function constructionVisual(unit,data){
   const stage=Math.min(2,Math.floor(progress*3)),start=[1,12,21][stage];
   return{image:102,frame:start+Math.floor(task.time*12)%7,progress};
  }
- return{image:208,warp:true,progress};
+  const buildFrames=Math.max(1,Number(data.units[unit.type]?.buildTime)||task.total),anchorFrames=4,textureFrames=20,flashFrames=48,frame=progress*(buildFrames+anchorFrames+textureFrames+flashFrames);
+  if(frame<buildFrames)return{warp:true,phase:'anchor',anchorAction:'idle',anchorTime:frame/24,progress,sourceFrame:frame};
+  if(frame<buildFrames+anchorFrames)return{warp:true,phase:'anchor',anchorAction:'anchorSpecial',anchorTime:(frame-buildFrames)/24,progress,sourceFrame:frame};
+  if(frame<buildFrames+anchorFrames+textureFrames)return{warp:true,phase:'texture',textureFrame:Math.min(19,Math.floor(frame-buildFrames-anchorFrames)),progress,sourceFrame:frame};
+  const flashFrame=Math.min(flashFrames-1,Math.floor(frame-buildFrames-anchorFrames-textureFrames));
+  return{warp:true,phase:'flash',textureFrame:Math.max(0,19-flashFrame*20/flashFrames),flashFrame,flashProgress:Math.min(1,flashFrame/(flashFrames-1)),progress,sourceFrame:frame};
 }
 
 export function waveDescription(type,groups,data){

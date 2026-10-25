@@ -27,6 +27,7 @@ test('difficulty changes reaction and observation speed without changing origina
 });
 test('hard AI prioritizes a paid anti-air response to observed aircraft before its technology reservation',()=>{
  for(const race of ENEMY_RACES){const b=fresh('hard',race);b.botMoney=5000;
+  if(race==='protoss'){assert.ok(b.ai.build(156));const pylon=b.units.find(u=>u.team===1&&u.type===156&&u.construction);b.tickBotConstruction(pylon,pylon.construction.total)}
   const type={terran:111,zerg:142,protoss:160}[race];assert.ok(b.ai.build(type));const basic=b.units.find(u=>u.team===1&&u.type===type);b.tickBotConstruction(basic,100);
   for(let i=0;i<12;i++)b.create(8,0,450+i*20,900).laneArmy=true;
   const money=b.botMoney;b.botStep(.25);const counter={terran:113,zerg:135,protoss:164}[race];assert.equal(b.spendingHistory.at(-1).type,counter);assert.equal(b.botMoney,money-b.buildingCost(counter)[0]);

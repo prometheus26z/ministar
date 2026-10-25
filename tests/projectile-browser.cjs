@@ -18,7 +18,7 @@ const {createServer}=require('../server.cjs');
     let source=fs.readFileSync(path.join(__dirname,'../dist/app.js'),'utf8');
     source=source.replace('function drawProjectileFallback(visual,color,alpha){','function drawProjectileFallback(visual,color,alpha){window.__projectileFallbacks||=[];window.__projectileFallbacks.push(visual.image);');
     source=source.replace('function drawHydraContactFallback(visual){','function drawHydraContactFallback(visual){window.__projectileContactFallbacks=(window.__projectileContactFallbacks||0)+1;');
-    source+='\nwindow.__projectileTest={get battle(){return battle},get camera(){return camera},get failedImages(){return [...failedImages]},fire(kind,distance=120,y=1120){const b=battle,type=kind===\'dragoon\'?66:38,a=b.create(type,0,640-distance/2,y),t=b.create(0,1,640+distance/2,y);t.order=\'move\';const w=b.weapon(a,t),before=t.hp;b.attack(a,t,w);camera.x=640;camera.y=1120;camera.zoom=1.2;limitCamera();return{sourceId:a.id,targetId:t.id,visualId:b.projectileVisuals.find(v=>v.sourceId===a.id)?.id,hp:before,weapon:w.id}},probeFallbacks(){const b=battle;for(const image of [524,503])b.addProjectileVisual({x:600,y:1200,endX:620,endY:1200,image,team:0});}};';
+    source+='\nwindow.__projectileTest={get battle(){return battle},get camera(){return camera},get failedImages(){return [...failedImages.keys()]},fire(kind,distance=120,y=1120){const b=battle,type=kind===\'dragoon\'?66:38,a=b.create(type,0,640-distance/2,y),t=b.create(0,1,640+distance/2,y);t.order=\'move\';const w=b.weapon(a,t),before=t.hp;b.attack(a,t,w);camera.x=640;camera.y=1120;camera.zoom=1.2;limitCamera();return{sourceId:a.id,targetId:t.id,visualId:b.projectileVisuals.find(v=>v.sourceId===a.id)?.id,hp:before,weapon:w.id}},probeFallbacks(){const b=battle;for(const image of [524,503])b.addProjectileVisual({x:600,y:1200,endX:620,y:1200,image,team:0});}};';
     route.fulfill({contentType:'application/javascript',body:source});
    });
    const start=Date.now(),url='http://127.0.0.1:'+server.address().port+'/ministar/';
@@ -36,16 +36,17 @@ const {createServer}=require('../server.cjs');
    assert.ok(dragoonFrames.samples.some(frame=>frame?.firstRendered),'the short flight survives until a frame is rendered');
    assert.ok(new Set(dragoonFrames.samples.filter(Boolean).map(frame=>frame.x)).size>1,'successive frames show the projectile moving');
    assert.ok(dragoonFrames.hp<dragoon.hp,'the original projectile still applies its hit');
-   assert.ok(dragoonFrames.failures.some(url=>url.includes('523_blue.webp')),'the delayed URL is recorded as failed after the timeout');
    assert.ok(dragoonFrames.fallbacks.includes(523),'the dragoon uses its directional fallback after the image timeout');
+   await page.waitForFunction(()=>window.__projectileTest.failedImages.some(url=>url.includes('523_blue.webp')),null,{timeout:9000});
+   assert.ok((await page.evaluate(()=>window.__projectileTest.failedImages)).some(url=>url.includes('523_blue.webp')),'the delayed URL is recorded as failed after the retry timeout');
    await page.screenshot({path:'/tmp/ministar-projectile-dragoon.png'});
 
    const hydra=await page.evaluate(()=>window.__projectileTest.fire('hydra',120,1160));
-   const hydraFrames=await page.evaluate(async id=>{
+   const hydraFrames=await page.evaluate(async ({sourceId,targetId})=>{
     const b=window.__projectileTest.battle;await new Promise(requestAnimationFrame);
-    const visuals=b.projectileVisuals.filter(v=>v.sourceId===id||v.targetId===id);
-    return{visuals:visuals.map(v=>({kind:v.kind,firstRendered:v.firstRendered,missed:v.missed})),contactFallbacks:window.__projectileContactFallbacks||0,failures:window.__projectileTest.failedImages,targetHp:b.units.find(u=>u.id===id)?.hp};
-   },hydra.targetId);
+    const visuals=b.projectileVisuals.filter(v=>v.sourceId===sourceId);
+    return{visuals:visuals.map(v=>({kind:v.kind,firstRendered:v.firstRendered,missed:v.missed})),contactFallbacks:window.__projectileContactFallbacks||0,failures:window.__projectileTest.failedImages,targetHp:b.units.find(u=>u.id===targetId)?.hp};
+   },{sourceId:hydra.sourceId,targetId:hydra.targetId});
    assert.deepEqual(hydraFrames.visuals.map(v=>v.kind),['hitscan','contact']);
    assert.ok(hydraFrames.visuals.every(v=>v.firstRendered),'the sting and contact flash reach the first rendered frame');
    assert.ok(hydraFrames.contactFallbacks>0,'a missing 504 contact image uses its short green flash fallback');
