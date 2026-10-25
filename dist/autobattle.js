@@ -225,6 +225,7 @@ export class Battle extends EconomyBattle{
   const u=this.create(type,team,point.x,point.y);
   u.order='attackmove';u.laneArmy=true;u.laneOffset=spread;const objective=this.laneObjective(team);this.setAdvanceGoal(u,objective);u.laneObjectiveId=objective.id;
   const prop=DESERT_STRIKE.properties[type===103?2:3];if(prop){u.hp=u.maxHp*prop.hp/100;u.shield=u.def.shield*prop.shield/100;u.energy=(u.def.energy||0)*prop.energy/100;if(prop.specialValid&2)u.burrowed=!!(prop.status&2)}
+  if(type===103&&u.burrowed){u.burrowed=false;u.action='unburrow';u.animTime=0;u.lurkerTransition=this.animationDuration(u,'unburrow');u.lurkerResumeOrder='attackmove';this.setAdvanceGoal(u,objective)}
   if(team===0)this.produced++;return u;
  }
  spawnWave(team){
@@ -289,25 +290,48 @@ export class Battle extends EconomyBattle{
   if(u.hidden){u.animTime+=dt;return}
   if(u.productionOnly){if(u.construction)this.withCommander(u.commanderId,()=>this.tickBotConstruction(u,dt));else if(!u.def.building&&!u.hidden)u.animTime+=dt;return}
   if(u.team===1&&u.construction){this.tickBotConstruction(u,dt);return}
+  if((u.lurkerTransition||0)>0){u.animTime+=dt;u.lurkerTransition=Math.max(0,u.lurkerTransition-dt);if(u.lurkerTransition>0)return}
   if(!u.def.building&&u.laneArmy)this.maintainAdvance(u,dt);
   if(!u.def.building&&!u.loaded)this.autoCast(u);
   super.tickUnit(u,dt);
  }
  weapon(u,target){
   if(target.productionOnly||u.productionOnly||u.garrison)return null;
-  if(u.laneArmy&&!target.def.building&&Math.abs(target.x-640)>240&&dist(u,target)>96)return null;
   if(u.isFortification&&this.raceFor(u.team)==='terran'){
    const weapon=this.data.weapons[target.def.air?u.def.airWeapon:u.def.groundWeapon];
    return weapon&&weapon.damage&&(!target.def.air||weapon.air)&& (target.def.air||weapon.ground)?weapon:null;
   }
   return super.weapon(u,target);
  }
+ animationDuration(u,action,fallback=.45){
+  const ticks=Number(this.data.graphics[u.def.image]?.tracks?.[action]?.ticks),seconds=ticks/24;
+  return Math.max(.12,Math.min(2,Number.isFinite(seconds)&&seconds>0?seconds:fallback));
+ }
+ lurkerThreatInRange(u){
+  const weapon=this.data.weapons[u.def.groundWeapon];
+  if(!weapon?.damage||!weapon.ground)return false;
+  return this.units.some(t=>t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.def.air&&!t.buffs?.stasis&&this.canSee(u.team,t)&&this.edgeDistance(u,t)<=weapon.range&&this.edgeDistance(u,t)>=(weapon.minRange||0));
+ }
+ cast(u,key,p,target){
+  const laneLurker=u.type===103&&u.laneArmy&&key==='burrow',resume=u.lurkerResumeOrder||'attackmove';
+  const cast=super.cast(u,key,p,target);if(!cast||!laneLurker)return cast;
+  u.lurkerResumeOrder=resume;u.lurkerTransition=this.animationDuration(u,u.action);
+  if(u.burrowed){u.order='hold';u.goal=null;u.path=[]}
+  else if(u.lurkerResumeOrder==='attackmove'){const objective=this.laneObjective(u.team);u.laneObjectiveId=objective.id;this.setAdvanceGoal(u,objective)}
+  return cast;
+ }
  autoCast(u){
-  const abilities=this.availableAbilities(u);if(!abilities.length)return;
+  const abilities=this.availableAbilities(u);
+  if(u.type===103&&u.laneArmy&&abilities.includes('burrow')){
+   const inRange=this.lurkerThreatInRange(u);
+   if(u.burrowed&&!inRange)this.cast(u,'burrow');else if(!u.burrowed&&inRange)this.cast(u,'burrow');
+   return;
+  }
+  if(!abilities.length)return;
   if(abilities.includes('stim')&&u.buffs.stim<=0&&u.hp>20&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<160))this.cast(u,'stim');
   if(abilities.includes('siege')&&!u.sieged&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<260))this.cast(u,'siege');
   if(abilities.includes('cloak')&&!u.cloaked&&u.energy>=25&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<240))this.cast(u,'cloak');
-  if(abilities.includes('burrow')&&!u.burrowed&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<110))this.cast(u,'burrow');
+  if(u.type!==103&&abilities.includes('burrow')&&!u.burrowed&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<110))this.cast(u,'burrow');
  }
  step(dt){
   super.step(dt);if(this.phase!=='battle')return;

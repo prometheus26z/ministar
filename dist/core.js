@@ -92,12 +92,35 @@ export class Battle{
   const waypoint=m.healPath[0],before={x:m.x,y:m.y};this.moveCombat(m,waypoint,dt);if(dist(m,waypoint)<5)m.healPath.shift();if(dist(m,before)<.05){m.healStall=(m.healStall||0)+dt;if(m.healStall>.45){m.healPath=[];m.healPathClock=0;m.healStall=0}}else m.healStall=0;m.action='walk';return true;
  }
  hurt(u,damage,team,type=3,ignore=false){if(!u.alive||u.buffs.stasis>0)return 0;if(u.hallucination)damage*=2;const before=u.hp+u.shield;if(u.matrix){const n=Math.min(u.matrix,damage);u.matrix-=n;damage-=n}if(u.shield){const n=Math.min(u.shield,damage);u.shield-=n;damage-=n}if(damage>0){let factor=type===1?[1,.5,.75,1][u.def.size]||1:type===2?[1,1,.5,.25][u.def.size]||1:1;u.hp-=ignore?damage:Math.max(.5,damage*factor-u.def.armor)}const dealt=Math.max(0,before-Math.max(0,u.hp)-u.shield);if(team===0)this.damageDone+=dealt;if(u.hp<=0)this.die(u,team);return dealt;}
- die(u,team=-1){if(!u.alive)return;const death=this.data.graphics[u.def.image]?.tracks?.death?.sounds||[];if(death.length)this.emit('sfx',{id:death[Math.floor(Math.random()*death.length)]});u.alive=false;u.hp=0;u.deathTime=this.time;u.action='death';u.animTime=0;if(u.team===0)this.losses++;else if(team===0&&!u.def.building)this.kills++;for(const id of u.passengers||[]){const a=this.units.find(a=>a.id===id);if(a)this.die(a,team)}this.pruneGroups();this.emit('selection');}
+ die(u,team=-1){
+  if(!u.alive)return;
+  const deathTrack=this.data.graphics[u.def.image]?.tracks?.death,death=deathTrack?.sounds||[];
+  if(death.length)this.emit('sfx',{id:death[Math.floor(Math.random()*death.length)]});
+  const trackSeconds=Number(deathTrack?.ticks)/24;
+  u.deathDuration=Math.max(.2,Math.min(8,Number.isFinite(trackSeconds)&&trackSeconds>0?trackSeconds:1.8));
+  u.alive=false;u.hp=0;u.deathTime=this.time;u.action='death';u.animTime=0;
+  if(u.team===0)this.losses++;else if(team===0&&!u.def.building)this.kills++;
+  for(const id of u.passengers||[]){const a=this.units.find(a=>a.id===id);if(a)this.die(a,team)}
+  this.pruneGroups();this.emit('selection');
+ }
  uphillMiss(attacker,target,weapon){return !attacker.def.air&&!target.def.air&&weapon.range>=40&&this.map.heightAt(target.x,target.y)>this.map.heightAt(attacker.x,attacker.y)&&Math.random()<HIGH_GROUND_MISS_CHANCE;}
  missPoint(attacker,target){const angle=Math.random()*Math.PI*2,distance=24+Math.random()*24;return{x:target.x+Math.cos(angle)*distance,y:target.y+Math.sin(angle)*distance}}
  weaponImpact(target,weapon,damage,team,type,point,missed=false,attacker=null){if(!missed&&target?.alive){this.hitUnit(target,damage,team,type,point,attacker)}const [inner=0,medium=0,outer=0]=weapon.splash||[];if(!outer)return;for(const unit of this.units){if(!unit.alive||unit.loaded||unit.team===team||unit===target&&!missed||unit.def.air&&!weapon.air||!unit.def.air&&!weapon.ground)continue;const range=dist(unit,point),factor=range<=inner?1:range<=medium?.5:range<=outer?.25:0;if(factor)this.hitUnit(unit,damage*factor,team,type,null,attacker)}}
  hitUnit(u,damage,team,type,point=null,attacker=null){const hp=u.hp,shield=u.shield,matrix=u.matrix;this.hurt(u,damage,team,type);const hpLoss=hp-Math.max(0,u.hp),shieldLoss=shield-u.shield,matrixLoss=matrix-u.matrix;if(hpLoss>0||shieldLoss>0||matrixLoss>0){const source=attacker?.id?this.units.find(a=>a.id===attacker.id):null;if(source?.alive)this.onUnitDamaged(u,source)}}
- onUnitDamaged(victim,source){if(!this.unitThreatens(source,victim))return;const setAggro=u=>{if(!this.unitThreatens(u,source)||!this.canAttackTarget(u,source))return;u.aggroTarget=source.id;u.aggroUntil=this.time+4;const newW=this.weapon(u,source);if(!newW)return;const old=this.canAttackTarget(u,u.target)?u.target:null,oldW=old&&this.weapon(u,old),newEdge=this.edgeDistance(u,source),newInRange=newEdge<=newW.range&&newEdge>=(newW.minRange||0),oldInRange=old&&this.edgeDistance(u,old)<=oldW.range&&this.edgeDistance(u,old)>=(oldW.minRange||0);if(u.order==='move'||u.order==='focus'&&old||u.order==='hold'&&!newInRange||dist(u,source)>u.def.sight+u.r+source.r)return;if(!old||newInRange&&!oldInRange)u.target=source};setAggro(victim);for(const ally of this.units){if(ally===victim||!ally.alive||ally.loaded||ally.team!==victim.team||[7,41,64,67].includes(ally.type)||ally.burrowed||dist(ally,victim)>96||!this.unitThreatens(ally,source))continue;setAggro(ally)}}
+ onUnitDamaged(victim,source){
+  if(!this.unitThreatens(source,victim))return;
+  const setAggro=u=>{
+   if(!this.unitThreatens(u,source)||!this.canAttackTarget(u,source))return;
+   u.aggroTarget=source.id;u.aggroUntil=this.time+4;
+   const newW=this.weapon(u,source);if(!newW)return;
+   const old=this.canAttackTarget(u,u.target)?u.target:null,oldW=old&&this.weapon(u,old),newEdge=this.edgeDistance(u,source),newInRange=newEdge<=newW.range&&newEdge>=(newW.minRange||0),oldInRange=old&&this.edgeDistance(u,old)<=oldW.range&&this.edgeDistance(u,old)>=(oldW.minRange||0);
+   if(u.order==='move'||u.order==='focus'&&old||u.order==='hold'&&!newInRange||dist(u,source)>u.def.sight+u.r+source.r)return;
+   const oldIsAttackingUnit=old?.target===u&&['attack','airAttack'].includes(old.action);
+   if(!old||!oldIsAttackingUnit||newInRange&&!oldInRange)u.target=source;
+  };
+  setAggro(victim);
+  for(const ally of this.units){if(ally===victim||!ally.alive||ally.loaded||ally.team!==victim.team||[7,41,64,67].includes(ally.type)||ally.burrowed||dist(ally,victim)>96||!this.unitThreatens(ally,source))continue;setAggro(ally)}
+ }
  attack(u,t,w){u.cooldown=w.cooldown/(u.buffs.stim>0?1.5:1);u.action=t.def.air?'airAttack':'attack';u.animTime=0;u.direction=(Math.round(Math.atan2(t.x-u.x,u.y-t.y)*16/Math.PI)+32)%32;const sounds=this.data.graphics[u.def.image]?.tracks?.[u.action]?.sounds||[];if(sounds.length)this.emit('sfx',{id:sounds[Math.floor(Math.random()*sounds.length)]});const damage=u.hallucination?0:w.damage*(u.type===125?4:u.type===72?4:1)*(w.factor||1)*(t.def.air?u.def.airHits||1:u.def.groundHits||1),missed=this.uphillMiss(u,t,w),impact=missed?this.missPoint(u,t):{x:t.x,y:t.y};if(w.behavior===2||w.range<40)this.weaponImpact(t,w,damage,u.team,w.type,impact,missed,u);else this.projectiles.push({x:u.x,y:u.y,endX:impact.x,endY:impact.y,target:t,source:u,team:u.team,image:w.image,elapsed:0,speed:Math.max(180,w.speed||400),damage,type:w.type,splash:w.splash,weapon:w,missed});if([13,47,85].includes(u.type))this.die(u);}
  move(u,p,dt){if(u.def.building||u.burrowed||u.sieged)return false;const speed=u.def.speed*(u.buffs.stim>0?1.5:1)*(u.buffs.ensnare>0?.5:1),d=dist(u,p);if(d<3)return false;const n=Math.min(d,speed*dt),x=u.x+(p.x-u.x)/d*n,y=u.y+(p.y-u.y)/d*n;u.direction=(Math.round(Math.atan2(p.x-u.x,u.y-p.y)*16/Math.PI)+32)%32;if(u.def.air||!this.map.blocked(x,y,u.r*.55)){u.x=x;u.y=y;u.action='walk';return true}return false;}
  tickUnit(u,dt){

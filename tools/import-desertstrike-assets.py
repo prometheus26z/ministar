@@ -34,6 +34,17 @@ original.resize((960,960)).save(root/'docs/desertstrike-original-terrain.webp','
 original.crop((0,0,1056,608)).save(dest/'production.webp','WEBP',quality=90)
 # Rotate the complete source image, preserving connected tile edges. Sampling
 # isolated MTXM cells onto a new grid would destroy the original transitions.
-field=original.crop((0,0,3072,2080)).transpose(Image.Transpose.ROTATE_90).resize((1280,2048),Image.Resampling.LANCZOS)
+field=original.crop((0,0,3072,2080)).transpose(Image.Transpose.ROTATE_90)
+# Keep the source scale uniform: the rotated crop is 2080x3072, while the
+# battlefield viewport is 1280x2048 (5:8). Center-crop to that ratio before
+# resizing so units and terrain details are not squeezed horizontally.
+target_ratio=1280/2048
+if field.width/field.height>target_ratio:
+ target_width=round(field.height*target_ratio);left=(field.width-target_width)//2
+ field=field.crop((left,0,left+target_width,field.height))
+else:
+ target_height=round(field.width/target_ratio);top=(field.height-target_height)//2
+ field=field.crop((0,top,field.width,top+target_height))
+field=field.resize((1280,2048),Image.Resampling.LANCZOS)
 field.save(dest/'battlefield.webp','WEBP',quality=90)
 print('Imported Desert terrain, crystal formation and temple sprites')
