@@ -1,4 +1,4 @@
-import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellEdgeInRange} from './spell-rules.js?v=0.16.11';
+import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellEdgeInRange} from './spell-rules.js?v=0.16.12';
 
 const value=u=>Math.max(25,(u.def.cost?.[0]||0)+1.5*(u.def.cost?.[1]||0));
 const valid=u=>u?.alive&&!u.loaded&&!u.hidden&&!u.productionOnly&&!u.buffs?.stasis;

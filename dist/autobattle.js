@@ -1,15 +1,17 @@
-import {LaneAI} from './lane-ai.js?v=0.16.11';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.11';
-import {SATISFIES} from './tech.js?v=0.16.11';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.11';
-import {buildingDestruction} from './presentation.js?v=0.16.11';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.11';
-import {clamp,dist} from './core.js?v=0.16.11';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.11';
-import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.11';
+import {LaneAI} from './lane-ai.js?v=0.16.12';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.12';
+import {SATISFIES} from './tech.js?v=0.16.12';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.12';
+import {buildingDestruction} from './presentation.js?v=0.16.12';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.12';
+import {clamp,dist} from './core.js?v=0.16.12';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.12';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.12';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
+// User-requested mobile AI tuning: move half a world tile inside weapon range before burrowing.
+const LURKER_BURROW_MARGIN=16;
 export function randomEnemyRace(random=Math.random){return ENEMY_RACES[Math.min(2,Math.max(0,Math.floor(random()*3)))]}
 
 export class Battle extends EconomyBattle{
@@ -37,7 +39,7 @@ export class Battle extends EconomyBattle{
  supplyCap(team=0){return Math.min(200,this.units.filter(u=>u.alive&&u.team===team&&u.commanderId===this.ownerByTeam[team]&&this.ready(u)).reduce((n,u)=>n+(this.race==='zerg'&&[131,132,133].includes(u.type)?10:BUILDINGS[u.type]?.supply||(u.type===42?8:0)),0))}
  armySupply(team=0){return this.units.filter(u=>u.alive&&u.team===team&&!u.hidden&&!u.def.building&&!u.egg).reduce((n,u)=>n+u.def.supply,0)}
  refreshSupply(){this.maxSupply=this.supplyCap(0)}
- canSee(team,u){return u?.team===team||!(u?.cloaked||u?.burrowed)||!!u?.buffs?.ensnare||this.detectedBy(team,u)}
+ canSee(team,u){return u?.team===team||!(u?.cloaked||u?.burrowed)||!u.burrowed&&(u.buffs.ensnare>0||u.buffs.maelstrom>0||u.buffs.plague>0)||this.detectedBy(team,u)}
  updateVision(){this.fog.fill(1);this.explored.fill(1)}
  get inspectedUnit(){return this.units.find(u=>u.id===this.inspectedId&&u.alive&&!u.hidden&&!u.loaded&&this.canSee(0,u))||null}
  isHighlighted(u){return this.selection.includes(u.id)||this.inspectedId===u.id&&this.inspectedUnit===u}
@@ -55,7 +57,7 @@ export class Battle extends EconomyBattle{
  begin(){
   if(this.phase!=='title')return false;
   this.phase='battle';this.paused=false;this.time=0;this.timeLeft=Infinity;this.ownerByTeam=[0,3];this.commanders=[];
-  this.units=[];this.projectiles=[];this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;
+  this.units=[];this.projectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;
   this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
   this.money=DESERT_STRIKE.startingMinerals;this.gas=0;this.botMoney=DESERT_STRIKE.startingMinerals;this.botGas=0;this.maxSupply=200;
   this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.waveClock=WAVE_SECONDS;
@@ -337,7 +339,8 @@ export class Battle extends EconomyBattle{
  }
  beforeUnitActions(u,dt){
   if(!u.def.building&&u.laneArmy)this.maintainAdvance(u,dt);
-  if(!u.def.building&&!u.loaded)this.autoCast(u);
+  if(u.type===103&&u.laneArmy){if(this.updateLaneLurker(u,dt))return false}
+  else if(!u.def.building&&!u.loaded)this.autoCast(u);
   if(u.type===103&&['burrowing','unburrowing'].includes(u.lurkerState))return false;
   return super.beforeUnitActions(u,dt);
  }
@@ -354,10 +357,27 @@ export class Battle extends EconomyBattle{
   const seconds=transitionSeconds(this.data.graphics[u.def.image],action,fallback,u.lurkerAnimSeed||0);
   return Math.max(1/24,seconds);
  }
- lurkerThreatInRange(u){
-  const weapon=this.data.weapons[u.def.groundWeapon];
-  if(!weapon?.damage||!weapon.ground)return false;
-  return this.nearby(u,this.spatialRange(weapon.range+u.r,true)).some(t=>t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.def.air&&!t.buffs?.stasis&&this.canSee(u.team,t)&&this.edgeDistance(u,t)<=weapon.range&&this.edgeDistance(u,t)>=(weapon.minRange||0));
+ lurkerThreats(u,range=this.data.weapons[u.def.groundWeapon]?.range||0){
+  const weapon=this.data.weapons[u.def.groundWeapon];if(!weapon?.damage||!weapon.ground)return[];
+  return this.nearby(u,this.spatialRange(range+u.r,true)).filter(t=>t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.def.air&&!t.buffs?.stasis&&this.canSee(u.team,t)&&this.edgeDistance(u,t)<=range&&this.edgeDistance(u,t)>=(weapon.minRange||0)).sort((a,b)=>this.edgeDistance(u,a)-this.edgeDistance(u,b)||a.id-b.id);
+ }
+ lurkerThreatInRange(u){return this.lurkerThreats(u).length>0}
+ clearLaneLurkerApproach(u){u.lurkerApproachPath=[];u.lurkerApproachTargetId=null;u.lurkerApproachPoint=null;u.lurkerApproachClock=0;u.lurkerApproachStall=0;u.lurkerApproachNoPath=false;u.lurkerApproachLastX=null;u.lurkerApproachLastY=null}
+ updateLaneLurker(u,dt){
+  if(['burrowing','unburrowing'].includes(u.lurkerState)){this.clearLaneLurkerApproach(u);return false}
+  const weapon=this.data.weapons[u.def.groundWeapon];if(!weapon?.damage||!weapon.ground){this.clearLaneLurkerApproach(u);return false}
+  const threats=this.lurkerThreats(u,weapon.range),target=threats[0]||null;
+  if(u.lurkerState==='burrowed'){this.clearLaneLurkerApproach(u);if(!target){this.cast(u,'burrow');return true}return false}
+  if(u.lurkerState!=='ground'||!target){this.clearLaneLurkerApproach(u);return false}
+  const edge=this.edgeDistance(u,target),enterRange=Math.max(weapon.minRange||0,weapon.range-LURKER_BURROW_MARGIN);
+  if(edge<=enterRange+1e-6){this.clearLaneLurkerApproach(u);this.cast(u,'burrow');return true}
+  const targetChanged=u.lurkerApproachTargetId!==target.id;if(targetChanged)this.clearLaneLurkerApproach(u);
+  u.lurkerApproachClock=(u.lurkerApproachClock||0)-dt;const moved=Number.isFinite(u.lurkerApproachLastX)?Math.hypot(u.x-u.lurkerApproachLastX,u.y-u.lurkerApproachLastY):Infinity;
+  u.lurkerApproachStall=moved<.05?(u.lurkerApproachStall||0)+dt:0;u.lurkerApproachLastX=u.x;u.lurkerApproachLastY=u.y;
+  const refresh=targetChanged||!u.lurkerApproachPath?.length&&!u.lurkerApproachNoPath||u.lurkerApproachPoint&&dist(u.lurkerApproachPoint,target)>20||u.lurkerApproachClock<=0;
+  if(refresh){const route=this.approachPath(u,target,Math.max(weapon.minRange||0,enterRange-3));u.lurkerApproachPath=route?.path||[];u.lurkerApproachPoint={x:target.x,y:target.y};u.lurkerApproachTargetId=target.id;u.lurkerApproachNoPath=!u.lurkerApproachPath.length;u.lurkerApproachClock=.55}
+  if(u.lurkerApproachStall>=.4){const retry=this.approachPath(u,target,Math.max(weapon.minRange||0,enterRange-3));if(retry?.path?.length){u.lurkerApproachPath=retry.path;u.lurkerApproachPoint={x:target.x,y:target.y};u.lurkerApproachClock=.55;u.lurkerApproachStall=0;u.lurkerApproachNoPath=false}else if(edge<=weapon.range+1e-6){this.clearLaneLurkerApproach(u);this.cast(u,'burrow');return true}else{this.clearLaneLurkerApproach(u);return false}}
+  const waypoint=u.lurkerApproachPath?.[0];if(waypoint){this.moveCombat(u,waypoint,dt);if(dist(u,waypoint)<5)u.lurkerApproachPath.shift();u.action='walk'}return true;
  }
  cast(u,key,p,target){
   if(u.type===103&&(['burrowing','unburrowing'].includes(u.lurkerState)||key==='burrow'&&!['ground','burrowed'].includes(u.lurkerState)))return false;
@@ -367,11 +387,7 @@ export class Battle extends EconomyBattle{
  }
  autoCast(u){
   const abilities=this.availableAbilities(u);
-  if(u.type===103&&u.laneArmy&&abilities.includes('burrow')){
-   const inRange=this.lurkerThreatInRange(u);
-   if(u.lurkerState==='burrowed'&&!inRange)this.cast(u,'burrow');else if(u.lurkerState==='ground'&&inRange)this.cast(u,'burrow');
-   return;
-  }
+  if(u.type===103&&u.laneArmy&&abilities.includes('burrow'))return;
   if(!abilities.length)return;
   if(abilities.includes('stim')&&u.buffs.stim<=0&&u.hp>20&&this.nearby(u,160).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<160))this.cast(u,'stim');
   if(abilities.includes('siege')&&!u.sieged&&this.nearby(u,260).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<260))this.cast(u,'siege');

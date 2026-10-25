@@ -105,3 +105,25 @@ test('automatic casting preserves energy and does not repeat a spell while coold
  const b=fresh(),archon=b.create(63,0,600,700),queen=b.create(45,1,650,700);archon.energy=200;queen.energy=100;
  b.autoCast(archon);assert.equal(archon.energy,150);assert.equal(queen.energy,0);const remaining=archon.energy;b.time=.2;b.autoCast(archon);assert.equal(archon.energy,remaining);
 });
+
+test('lane debuffs reveal cloak without revealing burrowed units',()=>{
+ const b=fresh(),enemy=b.create(61,1,650,700);
+ for(const key of ['ensnare','maelstrom','plague']){
+  enemy.buffs={[key]:5};enemy.burrowed=false;assert.equal(b.canSee(0,enemy),true,key);
+  enemy.burrowed=true;assert.equal(b.canSee(0,enemy),false,key);
+ }
+});
+
+test('hallucinated casters cannot spend energy or apply real spell effects',()=>{
+ const b=fresh(),caster=b.create(63,0,600,700),target=b.create(45,1,650,700);
+ caster.hallucination=true;caster.energy=200;target.energy=150;
+ b.autoCast(caster);assert.equal(target.energy,150);assert.equal(caster.energy,200);
+});
+
+test('a stationary target receives exactly eight Storm pulses across its full lifetime',()=>{
+ const b=fresh(),caster=b.create(67,0,400,700),target=b.create(0,1,600,700);
+ target.hp=target.maxHp=1000;target.order='hold';caster.energy=75;
+ b.researched.add('storm');assert.equal(b.cast(caster,'storm',{x:600,y:700}),true);
+ for(let i=0;i<75;i++)b.step(1/30);
+ assert.equal(target.hp,888);assert.equal(b.areas.length,0);
+});
