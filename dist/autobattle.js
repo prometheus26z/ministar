@@ -1,10 +1,11 @@
-import {LaneAI} from './lane-ai.js?v=0.16.0';
-import {SATISFIES} from './tech.js?v=0.16.0';
-import {gasSlots,productionTileAllowed} from './lane-rules.js?v=0.16.0';
-import {buildingDestruction} from './presentation.js?v=0.16.0';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.0';
-import {clamp,dist} from './core.js?v=0.16.0';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.0';
+import {LaneAI} from './lane-ai.js?v=0.16.4';
+import {transitionSeconds} from './animation.js?v=0.16.4';
+import {SATISFIES} from './tech.js?v=0.16.4';
+import {gasSlots,productionTileAllowed} from './lane-rules.js?v=0.16.4';
+import {buildingDestruction} from './presentation.js?v=0.16.4';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.4';
+import {clamp,dist} from './core.js?v=0.16.4';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.4';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -96,14 +97,15 @@ export class Battle extends EconomyBattle{
  create(type,team,x,y){const u=super.create(type,team,x,y);if(!u)return u;u.commanderId=this.ownerByTeam?.[team]??team*3;const override=DESERT_STRIKE.unitOverrides?.[type];if(override){u.def={...u.def,...override,shield:u.def.shield?override.shield:0};u.hp=u.maxHp=override.hp;u.shield=u.def.shield}return u}
  installSide(team){
   const main=this.create(173,team,640,team?160:1888);main.isMain=true;main.order='hold';main.hp=main.maxHp=30000;
-  const outpost=this.create(174,team,640,team?480:1568);outpost.isOutpost=true;outpost.order='hold';outpost.hp=outpost.maxHp=15000;
+  const position=DESERT_STRIKE.map.objectives.outposts[team];if(!position)throw Error(`Missing source temple position for team ${team}`);
+  const outpost=this.create(174,team,position.x,position.y);outpost.isOutpost=true;outpost.order='hold';outpost.hp=outpost.maxHp=15000;
   return {main,outpost,team};
  }
  addGasNode(team,x,y,slot){this.nodes.push({id:`geyser-${this.ownerByTeam[team]}-${slot}`,team,commanderId:this.ownerByTeam[team],slot,x,y,r:36,kind:'gas',amount:5000,miner:null,occupiedBy:null})}
  buildingCost(type){return buildingCost(this.race,type,this.data)}
  constructionSeconds(type){return constructionSeconds(this.data,type)}
  waveUnitsForBuilding(type){return BUILDING_WAVES[type]||null}
- laneObjective(team){const enemy=1-team,outpost=this.outpostDefenses[enemy].find(u=>u.alive);return outpost?{id:`outpost-${enemy}`,x:640,y:outpost.y}:team===0?this.core:this.main}
+ laneObjective(team){const enemy=1-team,outpost=this.outpostDefenses[enemy].find(u=>u.alive);return outpost?{id:`outpost-${enemy}`,x:outpost.x,y:outpost.y}:team===0?this.core:this.main}
  completedGasCount(team){return this.units.filter(u=>u.alive&&this.ownsProduction(u,team)&&u.gasNode&&this.ready(u)).length}
  incomeAmount(team=0){return DESERT_STRIKE.income[Math.min(5,this.completedGasCount(team))]}
  get incomePauseLeft(){return Math.max(0,this.incomeRemaining[0]-INCOME_SECONDS)}
@@ -221,18 +223,19 @@ export class Battle extends EconomyBattle{
   const cap=DESERT_STRIKE.maxActiveUnits[type];if(cap&&this.units.filter(u=>u.alive&&u.team===team&&u.type===type&&!u.productionOnly).length>=cap)return null;
   const columns=Math.min(8,Math.max(1,Math.floor(448/spacing)),total),row=Math.floor(index/columns),rowCount=Math.min(columns,total-row*columns),direction=team?1:-1;
   const spread=(index%columns-(rowCount-1)/2)*spacing;
-  const point=this.deploymentPoint(def,team,{x:640+spread,y:clamp(origin.y+direction*120-direction*row*spacing,24,2024)},spacing);if(!point)return null;
+  const objective=this.laneObjective(team),point=this.deploymentPoint(def,team,{x:objective.x+spread,y:clamp(origin.y+direction*120-direction*row*spacing,24,2024)},spacing);if(!point)return null;
   const u=this.create(type,team,point.x,point.y);
-  u.order='attackmove';u.laneArmy=true;u.laneOffset=spread;const objective=this.laneObjective(team);this.setAdvanceGoal(u,objective);u.laneObjectiveId=objective.id;
+  u.order='attackmove';u.laneArmy=true;u.laneOffset=spread;this.setAdvanceGoal(u,objective);u.laneObjectiveId=objective.id;
   const prop=DESERT_STRIKE.properties[type===103?2:3];if(prop){u.hp=u.maxHp*prop.hp/100;u.shield=u.def.shield*prop.shield/100;u.energy=(u.def.energy||0)*prop.energy/100;if(prop.specialValid&2)u.burrowed=!!(prop.status&2)}
+  if(type===103&&u.burrowed){u.burrowed=false;u.action='unburrow';u.animTime=0;u.lurkerTransition=this.animationDuration(u,'unburrow');u.lurkerResumeOrder='attackmove';this.setAdvanceGoal(u,objective)}
   if(team===0)this.produced++;return u;
  }
  spawnWave(team){
   const lineup=[];for(const [type,count]of this.activeWave(team))for(let i=0;i<count;i++)lineup.push(type);
-  const origin={x:640,y:team?this.core.y:this.main.y},spacing=Math.max(32,...lineup.map(type=>(this.data.units[type]?.radius||10)*2.4));
+  const objective=this.laneObjective(team),origin={x:objective.x,y:team?this.core.y:this.main.y},spacing=Math.max(32,...lineup.map(type=>(this.data.units[type]?.radius||10)*2.4));
   const direction=team?1:-1,columns=Math.min(8,Math.max(1,Math.floor(448/spacing)),lineup.length);
   for(let offset=0;offset<1024;offset+=32){
-   const clear=lineup.slice(0,columns).every((type,index)=>{const point={x:640+(index-(columns-1)/2)*spacing,y:origin.y+direction*(120+offset)},p=this.deploymentPoint(this.data.units[type],team,point,spacing);return p&&p.x===point.x&&p.y===point.y});
+   const clear=lineup.slice(0,columns).every((type,index)=>{const point={x:objective.x+(index-(columns-1)/2)*spacing,y:origin.y+direction*(120+offset)},p=this.deploymentPoint(this.data.units[type],team,point,spacing);return p&&p.x===point.x&&p.y===point.y});
    if(clear){origin.y+=direction*offset;break}
   }
   lineup.forEach((type,index)=>this.spawnUnit(type,team,index,lineup.length,origin,spacing));
@@ -289,25 +292,54 @@ export class Battle extends EconomyBattle{
   if(u.hidden){u.animTime+=dt;return}
   if(u.productionOnly){if(u.construction)this.withCommander(u.commanderId,()=>this.tickBotConstruction(u,dt));else if(!u.def.building&&!u.hidden)u.animTime+=dt;return}
   if(u.team===1&&u.construction){this.tickBotConstruction(u,dt);return}
-  if(!u.def.building&&u.laneArmy)this.maintainAdvance(u,dt);
-  if(!u.def.building&&!u.loaded)this.autoCast(u);
   super.tickUnit(u,dt);
  }
+ beforeUnitActions(u,dt){
+  if((u.lurkerTransition||0)>0){u.lurkerTransition=Math.max(0,u.lurkerTransition-dt);return false}
+  if(!u.def.building&&u.laneArmy)this.maintainAdvance(u,dt);
+  if(!u.def.building&&!u.loaded)this.autoCast(u);
+  if((u.lurkerTransition||0)>0){u.animTime=dt;u.lurkerTransition=Math.max(0,u.lurkerTransition-dt);return false}
+  return super.beforeUnitActions(u,dt);
+ }
+
  weapon(u,target){
   if(target.productionOnly||u.productionOnly||u.garrison)return null;
-  if(u.laneArmy&&!target.def.building&&Math.abs(target.x-640)>240&&dist(u,target)>96)return null;
   if(u.isFortification&&this.raceFor(u.team)==='terran'){
    const weapon=this.data.weapons[target.def.air?u.def.airWeapon:u.def.groundWeapon];
    return weapon&&weapon.damage&&(!target.def.air||weapon.air)&& (target.def.air||weapon.ground)?weapon:null;
   }
   return super.weapon(u,target);
  }
+ animationDuration(u,action,fallback=.45){
+  const seconds=transitionSeconds(this.data.graphics[u.def.image],action,fallback);
+  return Math.max(1/24,Math.min(2,seconds));
+ }
+ lurkerThreatInRange(u){
+  const weapon=this.data.weapons[u.def.groundWeapon];
+  if(!weapon?.damage||!weapon.ground)return false;
+  return this.units.some(t=>t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.def.air&&!t.buffs?.stasis&&this.canSee(u.team,t)&&this.edgeDistance(u,t)<=weapon.range&&this.edgeDistance(u,t)>=(weapon.minRange||0));
+ }
+ cast(u,key,p,target){
+  if(u.type===103&&(u.lurkerTransition||0)>0)return false;
+  const laneLurker=u.type===103&&u.laneArmy&&key==='burrow',resume=u.lurkerResumeOrder||'attackmove';
+  const cast=super.cast(u,key,p,target);if(!cast||!laneLurker)return cast;
+  u.lurkerResumeOrder=resume;u.lurkerTransition=this.animationDuration(u,u.action);
+  if(u.burrowed){u.order='hold';u.goal=null;u.path=[]}
+  else if(u.lurkerResumeOrder==='attackmove'){const objective=this.laneObjective(u.team);u.laneObjectiveId=objective.id;this.setAdvanceGoal(u,objective)}
+  return cast;
+ }
  autoCast(u){
-  const abilities=this.availableAbilities(u);if(!abilities.length)return;
+  const abilities=this.availableAbilities(u);
+  if(u.type===103&&u.laneArmy&&abilities.includes('burrow')){
+   const inRange=this.lurkerThreatInRange(u);
+   if(u.burrowed&&!inRange)this.cast(u,'burrow');else if(!u.burrowed&&inRange)this.cast(u,'burrow');
+   return;
+  }
+  if(!abilities.length)return;
   if(abilities.includes('stim')&&u.buffs.stim<=0&&u.hp>20&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<160))this.cast(u,'stim');
   if(abilities.includes('siege')&&!u.sieged&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<260))this.cast(u,'siege');
   if(abilities.includes('cloak')&&!u.cloaked&&u.energy>=25&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<240))this.cast(u,'cloak');
-  if(abilities.includes('burrow')&&!u.burrowed&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<110))this.cast(u,'burrow');
+  if(u.type!==103&&abilities.includes('burrow')&&!u.burrowed&&this.units.some(t=>t.alive&&t.team!==u.team&&dist(u,t)<110))this.cast(u,'burrow');
  }
  step(dt){
   super.step(dt);if(this.phase!=='battle')return;

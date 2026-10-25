@@ -32,6 +32,30 @@ console.log('Restored 6 race-specific music cues.');
  if(audit.originalTriggers.length!==328||audit.originalTriggers.some((t,i)=>t.id!==i+1||!t.portStatus||!t.mappedRule))throw Error('Incomplete original trigger audit');
  if(Object.values(rules.costs).some(cost=>cost[1]!==0))throw Error('Original building costs must be minerals-only');
  if(rules.map.gasSlots.length!==5||rules.map.productionRegion.buildable.length!==rules.map.productionRegion.tileWidth*rules.map.productionRegion.tileHeight)throw Error('Invalid source production geometry');
+ const field=audit.map.locations.find(location=>location.name==='Playing field');
+ if(!field||field.left!==0||field.top!==0)throw Error('Invalid original battlefield crop');
+ const targetWidth=1280,targetHeight=2048,sourceWidth=field.right-field.left,sourceHeight=field.bottom-field.top;
+ const rotatedWidth=sourceHeight,rotatedHeight=sourceWidth,targetAspect=targetWidth/targetHeight;
+ let left=0,top=0,cropWidth=rotatedWidth,cropHeight=rotatedHeight;
+ if(rotatedWidth/rotatedHeight>targetAspect){cropWidth=Math.round(rotatedHeight*targetAspect);left=Math.floor((rotatedWidth-cropWidth)/2)}
+ else{cropHeight=Math.round(rotatedWidth/targetAspect);top=Math.floor((rotatedHeight-cropHeight)/2)}
+ const scaleX=targetWidth/cropWidth,scaleY=targetHeight/cropHeight;
+ if(Math.abs(scaleX-scaleY)>1e-12)throw Error('Original battlefield fit would distort terrain');
+ const pointOnBattlefield=(x,y)=>({x:(y-field.top-left)*scaleX,y:(sourceWidth-(x-field.left)-top)*scaleY});
+ const templeUnits=audit.map.units.filter(unit=>unit.unitId===174&&[3,7].includes(unit.owner));
+ if(templeUnits.length!==2||new Set(templeUnits.map(unit=>unit.owner)).size!==2)throw Error('Original map must contain one temple for each team');
+ const outposts={};
+ for(const [team,owner]of [[0,3],[1,7]]){
+  const unit=templeUnits.find(candidate=>candidate.owner===owner);
+  if(!unit)throw Error(`Missing source temple for owner ${owner}`);
+  outposts[team]={...pointOnBattlefield(unit.x,unit.y),owner,source:{x:unit.x,y:unit.y}};
+ }
+ rules.map.objectives={...(rules.map.objectives||{}),outposts};
  fs.writeFileSync(path.join(root,'dist/desert-strike-data.js'),'// Extracted from original map sections; see resources/desert-strike-v1.json.\nexport const DESERT_STRIKE='+JSON.stringify(rules)+';\n');
  console.log('Restored original Desert Strike economy and production data.');
 }
+
+
+// Original overlay/corpse sprites and full source-script visual timelines.
+const {restoreOriginalAnimations}=await import('./restore-original-animations.mjs');
+restoreOriginalAnimations(root);

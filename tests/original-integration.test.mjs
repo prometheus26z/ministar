@@ -31,6 +31,17 @@ test('production crop uses original buildable mask and L-shaped geyser centers w
  assert.equal(mask.reduce((n,v)=>n+v,0),606);
 });
 
+test('battlefield outposts use the original placed temples after terrain rotation and crop',()=>{
+ const outposts=DESERT_STRIKE.map.objectives.outposts;
+ assert.deepEqual(outposts[0],{x:1856/3,y:1632,owner:3,source:{x:624,y:1008}});
+ assert.deepEqual(outposts[1],{x:1856/3,y:416,owner:7,source:{x:2448,y:1008}});
+ const b=fresh();
+ assert.deepEqual({x:b.playerOutpost.x,y:b.playerOutpost.y},{x:outposts[0].x,y:outposts[0].y});
+ assert.deepEqual({x:b.enemyOutpost.x,y:b.enemyOutpost.y},{x:outposts[1].x,y:outposts[1].y});
+ assert.deepEqual(b.laneObjective(0),{id:'outpost-1',x:outposts[1].x,y:outposts[1].y});
+ assert.deepEqual(b.laneObjective(1),{id:'outpost-0',x:outposts[0].x,y:outposts[0].y});
+});
+
 test('gas capacity, slot reservation, destruction reuse and simultaneous completion counters',()=>{
  const b=fresh();b.money=10000;
  for(const node of b.nodes.filter(n=>n.team===0))assert.ok(b.build(b.builder,110,node),b.lastError);
@@ -51,7 +62,7 @@ test('shared construction checks prerequisites, geometry and payment for player 
 
 test('tribunal and active-arbiter limits are separate and symmetric; source properties preserve disabled shields',()=>{
  const b=fresh('protoss');for(const team of [0,1]){complete(b,167,team);complete(b,165,team);complete(b,170,team);complete(b,170,team);assert.match(b.teamBuildReason(team,170),/한도/);for(let i=0;i<4;i++)b.spawnWave(team);assert.equal(b.units.filter(u=>u.alive&&u.team===team&&u.type===71).length,3)}
- const m=b.spawnUnit(0,0,0,1,b.main);assert.equal(m.shield,0);const lurker=b.spawnUnit(103,0,0,1,b.main);assert.equal(lurker.burrowed,true);
+ const m=b.spawnUnit(0,0,0,1,b.main);assert.equal(m.shield,0);const lurker=b.spawnUnit(103,0,0,1,b.main);assert.equal(lurker.burrowed,false);assert.equal(lurker.action,'unburrow');assert.equal(lurker.order,'attackmove');assert.ok(lurker.lurkerTransition>0);
 });
 
 test('special buildings consume once, heal in pulses, replace finite enemy snapshot, and require Archives',()=>{

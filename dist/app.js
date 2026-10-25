@@ -1,9 +1,10 @@
-import {constructionVisual,healthBarPixels,waveDescription} from './presentation.js?v=0.16.0';
-import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.0';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.0';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.0';
-import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS} from './lane-rules.js?v=0.16.0';
-import {researchAt} from './tech.js?v=0.16.0';
+import {constructionVisual,healthBarPixels,waveDescription} from './presentation.js?v=0.16.4';
+import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.4';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.4';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.4';
+import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS} from './lane-rules.js?v=0.16.4';
+import {researchAt} from './tech.js?v=0.16.4';
+import {pose,teamImage,trackFor} from './animation.js?v=0.16.4';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),mc=mini.getContext('2d');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';
@@ -170,8 +171,24 @@ canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;e
 function pointerEnd(e,cancel=false){if(!pointers.has(e.pointerId))return;const p=position(e);pointers.delete(e.pointerId);if(pinch){if(!pointers.size){pinch=null;gesture=null;settings.zoom=camera.zoom;save('settings',settings)}return}if(!gesture)return;clearTimeout(gesture.timer);if(!cancel){if(gesture.kind==='pending')tap(p)}gesture=null}
 canvas.addEventListener('pointerup',e=>pointerEnd(e));canvas.addEventListener('pointercancel',e=>{pointerEnd(e,true);pointers.clear();pinch=null});canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(camera.zoom*(e.deltaY<0?1.12:1/1.12),e.clientX,e.clientY)},{passive:false});
 let miniDrag=false;const miniMove=e=>{const r=mini.getBoundingClientRect();camera.x=(e.clientX-r.left)/r.width*1280;camera.y=(e.clientY-r.top)/r.height*2048;limitCamera()};mini.onpointerdown=e=>{miniDrag=true;mini.setPointerCapture(e.pointerId);miniMove(e)};mini.onpointermove=e=>{if(miniDrag)miniMove(e)};mini.onpointerup=mini.onpointercancel=()=>miniDrag=false;
-function pose(g,action,time,direction){const t=g.tracks[action]||g.tracks.idle||g.tracks.built;let f=0;if(t){let tick=t.loop?time*24%Math.max(1,t.ticks):Math.min(time*24,t.ticks-.001);for(const [n,d] of t.frames){f=n;if(tick<d)break;tick-=d}}const flip=g.turns&&direction>16;if(g.turns)f+=direction>16?32-direction:direction;return {frame:Math.min(g.frames.length-1,f),flip}}
-function sprite(id,team,x,y,action='idle',time=0,direction=0,alpha=1,stack=new Set(),frameOverride=null){const g=data.graphics[id];if(!g||stack.has(id)||stack.size>8)return false;stack.add(id);const image=getImage(g.images[team===1?'red':'blue']);let drawn=false;if(image){const p=frameOverride===null?pose(g,action,time,direction):{frame:frameOverride,flip:false},f=g.frames[p.frame];if(f&&f[4]&&f[5]){ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);if(p.flip)ctx.scale(-1,1);ctx.drawImage(image,f[0],f[1],f[4],f[5],(f[2]-g.canvas[0]/2)*.5,(f[3]-g.canvas[1]/2)*.5,f[4]*.5,f[5]*.5);ctx.restore();drawn=true}}const track=g.tracks?.[action]||g.tracks?.idle||g.tracks?.built,shadows=new Set(g.shadows||[]);for(const overlay of track?.overlays||[])if(!shadows.has(overlay))sprite(overlay,team,x,y,action,time,direction,alpha,stack);stack.delete(id);return drawn}
+function sprite(id,team,x,y,action='idle',time=0,direction=0,alpha=1,stack=new Set(),frameOverride=null,visual={}){
+ const g=data.graphics[id];if(!g||stack.has(id)||stack.size>8)return false;stack.add(id);
+ const track=trackFor(g,action,visual),p=frameOverride===null?pose(g,action,time,direction,visual):{frame:frameOverride,flip:false};
+ const persistent=action==='death'?[]:(g.persistentOverlays||[]),persistentIds=new Set(persistent.map(e=>e.image)),shadows=new Set(g.shadows||[]);
+ const events=(track?.overlayEvents||(track?.overlays||[]).map(image=>({image,tick:0,x:0,y:0}))).filter(e=>!persistentIds.has(e.image)).map(e=>({...e,persistent:false}));
+ events.push(...persistent.map(e=>({...e,persistent:true})));
+ const drawChild=e=>{
+  if(shadows.has(e.image)||data.graphics[e.image]?.drawFunction===10)return;
+  const clock=e.persistent?(visual.lifetime??time):time,age=clock-(e.tick||0)/24;if(age<0)return;
+  const childAction=e.persistent?action:'idle',child=data.graphics[e.image],childTime=e.persistent&&action!=='idle'&&child?.tracks?.[action]?time:age;
+  sprite(e.image,team,x+(e.x||0),y+(e.y||0),childAction,childTime,direction,alpha,stack,null,{...visual,lifetime:age,parentFrame:p.frame,seed:(visual.seed||0)^e.image});
+ };
+ for(const event of events)if(event.under)drawChild(event);
+ const image=getImage(teamImage(g,team));let drawn=false;
+ if(image&&!p.hidden){const f=g.frames[p.frame];if(f&&f[4]&&f[5]){ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);if(p.flip)ctx.scale(-1,1);ctx.drawImage(image,f[0],f[1],f[4],f[5],(f[2]-g.canvas[0]/2)*.5,(f[3]-g.canvas[1]/2)*.5,f[4]*.5,f[5]*.5);ctx.restore();drawn=true}}
+ for(const event of events)if(!event.under)drawChild(event);
+ stack.delete(id);return drawn;
+}
 function drawHealthBar(u){
  const g=data.graphics[u.def.image],nominal=g?.healthBarSize||u.def.healthBarSize||u.def.footprint?.[0]||u.r*2;const pixels=healthBarPixels(nominal);
  const width=pixels/camera.zoom,x=u.x-width/2,y=u.y+u.r+5/camera.zoom,hp=Math.floor(100*clamp(u.hp/(u.maxHp||u.def.hp),0,1)),shieldMax=u.def.shield||0,shield=shieldMax?Math.max(0,Math.floor(100*u.shield/shieldMax)):0,hasShield=shieldMax>0;
@@ -201,11 +218,11 @@ function drawConstruction(u,alpha){
  return true;
 }
 function unit(u){
- if(!u.alive&&u.def.building||!!u.productionOnly!==(viewMode==='production')||viewMode==='production'&&!inProductionView(u)||u.hidden||u.loaded||u.refunded||u.team===1&&!battle.canSee(0,u)||!u.alive&&battle.time-u.deathTime>1.8||!visible(u)&&!u.def.building)return;
- const selected=battle.isHighlighted(u),alpha=!u.alive?Math.max(0,1-(battle.time-u.deathTime)/1.8):u.cloaked?.42:u.burrowed&&u.type!==103?.3:1;
+ if(!u.alive&&u.def.building||!!u.productionOnly!==(viewMode==='production')||viewMode==='production'&&!inProductionView(u)||u.hidden||u.loaded||u.refunded||u.team===1&&!battle.canSee(0,u)||!u.alive&&battle.time-u.deathTime>(u.deathDuration||1.8)||!visible(u)&&!u.def.building)return;
+ const selected=battle.isHighlighted(u),alpha=!u.alive?1:u.cloaked?.42:u.burrowed&&u.type!==103?.3:1;
  if(selected&&u.alive){ctx.strokeStyle=u.team===0?'#79f880':'#f16e67';ctx.lineWidth=1.3/camera.zoom;ctx.beginPath();ctx.ellipse(u.x,u.y+u.r*.55,u.r+5,(u.r+5)*.48,0,0,Math.PI*2);ctx.stroke()}
  const g=data.graphics[u.def.image];if(g&&u.alive)for(const sh of g.shadows||[])sprite(sh,0,u.x+2,u.y+3,'idle',u.animTime,u.direction,.35);
- if(!drawConstruction(u,alpha))sprite(u.egg?(u.type===43?11:u.type===38?914:21):u.def.image,u.team,u.x,u.y,u.type===124?'idle':u.action,u.animTime,u.direction,alpha);
+ if(!drawConstruction(u,alpha))sprite(u.egg?(u.type===43?11:u.type===38?914:21):u.def.image,u.team,u.x,u.y,u.type===124?'idle':u.action,u.animTime,u.direction,alpha,new Set(),null,{seed:u.id,lifetime:u.visualTime??u.animTime,targetDistance:u.target?dist(u,u.target):Infinity});
  const sub=u.def.subunit!==null?data.units[u.def.subunit]:null;if(sub&&u.alive)sprite(sub.image,u.team,u.x,u.y,u.action,u.animTime,u.direction,alpha);
  if(u.type===124&&u.alive&&!u.construction)sprite(297,u.team,u.x,u.y,u.action,u.animTime,u.action==='idle'?Math.floor(u.animTime*16)%32:u.direction,alpha);
  if(u.alive&&u.def.building&&u.def.race==='terran'&&!u.construction)drawBuildingFire(u);
@@ -312,5 +329,5 @@ async function retireOfflineStorage(){
  }catch(error){console.warn('Legacy game cache cleanup:',error)}
  return true;
 }
-async function boot(){try{if(!await retireOfflineStorage())return;enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});clearMediaSession();const extra=await fetch('rts-data.json?v=0.16.0').then(r=>{if(!r.ok)throw Error('생산 데이터를 읽을 수 없습니다.');return r.json()});Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);const constructionGraphics=await fetch('construction-data.json?v=0.16.0').then(r=>{if(!r.ok)throw Error('건설 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,constructionGraphics);const turretGraphics=await fetch('turret-data.json?v=0.16.0').then(r=>{if(!r.ok)throw Error('포탑 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,turretGraphics);const destructionGraphics=await fetch('destruction-data.json?v=0.16.0').then(r=>{if(!r.ok)throw Error('건물 파괴 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,destructionGraphics);await Promise.all([...Object.values(destructionGraphics),data.graphics[215]].map(g=>loadImage(g.images.blue)));await Promise.all(Object.values(turretGraphics).flatMap(g=>Object.values(g.images)).map(loadImage));await Promise.all(Object.values(constructionGraphics).map(g=>loadImage(g.images.blue)));for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);[desertField,desertProduction]=await Promise.all([loadImage('ds-assets/battlefield.webp'),loadImage('ds-assets/production.webp')]);terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
+async function boot(){try{if(!await retireOfflineStorage())return;enhanceSelects();data=await fetch('assets/data.json').then(r=>{if(!r.ok)throw Error('전투 데이터를 읽을 수 없습니다.');return r.json()});clearMediaSession();const extra=await fetch('rts-data.json?v=0.16.4').then(r=>{if(!r.ok)throw Error('생산 데이터를 읽을 수 없습니다.');return r.json()});Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);const constructionGraphics=await fetch('construction-data.json?v=0.16.4').then(r=>{if(!r.ok)throw Error('건설 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,constructionGraphics);const turretGraphics=await fetch('turret-data.json?v=0.16.4').then(r=>{if(!r.ok)throw Error('포탑 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,turretGraphics);const destructionGraphics=await fetch('destruction-data.json?v=0.16.4').then(r=>{if(!r.ok)throw Error('건물 파괴 그래픽을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,destructionGraphics);const originalAnimations=await fetch('original-animation-data.json?v=0.16.4').then(r=>{if(!r.ok)throw Error('원본 애니메이션을 읽을 수 없습니다.');return r.json()});Object.assign(data.graphics,originalAnimations);await Promise.all([...Object.values(destructionGraphics),data.graphics[215]].map(g=>loadImage(g.images.blue)));await Promise.all(Object.values(turretGraphics).flatMap(g=>Object.values(g.images)).map(loadImage));await Promise.all(Object.values(constructionGraphics).map(g=>loadImage(g.images.blue)));for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);[desertField,desertProduction]=await Promise.all([loadImage('ds-assets/battlefield.webp?v=0.16.4'),loadImage('ds-assets/production.webp')]);terrain=await loadImage('assets/terrain.webp');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');newBattle();raceUI();$('boot').hidden=true;requestAnimationFrame(render)}catch(e){$('bootText').textContent=e.message+' · start.sh로 서버를 실행한 뒤 접속하세요.';console.error(e)}}boot();
 

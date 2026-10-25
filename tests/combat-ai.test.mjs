@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Battle as CombatBattle} from '../dist/core.js';
+import {Battle as CombatBattle,MAX_DEATH_VISUAL_SECONDS} from '../dist/core.js';
 import {Battle as LaneBattle} from '../dist/autobattle.js';
+import {layeredActionSeconds} from '../dist/animation.js';
 
 const data=JSON.parse(fs.readFileSync(new URL('../dist/assets/data.json',import.meta.url)));
 const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.meta.url)));
-Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);
+Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics);Object.assign(data.graphics,JSON.parse(fs.readFileSync(new URL('../dist/original-animation-data.json',import.meta.url))));
 const lane=(race='protoss')=>{const b=new LaneBattle(data,{race,enemyRace:race,difficulty:'easy'});b.begin();b.botStep=()=>{};b.waveClock=99999;return b};
 const combat=()=>{const b=new CombatBattle(data,{race:'terran'});b.phase='battle';return b};
 
@@ -45,17 +46,60 @@ test('an acquired target stays locked when a similar target moves closer',()=>{
  later.x=502;b.tickUnit(attacker,.05);
  assert.equal(attacker.target,first,'small distance changes do not make units oscillate targets');
 });
+test('lane armies can engage valid threats on either side of the central corridor',()=>{
+ const b=lane();b.units=[];
+ const attacker=b.create(65,0,640,700),flanker=b.create(0,1,910,700);attacker.laneArmy=true;attacker.order='attackmove';
+ assert.ok(Math.abs(flanker.x-640)>240);
+ assert.ok(Math.hypot(attacker.x-flanker.x,attacker.y-flanker.y)>96);
+ assert.ok(b.weapon(attacker,flanker),'lane positioning does not disable a valid side target');
+ assert.equal(b.canAttackTarget(attacker,flanker),true);
+});
 
 test('actual damage draws aggro to a valid source and releases a dead source',()=>{
  const b=lane();b.units=[];
- const defender=b.create(65,0,600,700),friend=b.create(65,0,620,700),source=b.create(0,1,610,700),pylon=b.create(156,1,850,700);
+ const defender=b.create(65,0,600,700),friend=b.create(65,0,620,700),source=b.create(0,1,610,700),pylon=b.create(156,1,620,700);
  defender.target=pylon;friend.target=pylon;b.hitUnit(defender,5,1,3,null,source);
  assert.equal(defender.aggroTarget,source.id);assert.equal(defender.target,source);
  assert.equal(friend.aggroTarget,source.id,'nearby allies receive the recent attack cue');
  b.die(source,0);b.tickUnit(defender,.05);
  assert.notEqual(defender.target,source,'a dead attacker cannot remain a target');
 });
+test('a flank Marine stays the retaliation target while the old target is not attacking back',()=>{
+ const b=lane();b.units=[];
+ const defender=b.create(65,0,600,700),oldTarget=b.create(65,1,620,700),marine=b.create(0,1,675,700);
+ defender.order='attackmove';defender.target=oldTarget;oldTarget.target=null;oldTarget.action='idle';
+ assert.ok(b.weapon(defender,marine));assert.ok(b.edgeDistance(defender,marine)>b.weapon(defender,marine).range,'Marine is visible but outside immediate weapon range');
+ b.hitUnit(defender,5,1,3,null,marine);
+ assert.equal(defender.target,marine,'damage from the flank replaces an unrelated current target');
+ b.tickUnit(defender,.05);
+ assert.equal(defender.target,marine,'target review must preserve the recent attacker while the unit closes distance');
+ assert.ok(defender.attackPathTarget===marine.id||defender.combatMoving,'the unit routes toward its attacker');
+ oldTarget.target=defender;oldTarget.action='attack';
+ defender.target=oldTarget;
+ assert.equal(b.betterTarget(defender,oldTarget),oldTarget,'an enemy actively attacking this unit can still win over the temporary retaliation target');
+});
+test('damage does not pull a unit off an enemy already attacking it',()=>{
+ const b=lane();b.units=[];
+ const defender=b.create(65,0,600,700),current=b.create(65,1,620,700),newSource=b.create(0,1,610,700);
+ defender.target=current;current.target=defender;current.action='attack';current.animTime=.2;
+ b.hitUnit(defender,5,1,3,null,newSource);
+ assert.equal(defender.target,current,'the current enemy is actively attacking this unit');
+ assert.equal(defender.aggroTarget,newSource.id,'the new damage source remains recorded for later retargeting');
+});
 
+
+test('lane Lurkers march unburrowed, burrow for ground threats, and resume marching after they leave range',()=>{
+ const b=lane('zerg'),lurker=b.spawnUnit(103,0,0,1,b.main);
+ assert.ok(lurker);assert.equal(lurker.burrowed,false);assert.equal(lurker.action,'unburrow');assert.equal(lurker.order,'attackmove');
+ assert.ok(b.availableAbilities(lurker).includes('burrow'),'Lurker can use its innate burrow ability');
+ for(let i=0;i<30&&lurker.lurkerTransition>0;i++)b.tickUnit(lurker,.1);
+ const enemy=b.create(0,1,lurker.x+60,lurker.y);
+ b.tickUnit(lurker,.05);assert.equal(lurker.burrowed,true);assert.equal(lurker.action,'burrow');
+ for(let i=0;i<30&&lurker.lurkerTransition>0;i++)b.tickUnit(lurker,.1);
+ assert.equal(lurker.burrowed,true,'a Lurker stays burrowed while a ground target is in weapon range');
+ enemy.x=lurker.x+420;b.tickUnit(lurker,.05);
+ assert.equal(lurker.burrowed,false);assert.equal(lurker.action,'unburrow');assert.equal(lurker.order,'attackmove');assert.ok(lurker.goal);
+});
 test('Medic follows an injured ally, heals while stationary, and charges energy for HP restored',()=>{
  const b=combat(),medic=b.create(34,0,200,200),patient=b.create(0,0,350,200);patient.hp=patient.maxHp-10;
  b.setGoal(medic,{x:800,y:200},'attackmove');const savedGoal={...medic.goal},startX=medic.x;
@@ -89,6 +133,21 @@ test('fast Vulture and Zergling approach points without overshooting them',()=>{
  }
 });
 
+
+test('death clips remain available for their full animation duration',()=>{
+ const b=combat(),marine=b.create(0,0,200,200),track=b.data.graphics[marine.def.image]?.tracks?.death;
+ b.die(marine);
+ const sourceDuration=layeredActionSeconds(b.data.graphics,marine.def.image,'death',1.8),expected=Math.max(.2,Math.min(MAX_DEATH_VISUAL_SECONDS,sourceDuration));
+ assert.equal(marine.action,'death');assert.equal(marine.animTime,0);assert.equal(marine.deathDuration,expected);
+ const fallback=b.create(0,0,240,200);fallback.def={...fallback.def,image:999999};b.die(fallback);assert.equal(fallback.deathDuration,1.8);
+ const archon=b.create(68,0,260,200),darkArchon=b.create(63,0,280,200);b.die(archon);b.die(darkArchon);
+ assert.ok(archon.deathDuration>Number(b.data.graphics[134].tracks.death.ticks)/24,'Archon keeps its longer layered death effect visible');
+ assert.equal(archon.deathDuration,20/24);assert.equal(darkArchon.deathDuration,15/24,'Dark Archon uses its original death effect lifetime');
+ const ultralisk=b.create(39,0,300,200);b.die(ultralisk);
+ assert.equal(ultralisk.deathDuration,11.25,'the original Ultralisk corpse timeline remains visible beyond the prior eight-second clamp');
+ const longestSourceDeath=Math.max(...Object.values(b.data.units).map(unit=>layeredActionSeconds(b.data.graphics,unit.image,'death',1.8)));
+ assert.equal(longestSourceDeath,11.25);assert.ok(longestSourceDeath<=MAX_DEATH_VISUAL_SECONDS,'the visual cap covers every recovered playable-unit death and corpse track');
+});
 test('bunker garrison hits use the canonical live source and bunker victims do not crash aggro selection',()=>{
  const b=lane('terran'),bunker=b.makeBunker(1,640,480),target=b.create(0,0,bunker.x,bunker.y-35),clone={...bunker,alive:true};
  b.hitUnit(target,5,1,3,null,clone);assert.equal(target.aggroTarget,bunker.id,'a garrison shooter resolves to its real bunker');
@@ -121,4 +180,14 @@ test('explicit movement and hold orders limit Medic pursuit',()=>{
  assert.equal(medic.healTarget,undefined);assert.ok(medic.x>200);
  b.select([medic.id],false);b.openMenu();assert.ok(b.execute('hold'));const x=medic.x;b.tickUnit(medic,.1);assert.equal(medic.x,x);assert.ok(!medic.healTarget);
  patient.x=medic.x+30;b.tickUnit(medic,.1);assert.ok(patient.hp>patient.maxHp-20);assert.equal(medic.x,x);
+});
+
+test('disabled Lurkers cannot burrow and status timers continue during transitions',()=>{
+ for(const status of ['stasis','lockdown','maelstrom']){
+  const b=lane('zerg');b.units=[];const u=b.create(103,0,600,700);u.laneArmy=true;u.order='attackmove';u.buffs[status]=1;u.cooldown=2;b.create(0,1,660,700);
+  b.tickUnit(u,.1);assert.equal(u.burrowed,false,status);assert.ok(Math.abs(u.buffs[status]-.9)<1e-8);assert.ok(Math.abs(u.cooldown-1.9)<1e-8);assert.equal(b.cast(u,'burrow'),false);
+  u.buffs[status]=0;b.tickUnit(u,.1);assert.equal(u.action,'burrow');const remaining=u.lurkerTransition,anim=u.animTime;u.buffs[status]=.5;
+  b.tickUnit(u,.1);assert.equal(u.lurkerTransition,remaining,'disabled transitions pause');assert.equal(u.animTime,anim,'disabled transition visuals pause');assert.ok(Math.abs(u.buffs[status]-.4)<1e-8);assert.ok(Math.abs(u.cooldown-1.7)<1e-8);
+  u.buffs[status]=0;assert.equal(b.cast(u,'burrow'),false,'an active transition cannot be toggled again');b.tickUnit(u,.1);assert.ok(u.lurkerTransition<remaining);
+ }
 });

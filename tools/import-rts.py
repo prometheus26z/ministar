@@ -44,3 +44,4 @@ for offset in range(0,len(compressed),16384):
  name=f'rts-{offset//16384:04}.b64';(root/'resources'/name).write_text(base64.b64encode(compressed[offset:offset+16384]).decode());parts.append(name)
 (root/'resources/rts-manifest.json').write_text(json.dumps({'sha256':hashlib.sha256(compressed).hexdigest(),'files':len(paths),'parts':parts},indent=2))
 print('Imported',len(supp['units']),'definitions,',len(supp['graphics']),'sprite sets;',len(compressed),'bytes in',len(parts),'parts')
+

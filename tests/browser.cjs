@@ -1,4 +1,4 @@
-const fs=require('node:fs');const {chromium}=require('playwright'),assert=require('node:assert/strict'),{createServer}=require('../server.cjs');
+const VERSION=require('../package.json').version;const fs=require('node:fs');const {chromium}=require('playwright'),assert=require('node:assert/strict'),{createServer}=require('../server.cjs');
 async function testLegacyMigration(browser,direct=false){
  const legacyHtml='<h1 id="legacy">v0.1.1</h1><script>navigator.serviceWorker.register("./sw.js")</script>';
  const legacyWorker="self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));";
@@ -17,11 +17,11 @@ async function testLegacyMigration(browser,direct=false){
    await caches.open('other-app-cache');
   },legacyHtml);
   await page.reload();assert.equal(await page.locator('#legacy').innerText(),'v0.1.1');
-  legacy=false;if(direct)await page.goto(url+'?v=0.16.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
+  legacy=false;if(direct)await page.goto(url+'?v='+VERSION);else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
   await page.locator('#title').waitFor({state:'visible'});
-  assert.equal(await page.locator('.top small').innerText(),'v0.16.0');
+  assert.equal(await page.locator('.top small').innerText(),'v'+VERSION);
   assert.equal(await page.locator('#offline').count(),0);
-  assert.equal(new URL(page.url()).searchParams.get('v'),'0.16.0');
+  assert.equal(new URL(page.url()).searchParams.get('v'),VERSION);
   assert.deepEqual(await page.evaluate(async()=>(await caches.keys()).sort()),['other-app-cache']);
   assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);
   assert.equal(await page.evaluate(()=>localStorage.getItem('ministar.records')),'[{"win":true}]');
@@ -162,5 +162,6 @@ await page.waitForFunction(()=>[...window.__spriteDraws].some(url=>url.includes(
 await page.screenshot({path:'/tmp/ministar-building-explosion.png',fullPage:true});await page.waitForTimeout(1300);
 assert.ok(await page.evaluate(()=>window.__visualTest.battle.wrecks.length>0));await page.screenshot({path:'/tmp/ministar-building-rubble.png',fullPage:true});
 assert.equal(await page.locator('#offline').count(),0);assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);assert.deepEqual(errors,[]);await testTeamModes(browser,'http://127.0.0.1:'+server.address().port+'/ministar/');console.log('390 × 844: empty production setup, fixed wave status, building placement, background pause, custom dropdowns and legacy cache migration passed.')}finally{await browser?.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
+
 
 

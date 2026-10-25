@@ -4,3 +4,7 @@ dist/assets/
 *.log
 
 dist/rts-assets/
+
+/dist/original-animation-assets/
+/dist/original-animation-data.json
+

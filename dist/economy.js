@@ -1,4 +1,4 @@
-import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.0';
+import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.4';
 import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.16.0';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export class Battle extends CombatBattle{
@@ -65,4 +65,5 @@ export class Battle extends CombatBattle{
  step(dt){this.refreshSupply();super.step(dt);this.economyClock+=dt;if(this.economyClock>.25){this.economyClock=0;this.emit('production')}}
  die(u,team){this.releaseMining(u);if(u.construction){const w=this.units.find(a=>a.id===u.construction.builder);if(w?.alive&&w.building===u.id){w.order='stop';w.building=null}}super.die(u,team);this.refreshSupply();this.emit('change')}
 }
+
 
