@@ -1,8 +1,7 @@
 """Build the missing original Protoss Warp Anchor from its checked HD2 source."""
 import base64,hashlib,json,struct,sys
 from pathlib import Path
-from PIL import Image
-import numpy as np
+from PIL import Image,ImageChops
 import sc_iscript as iscript
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -42,13 +41,14 @@ for index in range(count):
  frames.append([x/2,y/2,ox/2,oy/2,width/2,height/2])
 
 out=ROOT/'dist/original-animation-assets';out.mkdir(exist_ok=True)
-sheet=Image.new('RGBA',diffuse.size)
-if mask is None:
- sheet.alpha_composite(diffuse)
+if mask is None:sheet=diffuse.copy()
 else:
- arr=np.array(diffuse).astype(float);m=np.array(mask).astype(float);alpha=(m[:,:,0]/255)*(m[:,:,3]/255);luma=arr[:,:,:3].max(axis=2)/255
- arr[:,:,:3]=arr[:,:,:3]*(1-alpha[:,:,None])+np.array([60,112,245])[None,None,:]*np.maximum(.25,luma[:,:,None])*alpha[:,:,None]
- sheet.alpha_composite(Image.fromarray(np.clip(arr,0,255).astype('uint8')))
+ alpha=ImageChops.multiply(mask.getchannel('R'),mask.getchannel('A'))
+ luma=ImageChops.lighter(ImageChops.lighter(diffuse.getchannel('R'),diffuse.getchannel('G')),diffuse.getchannel('B'))
+ luma=ImageChops.lighter(luma,Image.new('L',diffuse.size,64))
+ tinted=Image.merge('RGB',tuple(ImageChops.multiply(luma,Image.new('L',diffuse.size,channel))for channel in (60,112,245)))
+ sheet=Image.composite(tinted,diffuse.convert('RGB'),alpha).convert('RGBA')
+ sheet.putalpha(diffuse.getchannel('A'))
 asset=out/'211.webp';sheet.save(asset,'WEBP',quality=90,method=4)
 
 init=iscript.trace(211,0)
