@@ -214,7 +214,7 @@ function sprite(id,team,x,y,action='idle',time=0,direction=0,alpha=1,stack=new S
  };
  for(const event of events)if(event.under)drawChild(event);
  const image=getImage(teamImage(g,team));let drawn=false;
- if(image&&!p.hidden){const f=g.frames[p.frame];if(f&&f[4]&&f[5]){ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);if(p.flip)ctx.scale(-1,1);ctx.drawImage(image,f[0],f[1],f[4],f[5],(f[2]-g.canvas[0]/2)*.5,(f[3]-g.canvas[1]/2)*.5,f[4]*.5,f[5]*.5);ctx.restore();drawn=true}}
+ if(image&&!p.hidden&&g.canvas?.[0]>0&&g.canvas?.[1]>0){const f=g.frames[p.frame];if(f&&f[4]&&f[5]){ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);if(p.flip)ctx.scale(-1,1);ctx.drawImage(image,f[0],f[1],f[4],f[5],(f[2]-g.canvas[0]/2)*.5,(f[3]-g.canvas[1]/2)*.5,f[4]*.5,f[5]*.5);ctx.restore();drawn=true}}
  for(const event of events)if(!event.under)drawChild(event);
  stack.delete(id);return drawn;
 }
