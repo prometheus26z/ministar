@@ -17,15 +17,41 @@ async function testLegacyMigration(browser,direct=false){
    await caches.open('other-app-cache');
   },legacyHtml);
   await page.reload();assert.equal(await page.locator('#legacy').innerText(),'v0.1.1');
-  legacy=false;if(direct)await page.goto(url+'?v=0.15.1');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
+  legacy=false;if(direct)await page.goto(url+'?v=0.16.0');else await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update()});
   await page.locator('#title').waitFor({state:'visible'});
-  assert.equal(await page.locator('.top small').innerText(),'v0.15.1');
+  assert.equal(await page.locator('.top small').innerText(),'v0.16.0');
   assert.equal(await page.locator('#offline').count(),0);
-  assert.equal(new URL(page.url()).searchParams.get('v'),'0.15.1');
+  assert.equal(new URL(page.url()).searchParams.get('v'),'0.16.0');
   assert.deepEqual(await page.evaluate(async()=>(await caches.keys()).sort()),['other-app-cache']);
   assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);
   assert.equal(await page.evaluate(()=>localStorage.getItem('ministar.records')),'[{"win":true}]');
  }finally{await context.close();await new Promise(r=>server.close(r))}
+}
+async function testTeamModes(browser,url){
+ const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ try{
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__teamTest={get battle(){return battle},get owner(){return viewCommanderId()},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));
+  await page.goto(url);await page.locator('#title').waitFor({state:'visible'});
+  for(const size of [1,2,3]){
+   await page.locator('#teamSizeTrigger').click();await page.getByRole('option',{name:new RegExp(`^${size} vs ${size}`)}).click();
+   assert.equal(await page.locator('#teamSize').inputValue(),String(size));assert.equal(await page.locator('select:visible').count(),0);
+   await page.locator('#deploy').click();assert.equal(await page.evaluate(()=>window.__teamTest.battle.commanders.length),size*2);
+   await page.evaluate(()=>{const b=window.__teamTest.battle;for(let i=0;i<160;i++)b.step(.25)});
+   await page.locator('#spaceToggle').click();assert.equal(await page.locator('#productionSeat').isVisible(),size>1);
+   for(let slot=1;slot<size;slot++){
+    await page.locator('#productionSeat').click();assert.equal(await page.evaluate(()=>window.__teamTest.owner),slot);assert.equal(await page.locator('#commandButton').isDisabled(),true);
+    const target=await page.evaluate(slot=>{const t=window.__teamTest,u=t.battle.units.find(u=>u.alive&&u.productionOnly&&u.commanderId===slot&&!u.startingBase);return u?{point:t.project(u),name:u.def.name}:null},slot);
+    assert.ok(target,'allied AI must actually construct a visible building');await page.locator('#field').click({position:target.point});assert.equal(await page.locator('#unitName').innerText(),target.name);
+    assert.equal(await page.evaluate(()=>window.__teamTest.battle.inspectedUnit?.commanderId),slot);
+    assert.match(await page.locator('#productionSeat').innerText(),new RegExp('아군 AI '+slot));
+   }
+   if(size===3)await page.screenshot({path:'/tmp/ministar-3v3-ally-production.png'});
+   await page.locator('#productionSide').click();assert.equal(await page.evaluate(()=>window.__teamTest.owner),3);
+   await page.evaluate(()=>window.__teamTest.battle.finish(true,'test'));await page.locator('#toTitle').click();
+  }
+  assert.deepEqual(errors,[]);
+ }finally{await context.close()}
 }
 (async()=>{const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{browser=await chromium.launch({headless:true});await testLegacyMigration(browser);await testLegacyMigration(browser,true);const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+': '+r.url())});await page.addInitScript(()=>{window.__spriteDraws=new Set();const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(image,...args){if(image?.src)window.__spriteDraws.add(image.src);return draw.call(this,image,...args)}});await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__visualTest={get battle(){return battle},get placement(){return placementPoint},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));await page.goto('http://127.0.0.1:'+server.address().port+'/ministar/');await page.locator('#title').waitFor({state:'visible'});// Every select uses an overlay: no Android picker, layout shift or viewport overflow.
 for(const viewport of [{width:405,height:594},{width:390,height:600},{width:360,height:640},{width:412,height:740},{width:390,height:844},{width:320,height:568},{width:844,height:390},{width:1280,height:800}]){
@@ -135,6 +161,6 @@ await page.evaluate(()=>{const b=window.__visualTest.battle;b.die(b.outpostDefen
 await page.waitForFunction(()=>[...window.__spriteDraws].some(url=>url.includes('assets/sprites/215_'))&&[...window.__spriteDraws].some(url=>url.includes('destruction-assets/217-')));
 await page.screenshot({path:'/tmp/ministar-building-explosion.png',fullPage:true});await page.waitForTimeout(1300);
 assert.ok(await page.evaluate(()=>window.__visualTest.battle.wrecks.length>0));await page.screenshot({path:'/tmp/ministar-building-rubble.png',fullPage:true});
-assert.equal(await page.locator('#offline').count(),0);assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);assert.deepEqual(errors,[]);console.log('390 × 844: empty production setup, fixed wave status, building placement, background pause, custom dropdowns and legacy cache migration passed.')}finally{await browser?.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
+assert.equal(await page.locator('#offline').count(),0);assert.equal(await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).length),0);assert.deepEqual(errors,[]);await testTeamModes(browser,'http://127.0.0.1:'+server.address().port+'/ministar/');console.log('390 × 844: empty production setup, fixed wave status, building placement, background pause, custom dropdowns and legacy cache migration passed.')}finally{await browser?.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
 
 
