@@ -9,7 +9,7 @@ from map_geometry import centered_crop, map_point
 
 
 class DesertStrikeMapGeometryTests(unittest.TestCase):
-    def test_rotated_source_is_center_cropped_without_stretching(self):
+    def test_legacy_objective_transform_keeps_uniform_scale(self):
         crop = centered_crop(2080, 3072, 1280, 2048)
         self.assertEqual(crop, (80, 0, 1920, 3072))
         self.assertTrue(math.isclose(1280 / crop[2], 2048 / crop[3]))

@@ -156,6 +156,8 @@ assert.equal(await page.locator('#shop').count(),0);assert.equal(await page.loca
 assert.equal(await page.locator('#unitName').innerText(),'');
 assert.ok(Number(await page.locator('#money').innerText())>=300);assert.equal(await page.locator('#gas').isVisible(),false);assert.match(await page.locator('#incomeStatus').innerText(),/1.34초/);
 assert.equal(await page.locator('#slow').isVisible(),false);await page.waitForFunction(()=>[...window.__spriteDraws].some(url=>url.includes('ds-assets/207')));
+assert.ok(await page.evaluate(version=>[...window.__spriteDraws].some(url=>url.endsWith('ds-assets/battlefield.webp?v='+version)),VERSION),'the renderer must draw the current upright terrain asset');
+await page.screenshot({path:'/tmp/ministar-upright-terrain.png'});
 await page.locator('#spaceToggle').click();
 const productionToggle=await page.locator('#spaceToggle').boundingBox();
 assert.equal(productionToggle.x,390-productionToggle.width);

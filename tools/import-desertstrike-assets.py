@@ -1,11 +1,11 @@
 """Build original Desert tiles and objective sprites from previously acquired bundles.
 Usage: python tools/import-desertstrike-assets.py source-bundle-directory
 """
-import io,json,struct,zipfile
+import io,json,struct,zipfile,hashlib
 from pathlib import Path
 from PIL import Image
 import numpy as np
-from map_geometry import centered_crop
+from battlefield_terrain import render_battlefield
 root=Path(__file__).resolve().parents[1];source=Path(__import__('sys').argv[1]);prefix='MINISTAR_Remastered_v0.2/'
 terrain=zipfile.ZipFile(source/'MINISTAR_Remastered_v0.2_05_Terrain_Effects.zip');hd=zipfile.ZipFile(source/'MINISTAR_Remastered_v0.2_04_HD2_WebSprites.zip');classic=zipfile.ZipFile(source/'MINISTAR_Resources_v0.1.zip')
 raw=json.loads(classic.read('MINISTAR_Resources_v0.1/data_json/units.dat.json'));sprites=json.loads(classic.read('MINISTAR_Resources_v0.1/data_json/sprites.dat.json'));flingy=json.loads(classic.read('MINISTAR_Resources_v0.1/data_json/flingy.dat.json'))
@@ -33,14 +33,15 @@ original=Image.new('RGB',(3072,3072))
 for i,v in enumerate(tiles):original.paste(tile(v),(i%96*32,i//96*32))
 original.resize((960,960)).save(root/'docs/desertstrike-original-terrain.webp','WEBP',quality=90)
 original.crop((0,0,1056,608)).save(dest/'production.webp','WEBP',quality=90)
-# Rotate the complete source image, preserving connected tile edges. Sampling
-# isolated MTXM cells onto a new grid would destroy the original transitions.
-field=original.crop((0,0,3072,2080)).transpose(Image.Transpose.ROTATE_90)
-# Keep the source scale uniform: the rotated crop is 2080x3072, while the
-# battlefield viewport is 1280x2048 (5:8). Center-crop to that ratio before
-# resizing so units and terrain details are not squeezed horizontally.
-left,top,width,height=centered_crop(field.width,field.height,1280,2048)
-field=field.crop((left,top,left+width,top+height))
-field=field.resize((1280,2048),Image.Resampling.LANCZOS)
-field.save(dest/'battlefield.webp','WEBP',quality=90)
+# Mobile scenery is a continuous upright source crop, not a rotated raster.
+# The crop keeps the original cliff at the right edge and the central lane open.
+# Source resolution is normalized to the committed recovered crop (800x1280).
+upright=original.crop((0,80,1200,2000)).resize((800,1280),Image.Resampling.LANCZOS)
+upright.save(root/'resources/desertstrike/upright-field.webp','WEBP',lossless=True,method=6)
+metadata_path=root/'resources/desertstrike/upright-field.json'
+metadata=json.loads(metadata_path.read_text())
+metadata['sourceSha256']=hashlib.sha256((root/'resources/desertstrike/upright-field.webp').read_bytes()).hexdigest()
+metadata['recoveredFrom']={'operation':'Rendered directly from original Desert cv5/vx4ex/vr4/wpe and MTXM, then cropped without rotation.'}
+metadata_path.write_text(json.dumps(metadata,indent=2)+'\n')
+render_battlefield(upright).save(dest/'battlefield.webp','WEBP',quality=90,method=6)
 print('Imported Desert terrain, crystal formation and temple sprites')

@@ -1,0 +1,24 @@
+{
+  "sourceSha256": "90c4c3bb2e144f3a2541efc47e481aa0244ea81e9d2e7a8fca1c321145b6c711",
+  "sourceSize": [
+    800,
+    1280
+  ],
+  "targetSize": [
+    1280,
+    2048
+  ],
+  "originalSourceCrop": [
+    0,
+    80,
+    1200,
+    2000
+  ],
+  "recoveredFrom": {
+    "commit": "184f8498dc69a6553af81ae92dcf7fd5b820bda0",
+    "path": "dist/ds-assets/battlefield.webp",
+    "gitBlob": "427d7e99923e0849ff8481bed859726e1be9c797",
+    "operation": "90 degrees clockwise (undo legacy CCW rotation), then left 800x1280 crop; lossless WebP storage"
+  },
+  "gameplayCoordinates": "Unchanged legacy 90-degree coordinate mapping; scenery is an intentional mobile adaptation."
+}
