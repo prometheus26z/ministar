@@ -47,7 +47,7 @@ async function testTeamModes(browser,url){
     assert.match(await page.locator('#productionSeat').innerText(),new RegExp('아군 AI '+slot));
    }
    if(size===3)await page.screenshot({path:'/tmp/ministar-3v3-ally-production.png'});
-   await page.locator('#productionSide').click();assert.equal(await page.evaluate(()=>window.__teamTest.owner),3);
+   assert.equal(await page.locator('#productionSide').count(),0);assert.ok(await page.evaluate(()=>window.__teamTest.owner<3));
    await page.evaluate(()=>window.__teamTest.battle.finish(true,'test'));await page.locator('#toTitle').click();
   }
   assert.deepEqual(errors,[]);
@@ -106,10 +106,8 @@ for(let slot=0;slot<5;slot++){
  assert.equal(await page.evaluate(()=>{const t=window.__visualTest;return t.battle.placement(t.battle.builder,110,t.placement).gasNode?.slot}),slot);
 }
 await page.locator('#cancel').click();
-await page.locator('#productionSide').click();assert.equal(await page.locator('#commandButton').isDisabled(),true);
-assert.ok(await page.evaluate(()=>window.__visualTest.battle.units.some(u=>u.team===1&&u.productionOnly&&u.def.building)));
-await page.screenshot({path:'/tmp/ministar-enemy-production.png'});
-await page.locator('#productionSide').click();assert.equal(await page.locator('#commandButton').isDisabled(),false);
+assert.equal(await page.locator('#productionSide').count(),0);
+assert.equal(await page.locator('#commandButton').isDisabled(),false);
 await page.locator('#commandButton').click();await page.locator('#commands').waitFor({state:'visible'});
 await page.waitForFunction(()=>Number(document.getElementById('money').textContent)>=330);const barracks=page.getByRole('button',{name:/배럭 건설/});await page.waitForFunction(()=>[...document.querySelectorAll('.command-card')].some(b=>b.textContent.includes('배럭')&&!b.disabled));assert.equal(await barracks.isDisabled(),false);assert.match(await barracks.innerText(),/330 미네랄/);assert.doesNotMatch(await barracks.innerText(),/●/);
 assert.match(await barracks.innerText(),/마린 6기/);assert.doesNotMatch(await barracks.innerText(),/3초/);assert.match(await page.getByRole('button',{name:/아카데미 건설/}).innerText(),/파이어뱃 1기.*메딕 1기/);

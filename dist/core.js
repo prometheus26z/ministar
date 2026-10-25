@@ -1,5 +1,5 @@
-import {layeredActionSeconds} from './animation.js?v=0.16.4';
-export const VERSION='0.16.4';
+import {layeredActionSeconds} from './animation.js?v=0.16.5';
+export const VERSION='0.16.5';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
