@@ -124,6 +124,7 @@ async function testInspection(browser){
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.medic);
   await page.waitForFunction(()=>document.querySelector('#energy').textContent==='마나 75/250');
+  await page.evaluate(id=>window.__inspectionTest.centerOn(id,.6),ids.medic);
   await page.evaluate(id=>window.__inspectionTest.startManaBarSpy(id),ids.medic);
   await page.waitForTimeout(200);
   assert.ok(await page.evaluate(()=>window.__inspectionTest.stopManaBarSpy())>0,'the real renderer draws the mana row below HP');
