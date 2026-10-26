@@ -1,0 +1,1043 @@
+{
+  "schema": 1,
+  "locale": "koKR",
+  "tblIndexBase": 1,
+  "weapons": {
+    "0": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "1": {
+      "labelId": 230,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "2": {
+      "labelId": 231,
+      "name": "C-10 산탄 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "3": {
+      "labelId": 232,
+      "name": "C-10 산탄 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "4": {
+      "labelId": 233,
+      "name": "파편 유탄",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "5": {
+      "labelId": 234,
+      "name": "파편 유탄",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "6": {
+      "labelId": 316,
+      "name": "스파이더 마인",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "7": {
+      "labelId": 235,
+      "name": "2연장 자동포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "8": {
+      "labelId": 236,
+      "name": "지옥불 미사일",
+      "damageFactor": 2,
+      "damageBonus": 2
+    },
+    "9": {
+      "labelId": 237,
+      "name": "2연장 자동포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "10": {
+      "labelId": 238,
+      "name": "지옥불 미사일",
+      "damageFactor": 2,
+      "damageBonus": 1
+    },
+    "11": {
+      "labelId": 239,
+      "name": "아크라이트 포",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "12": {
+      "labelId": 240,
+      "name": "아크라이트 포",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "13": {
+      "labelId": 241,
+      "name": "융합 절단기",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "14": {
+      "labelId": 242,
+      "name": "융합 절단기",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "15": {
+      "labelId": 243,
+      "name": "쌍둥이 미사일",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "16": {
+      "labelId": 244,
+      "name": "버스트 레이저",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "17": {
+      "labelId": 245,
+      "name": "쌍둥이 미사일",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "18": {
+      "labelId": 246,
+      "name": "버스트 레이저",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "19": {
+      "labelId": 247,
+      "name": "공대지 레이저 포대",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "20": {
+      "labelId": 248,
+      "name": "공대공 레이저 포대",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "21": {
+      "labelId": 249,
+      "name": "공대지 레이저 포대",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "22": {
+      "labelId": 250,
+      "name": "공대공 레이저 포대",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "23": {
+      "labelId": 251,
+      "name": "공대지 레이저 포대",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "24": {
+      "labelId": 252,
+      "name": "공대공 레이저 포대",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "25": {
+      "labelId": 253,
+      "name": "화염방사기",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "26": {
+      "labelId": 254,
+      "name": "화염방사기",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "27": {
+      "labelId": 255,
+      "name": "아크라이트 충격포",
+      "damageFactor": 1,
+      "damageBonus": 5
+    },
+    "28": {
+      "labelId": 256,
+      "name": "아크라이트 충격포",
+      "damageFactor": 1,
+      "damageBonus": 5
+    },
+    "29": {
+      "labelId": 257,
+      "name": "장거리 미사일",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "30": {
+      "labelId": 321,
+      "name": "야마토 건",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "31": {
+      "labelId": 258,
+      "name": "뉴클리어 스트라이크",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "32": {
+      "labelId": 314,
+      "name": "락다운",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "33": {
+      "labelId": 259,
+      "name": "EMP 쇼크웨이브",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "34": {
+      "labelId": 342,
+      "name": "i\\u0003이래디에이트",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "35": {
+      "labelId": 260,
+      "name": "발톱",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "36": {
+      "labelId": 261,
+      "name": "발톱",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "37": {
+      "labelId": 262,
+      "name": "발톱",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "38": {
+      "labelId": 263,
+      "name": "바늘 가시뼈",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "39": {
+      "labelId": 264,
+      "name": "바늘 가시뼈",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "40": {
+      "labelId": 265,
+      "name": "카이저 칼날",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "41": {
+      "labelId": 266,
+      "name": "카이저 칼날",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "42": {
+      "labelId": 267,
+      "name": "독성 포자",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "43": {
+      "labelId": 268,
+      "name": "가시뼈",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "44": {
+      "labelId": 268,
+      "name": "가시뼈",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "45": {
+      "labelId": 270,
+      "name": "산성 분출",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "46": {
+      "labelId": 271,
+      "name": "애시드 스포어",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "47": {
+      "labelId": 272,
+      "name": "애시드 스포어",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "48": {
+      "labelId": 273,
+      "name": "쐐기 벌레",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "49": {
+      "labelId": 274,
+      "name": "쐐기 벌레",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "50": {
+      "labelId": 275,
+      "name": "맹독",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "51": {
+      "labelId": 276,
+      "name": "맹독",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "52": {
+      "labelId": 278,
+      "name": "추적 포자",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "53": {
+      "labelId": 279,
+      "name": "지하 촉수",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "54": {
+      "labelId": 280,
+      "name": "자폭",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "55": {
+      "labelId": 280,
+      "name": "자폭",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "56": {
+      "labelId": 377,
+      "name": "r\\u0003패러사이트",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "57": {
+      "labelId": 375,
+      "name": "b\\u0003브루들링 소환 (\\u0003B\\u0001)",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "58": {
+      "labelId": 381,
+      "name": "e\\u0003인스네어",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "59": {
+      "labelId": 376,
+      "name": "w\\u0003다크 스웜",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "60": {
+      "labelId": 378,
+      "name": "g\\u0003플레이그",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "61": {
+      "labelId": 379,
+      "name": "c\\u0003컨숨",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "62": {
+      "labelId": 281,
+      "name": "입자 광선",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "63": {
+      "labelId": 281,
+      "name": "입자 광선",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "64": {
+      "labelId": 282,
+      "name": "사이오닉 검",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "65": {
+      "labelId": 283,
+      "name": "사이오닉 검",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "66": {
+      "labelId": 286,
+      "name": "위상 분열기",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "67": {
+      "labelId": 287,
+      "name": "위상 분열기",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "68": {
+      "labelId": 288,
+      "name": "사이오닉 어썰트",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "69": {
+      "labelId": 289,
+      "name": "사이오닉 어썰트",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "70": {
+      "labelId": 290,
+      "name": "사이오닉 충격파",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "71": {
+      "labelId": 291,
+      "name": "사이오닉 충격파",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "72": {
+      "labelId": 292,
+      "name": "사용 안 함",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "73": {
+      "labelId": 293,
+      "name": "이중 양자포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "74": {
+      "labelId": 294,
+      "name": "반물질 미사일",
+      "damageFactor": 2,
+      "damageBonus": 1
+    },
+    "75": {
+      "labelId": 295,
+      "name": "이중 양자포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "76": {
+      "labelId": 296,
+      "name": "반물질 미사일",
+      "damageFactor": 2,
+      "damageBonus": 1
+    },
+    "77": {
+      "labelId": 297,
+      "name": "차원 분열포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "78": {
+      "labelId": 298,
+      "name": "차원 분열포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "79": {
+      "labelId": 299,
+      "name": "파동포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "80": {
+      "labelId": 300,
+      "name": "STS 포톤 캐논",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "81": {
+      "labelId": 301,
+      "name": "STA 포톤 캐논",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "82": {
+      "labelId": 302,
+      "name": "스캐럽",
+      "damageFactor": 1,
+      "damageBonus": 25
+    },
+    "83": {
+      "labelId": 403,
+      "name": "t\\u0003스테이시스 필드",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "84": {
+      "labelId": 400,
+      "name": "t\\u0003사이오닉 스톰",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "85": {
+      "labelId": 285,
+      "name": "차원검",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "86": {
+      "labelId": 284,
+      "name": "변형 차원검",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "87": {
+      "labelId": 303,
+      "name": "미사일",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "88": {
+      "labelId": 304,
+      "name": "레이저 포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "89": {
+      "labelId": 305,
+      "name": "토멘터 미사일",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "90": {
+      "labelId": 306,
+      "name": "폭탄",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "91": {
+      "labelId": 307,
+      "name": "습격포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "92": {
+      "labelId": 312,
+      "name": "정의되지 않은 무기 이름",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "93": {
+      "labelId": 312,
+      "name": "정의되지 않은 무기 이름",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "94": {
+      "labelId": 312,
+      "name": "정의되지 않은 무기 이름",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "95": {
+      "labelId": 308,
+      "name": "강철제 화살탄",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "96": {
+      "labelId": 309,
+      "name": "2연장 자동포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "97": {
+      "labelId": 310,
+      "name": "지옥불 미사일",
+      "damageFactor": 2,
+      "damageBonus": 1
+    },
+    "98": {
+      "labelId": 311,
+      "name": "화염방사기",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "99": {
+      "labelId": 310,
+      "name": "지옥불 미사일",
+      "damageFactor": 2,
+      "damageBonus": 1
+    },
+    "100": {
+      "labelId": 1240,
+      "name": "중성자 섬광탄",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "101": {
+      "labelId": 1265,
+      "name": "d\\u0003디스럽션 웹",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "102": {
+      "labelId": 1248,
+      "name": "r\\u0003리스토레이션",
+      "damageFactor": 1,
+      "damageBonus": 0
+    },
+    "103": {
+      "labelId": 1237,
+      "name": "광륜 로켓",
+      "damageFactor": 2,
+      "damageBonus": 1
+    },
+    "104": {
+      "labelId": 1238,
+      "name": "부식성 산",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "105": {
+      "labelId": 1241,
+      "name": "마인드 컨트롤",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "106": {
+      "labelId": 1267,
+      "name": "f\\u0003피드백",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "107": {
+      "labelId": 1249,
+      "name": "f\\u0003옵티컬 플레어",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "108": {
+      "labelId": 1259,
+      "name": "메일스트롬",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "109": {
+      "labelId": 1239,
+      "name": "지하 등뼈",
+      "damageFactor": 1,
+      "damageBonus": 2
+    },
+    "110": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "111": {
+      "labelId": 284,
+      "name": "변형 차원검",
+      "damageFactor": 1,
+      "damageBonus": 3
+    },
+    "112": {
+      "labelId": 231,
+      "name": "C-10 산탄 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "113": {
+      "labelId": 231,
+      "name": "C-10 산탄 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "114": {
+      "labelId": 293,
+      "name": "이중 양자포",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "115": {
+      "labelId": 294,
+      "name": "반물질 미사일",
+      "damageFactor": 2,
+      "damageBonus": 1
+    },
+    "116": {
+      "labelId": 231,
+      "name": "C-10 산탄 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "117": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "118": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "119": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "120": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "121": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "122": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "123": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "124": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "125": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "126": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "127": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "128": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    },
+    "129": {
+      "labelId": 229,
+      "name": "가우스 소총",
+      "damageFactor": 1,
+      "damageBonus": 1
+    }
+  },
+  "upgrades": {
+    "0": {
+      "labelId": 411,
+      "name": "테란 인펀트리 아머"
+    },
+    "1": {
+      "labelId": 412,
+      "name": "테란 차량 장갑"
+    },
+    "2": {
+      "labelId": 413,
+      "name": "테란 우주선 장갑"
+    },
+    "3": {
+      "labelId": 414,
+      "name": "저그 캐러페이스"
+    },
+    "4": {
+      "labelId": 415,
+      "name": "저그 플라이어 캐러페이스"
+    },
+    "5": {
+      "labelId": 416,
+      "name": "프로토스 아머"
+    },
+    "6": {
+      "labelId": 417,
+      "name": "프로토스 플레이팅"
+    },
+    "7": {
+      "labelId": 418,
+      "name": "테란 보병 무기"
+    },
+    "8": {
+      "labelId": 419,
+      "name": "테란 차량 무기"
+    },
+    "9": {
+      "labelId": 420,
+      "name": "테란 쉽 웨픈"
+    },
+    "10": {
+      "labelId": 421,
+      "name": "저그 밀리 어택"
+    },
+    "11": {
+      "labelId": 422,
+      "name": "저그 미사일 어택"
+    },
+    "12": {
+      "labelId": 423,
+      "name": "저그 플라이어 어택"
+    },
+    "13": {
+      "labelId": 424,
+      "name": "프로토스 그라운드 웨픈"
+    },
+    "14": {
+      "labelId": 425,
+      "name": "프로토스 에어 웨픈"
+    },
+    "15": {
+      "labelId": 426,
+      "name": "프로토스 플라스마 쉴드"
+    },
+    "16": {
+      "labelId": 427,
+      "name": "U-238 쉘"
+    },
+    "17": {
+      "labelId": 428,
+      "name": "이온 스러스터"
+    },
+    "18": {
+      "labelId": 429,
+      "name": "버스트 레이저"
+    },
+    "19": {
+      "labelId": 430,
+      "name": "타이탄 리액터"
+    },
+    "20": {
+      "labelId": 431,
+      "name": "오큘러 임플란츠"
+    },
+    "21": {
+      "labelId": 432,
+      "name": "뫼비우스 리액터"
+    },
+    "22": {
+      "labelId": 433,
+      "name": "아폴로 리액터"
+    },
+    "23": {
+      "labelId": 434,
+      "name": "콜로서스 리액터"
+    },
+    "24": {
+      "labelId": 435,
+      "name": "벤트럴 섹"
+    },
+    "25": {
+      "labelId": 436,
+      "name": "안테나"
+    },
+    "26": {
+      "labelId": 437,
+      "name": "뉴머타이즈드 캐러페이스"
+    },
+    "27": {
+      "labelId": 438,
+      "name": "메타볼릭 부스트"
+    },
+    "28": {
+      "labelId": 439,
+      "name": "아드레날 글랜즈"
+    },
+    "29": {
+      "labelId": 440,
+      "name": "머스큘러 아규먼츠"
+    },
+    "30": {
+      "labelId": 441,
+      "name": "그루브드 스파인스"
+    },
+    "31": {
+      "labelId": 442,
+      "name": "게미트 마이오시스"
+    },
+    "32": {
+      "labelId": 443,
+      "name": "메타시냅틱 노드"
+    },
+    "33": {
+      "labelId": 444,
+      "name": "싱귤러리티 차지"
+    },
+    "34": {
+      "labelId": 445,
+      "name": "다리 강화"
+    },
+    "35": {
+      "labelId": 446,
+      "name": "스캐럽 공격력"
+    },
+    "36": {
+      "labelId": 447,
+      "name": "리버 수용력"
+    },
+    "37": {
+      "labelId": 448,
+      "name": "그래비틱 드라이브"
+    },
+    "38": {
+      "labelId": 449,
+      "name": "센서 어레이"
+    },
+    "39": {
+      "labelId": 450,
+      "name": "그래비틱 부스터"
+    },
+    "40": {
+      "labelId": 451,
+      "name": "케이다린 아뮬렛"
+    },
+    "41": {
+      "labelId": 452,
+      "name": "에이피얼 센서"
+    },
+    "42": {
+      "labelId": 453,
+      "name": "그래비틱 스러스터"
+    },
+    "43": {
+      "labelId": 454,
+      "name": "캐리어 커패시티"
+    },
+    "44": {
+      "labelId": 455,
+      "name": "케이다린 코어"
+    },
+    "45": {
+      "labelId": 0,
+      "name": ""
+    },
+    "46": {
+      "labelId": 0,
+      "name": ""
+    },
+    "47": {
+      "labelId": 1279,
+      "name": "아르거스 쥬얼"
+    },
+    "48": {
+      "labelId": 0,
+      "name": ""
+    },
+    "49": {
+      "labelId": 1280,
+      "name": "아르거스 탈리스만"
+    },
+    "50": {
+      "labelId": 0,
+      "name": ""
+    },
+    "51": {
+      "labelId": 1275,
+      "name": "카두세우스 리액터"
+    },
+    "52": {
+      "labelId": 1278,
+      "name": "카이트너스 플레이팅"
+    },
+    "53": {
+      "labelId": 1277,
+      "name": "합성 동화 작용"
+    },
+    "54": {
+      "labelId": 1276,
+      "name": "카론 부스터"
+    },
+    "55": {
+      "labelId": 0,
+      "name": ""
+    },
+    "56": {
+      "labelId": 0,
+      "name": ""
+    },
+    "57": {
+      "labelId": 0,
+      "name": ""
+    },
+    "58": {
+      "labelId": 0,
+      "name": ""
+    },
+    "59": {
+      "labelId": 0,
+      "name": ""
+    },
+    "60": {
+      "labelId": 0,
+      "name": ""
+    }
+  },
+  "labels": {
+    "777": "공격력:",
+    "778": "장갑:",
+    "779": "보호막:",
+    "791": "인터셉터",
+    "792": "스캐럽",
+    "793": "핵",
+    "794": "스파이더 마인",
+    "1301": "로켓 당"
+  }
+}

@@ -1,5 +1,6 @@
 const TRACKS=Object.freeze({
  walk:['walk','move','fly'],
+ heal:['heal','cast','idle'],
  attack:['attack','groundAttack'],
  airAttack:['airAttack','attack','groundAttack'],
  death:['death','dead'],

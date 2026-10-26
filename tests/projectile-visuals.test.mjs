@@ -107,3 +107,26 @@ test('default camera zoom is doubled on field, front and production views',()=>{
  assert.equal(DEFAULT_FIELD_ZOOM,1.2);assert.equal(DEFAULT_FRONT_ZOOM,1);
  assert.equal(defaultProductionZoom(320),.5);assert.equal(defaultProductionZoom(768),1.2);assert.equal(defaultProductionZoom(1200),1.24);
 });
+
+test('Goliath, Wraith and Scout use the resolved ground and air weapon visuals',()=>{
+ for(const type of [3,8,70]){
+  const seen=[];
+  for(const targetType of [0,8]){
+   const b=combat(),attacker=b.create(type,0,500,700),target=b.create(targetType,1,620,700);b.canSee=()=>true;target.hp=target.maxHp=1000;
+   const weapon=b.weapon(attacker,target);assert.ok(weapon,`unit ${type} has a weapon for target ${targetType}`);
+   assert.equal(b.emitWeaponEvent(attacker,target,{op:'attack',operands:[]}),true);
+   const visual=b.projectileVisuals.find(item=>item.image===weapon.image);
+   assert.ok(visual,`unit ${type} renders weapon image ${weapon.image} against target ${targetType}`);seen.push(visual.image);
+  }
+  assert.notEqual(seen[0],seen[1],`unit ${type} has distinct ground and air graphics`);
+ }
+});
+
+test('instant visuals begin their lifetime only after each individual first render',()=>{
+ const b=combat(),shown=b.addInstantVisual({kind:'contact',image:527,startX:0,startY:0,endX:0,endY:0,duration:.2}),hidden=b.addInstantVisual({kind:'contact',image:519,startX:1,startY:1,endX:1,endY:1,duration:.2});
+ b.tickProjectileVisuals(.3);assert.equal(shown.firstRendered,false);assert.equal(hidden.firstRendered,false);
+ b.markProjectileVisualRendered(shown);b.tickProjectileVisuals(.1);
+ assert.ok(b.projectileVisuals.includes(shown));assert.ok(b.projectileVisuals.includes(hidden));assert.equal(hidden.firstRendered,false);
+ b.tickProjectileVisuals(.11);assert.ok(!b.projectileVisuals.includes(shown));assert.ok(b.projectileVisuals.includes(hidden));
+ b.markProjectileVisualRendered(hidden);b.tickProjectileVisuals(.1);assert.ok(b.projectileVisuals.includes(hidden));
+});

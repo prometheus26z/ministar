@@ -162,6 +162,19 @@ def main():
     base_path = ROOT / 'dist/original-animation-data.json'
     base = json.loads(base_path.read_text())
     base.update(graphics)
+    for image_id, name, slot in [(525, 'stormActive', 14), (944, 'heal', 13)]:
+        graphic = base.get(str(image_id))
+        if not graphic:
+            raise SystemExit(f'Missing original image data for visual track {name}: {image_id}')
+        try:
+            track = iscript.trace(image_id, slot)
+        except ValueError as error:
+            raise SystemExit(f'Could not decode original {name} script for image {image_id}: {error}')
+        if not track or not track['frames']:
+            raise SystemExit(f'Original {name} script is empty for image {image_id}')
+        if any(frame[0] is not None and frame[0] >= len(graphic['frames']) for frame in track['frames']):
+            raise SystemExit(f'Original {name} script references a missing frame: {image_id}')
+        graphic.setdefault('tracks', {})[name] = track
     base_path.write_text(json.dumps(base, separators=(',', ':')))
     overlay_sizes = {}
     for unit in units:

@@ -93,7 +93,7 @@ async function testInspection(browser){
   await stat.tap();
   await page.locator('#statTooltip').waitFor({state:'visible'});
   assert.equal(await page.locator('#modal').isVisible(),false);
-  assert.match(await page.locator('#statTooltip').innerText(),/^\d+(?: \+\d+)?$/);
+  assert.equal(await page.locator('#statTooltip').innerText(),'프로토스 아머\n장갑: 1+3');
   const callout=await page.locator('#statTooltip').boundingBox(),anchor=await stat.boundingBox();
   assert.ok(callout.y+callout.height<=anchor.y,'stat callout appears above the tapped icon');
   await stat.tap();
