@@ -64,7 +64,7 @@ const {createServer}=require('../server.cjs');
     return{...info,visual:window.__projectileTest.battle.projectileVisuals.find(v=>v.id===info.visualId)};
    });
    assert.ok(delayed.visual&&!delayed.visual.firstRendered,'a 0.15-second simulation interval preserves the first draw');
-   const longFrame=await page.evaluate(async id=>{const b=window.__projectileTest.battle;await new Promise(requestAnimationFrame);const visual=b.projectileVisuals.find(v=>v.id===id);return{firstRendered:visual?.firstRendered,actual:b.projectiles.length}},delayed.visualId);
+   const longFrame=await page.evaluate(async id=>{const b=window.__projectileTest.battle;await new Promise(requestAnimationFrame);const visual=b.projectileVisuals.find(v=>v.id===id);return{firstRendered:visual?.firstRendered,actual:b.projectiles.filter(projectile=>projectile.visualId===id).length}},delayed.visualId);
    assert.equal(longFrame.firstRendered,true,'the delayed first frame is rendered before visual cleanup');
    assert.equal(longFrame.actual,0,'the real fast projectile is removed on its original impact schedule');
    await page.screenshot({path:'/tmp/ministar-projectile-delayed-frame.png'});
