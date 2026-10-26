@@ -107,8 +107,8 @@ async function testBuildingCatalogUI(browser,url){
 
   await choose('terran');let ids=await inject('terran');
   await select(ids.factory);assert.match(await page.locator('#order').innerText(),/골리앗 3기/);
-  await openSelected();assert.equal(await page.getByRole('button',{name:/머신샵/}).count(),0,'PUNI-disabled Machine Shop is absent from factory add-ons and the build catalog');
-  assert.equal(await page.locator('#commandGrid').evaluate(el=>el.innerText.includes('머신샵')),false);await close();
+  assert.equal(await page.locator('#command-page-selected').count(),0,'factory has no allowed selected-building commands');
+  for(const tab of ['basic','advanced']){await page.locator('#command-page-'+tab).click();assert.equal(await page.getByRole('button',{name:/머신샵/}).count(),0,'PUNI-disabled Machine Shop is absent from the build catalog')}await close();
   await select(ids.facility);await openSelected();
   const covert=page.getByRole('button',{name:/^코버트 옵스/}),physics=page.getByRole('button',{name:/^피직스 랩/});
   assert.equal((await covert.locator('.command-cost').innerText()).trim(),'1000');assert.equal(await covert.locator('.command-cost img').getAttribute('src'),'assets/icons/resource_000.png');assert.match(await covert.getAttribute('title'),/시즈 탱크 3기/);assert.equal(await covert.isDisabled(),false);
