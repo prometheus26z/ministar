@@ -1,4 +1,4 @@
-import {COMBAT_SOURCE,sourcePlayerForUnit,upgradeLevel,resolveWeapon,cooldownFrames,unitBoundsGap} from './combat-rules.js?v=0.16.18';
+import {COMBAT_SOURCE,sourcePlayerForUnit,upgradeLevel,resolveWeapon,cooldownFrames,unitBoundsGap} from './combat-rules.js?v=0.16.19';
 
 const FRAME=1/24,MAX_CARRIER=8,MAX_REAVER=10,INTERCEPTOR_LAUNCH_GAP=7,INTERCEPTOR_WARMUP=15,SCARAB_LAUNCH_GAP=60,SCARAB_COLLISION_GRACE=7,SCARAB_LIFETIME=90,SCARAB_SPEED=384;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);

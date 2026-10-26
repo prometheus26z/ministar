@@ -1,5 +1,5 @@
-import {UNIT_UI} from './selection-ui-data.js?v=0.16.18';
-import {attackHitCount} from './combat-rules.js?v=0.16.18';
+import {UNIT_UI} from './selection-ui-data.js?v=0.16.19';
+import {attackHitCount} from './combat-rules.js?v=0.16.19';
 
 const floorNonNegative=value=>Math.floor(Math.max(0,Number(value)||0));
 const ceilNonNegative=value=>Math.ceil(Math.max(0,Number(value)||0));
@@ -9,6 +9,18 @@ function resolvedWeapon(battle,unit,air,data){
  let attacker=unit;if(unit.type===72||unit.type===83){const type=unit.type===72?73:85,def=data.units[type];if(def)attacker={...unit,type,baseDef:def,def}}
  const weapon=battle.weapon?.(attacker,{def:{air}});
  return weapon?.damage>0?{weapon,attacker}:null;
+}
+
+function displayNumber(value){
+ const number=Number(value);
+ return Number.isFinite(number)?String(Number(number.toFixed(2))):'0';
+}
+
+export function inspectionEnergyMaximum(battle,unit){
+ if(!unit)return 0;
+ const owned=unit.team===0&&(!battle?.laneMode||unit.commanderId===0);
+ const maximum=Number(unit.maxEnergy??unit.def?.energy)||0;
+ return owned&&maximum>0?maximum:0;
 }
 
 export function selectionPanelModel(battle,unit,data,unitUi=UNIT_UI){
@@ -21,13 +33,14 @@ export function selectionPanelModel(battle,unit,data,unitUi=UNIT_UI){
   if(weapons.some(entry=>entry.sourceId===sourceId))continue;
   const weaponMap=unitUi.weapons?.[sourceId];if(!weaponMap?.icon)continue;
   const upgrade=Number.isInteger(weaponMap.damageUpgrade)?weaponMap.damageUpgrade:null;
-  weapons.push({kind,sourceId,icon:weaponMap.icon,level:upgrade===null?0:floorNonNegative(unit.def.combatUpgrades?.[upgrade]),damage:weapon.damage,hits:attackHitCount(attacker,weapon,kind==='air')||1,range:weapon.range||0,name:data.weapons?.[sourceId]?.name||(kind==='air'?'공중 공격':'지상 공격')});
+  const baseDamage=Number.isFinite(weapon.mapDamage)?weapon.mapDamage:Number(data.weapons?.[sourceId]?.damage??weapon.damage),damage=Number(weapon.damage),bonus=Math.max(0,damage-baseDamage);
+  weapons.push({kind,sourceId,icon:weaponMap.icon,level:upgrade===null?0:floorNonNegative(unit.def.combatUpgrades?.[upgrade]),damage,baseDamage,bonus,hits:attackHitCount(attacker,weapon,kind==='air')||1,range:weapon.range||0,name:data.weapons?.[sourceId]?.name||(kind==='air'?'공중 공격':'지상 공격')});
  }
  const armorUpgrade=Number.isInteger(unitMap.armorUpgrade)?unitMap.armorUpgrade:null;
- const armor=unitMap.armorIcon?{icon:unitMap.armorIcon,level:armorUpgrade===null?0:floorNonNegative(unit.def.combatUpgrades?.[armorUpgrade]),value:floorNonNegative(unit.def.armor)}:null;
- const hasShield=Number(unit.def.shield)>0,shield=hasShield?{icon:unitMap.shieldIcon||null,level:floorNonNegative(unit.def.combatUpgrades?.[15]),current:floorNonNegative(unit.shield),max:floorNonNegative(unit.def.shield),armor:floorNonNegative(unit.def.shieldArmor)}:null;
- const ownsEnergy=unit.team===0&&(!battle.laneMode||unit.commanderId===0),maxEnergy=Number(unit.maxEnergy??unit.def.energy)||0;
- const energy=ownsEnergy&&maxEnergy>0?{current:floorNonNegative(unit.energy),max:floorNonNegative(maxEnergy)}:null;
+ const armorValue=floorNonNegative(unit.def.armor),armorBase=floorNonNegative(unit.mapDefOverride?.armor??unit.baseDef?.armor??data.units?.[unit.sieged?30:unit.type]?.armor??armorValue),armor=unitMap.armorIcon?{icon:unitMap.armorIcon,level:armorUpgrade===null?0:floorNonNegative(unit.def.combatUpgrades?.[armorUpgrade]),value:armorValue,base:armorBase,bonus:Math.max(0,armorValue-armorBase)}:null;
+ const hasShield=Number(unit.def.shield)>0,shield=hasShield?{icon:unitMap.shieldIcon||null,level:floorNonNegative(unit.def.combatUpgrades?.[15]),current:floorNonNegative(unit.shield),max:floorNonNegative(unit.def.shield),armor:floorNonNegative(unit.def.shieldArmor),armorBase:0,armorBonus:floorNonNegative(unit.def.shieldArmor)}:null;
+ const maxEnergy=inspectionEnergyMaximum(battle,unit);
+ const energy=maxEnergy>0?{current:floorNonNegative(unit.energy),max:floorNonNegative(maxEnergy)}:null;
  const snapshot=battle.hangarSnapshot?.(unit)||null;
  const hangar=snapshot?.kind==='carrier'?{kind:'carrier',current:snapshot.total,max:snapshot.capacity,active:snapshot.active}:snapshot?.kind==='reaver'?{kind:'reaver',current:snapshot.inside,max:snapshot.capacity,active:snapshot.active}:null;
  const lifespan=Number.isFinite(unit.expiresAt)?Math.max(0,Math.ceil(unit.expiresAt-(battle.time||0))):null;
@@ -52,6 +65,19 @@ export function selectionPanelModel(battle,unit,data,unitUi=UNIT_UI){
   armor,weapons,hangar,defenseValue:floorNonNegative(unit.def.armor),shieldArmor:shield?.armor??0,
   supply:unit.def.supply||0
  };
+}
+
+export function selectionStatItems(model){
+ if(!model)return[];
+ const item=(key,kind,icon,level,base,bonus,hits=1)=>{
+  const baseText=displayNumber(base),bonusValue=Math.max(0,Number(bonus)||0),damageText=`${baseText}${bonusValue>0?` +${displayNumber(bonusValue)}`:''}`,valueText=`${hits>1?`(${damageText})`:damageText}${hits>1?` ×${hits}`:''}`;
+  return{key,kind,icon,level:floorNonNegative(level),valueText,accessibleLabel:`${kind} ${valueText}`};
+ };
+ const items=[];
+ if(model.armor)items.push(item('armor','방어력',model.armor.icon,model.armor.level,model.armor.base,model.armor.bonus));
+ if(model.shield?.icon)items.push(item('shieldArmor','쉴드 방어력',model.shield.icon,model.shield.level,model.shield.armorBase,model.shield.armorBonus));
+ for(const weapon of model.weapons)items.push(item(`weapon:${weapon.kind}:${weapon.sourceId}`,weapon.kind==='air'?'공중 공격':'지상 공격',weapon.icon,weapon.level,weapon.baseDamage,weapon.bonus,weapon.hits));
+ return items;
 }
 
 export function inspectionDetailRows(model){

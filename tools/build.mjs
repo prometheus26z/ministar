@@ -98,6 +98,7 @@ console.log(`Restored source-backed Brood War combat rules (${combatData.players
 const {buildAnimationControlData}=await import('./build-animation-control-data.mjs');
 const actionData=buildAnimationControlData(root);
 console.log(`Added repeat-attack visuals to ${actionData.images} unit images.`);
+execFileSync('python3',[path.resolve(import.meta.dirname,'build-shadow-metadata.py')],{stdio:'inherit'});
 execFileSync('python3',[path.resolve(import.meta.dirname,'pack-original-animations.py')],{stdio:'inherit'});
 {
  const source=path.join(root,'resources/selection-ui'),ui=JSON.parse(fs.readFileSync(path.join(source,'unit-ui-map.json'),'utf8'));

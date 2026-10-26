@@ -31,7 +31,7 @@ def debug(id,action=0):
   seen.add(p);name,a,n=instruction(p);print(p,name,a);p=a[0]if name=='goto'else n
   if name in ['end','ignorerest']:break
 
-def trace(id,slot,target_near=None,stop_at_signal=None,include_signals=False,inherit_initial=False):
+def trace(id,slot,target_near=None,stop_at_signal=None,include_signals=False,inherit_initial=False,stop_on_conditional=False):
  h=headers.get(image_script(id),[])
  if slot>=len(h)or not h[slot]:return None
  p=h[slot];seen={};stack=[];frame=None if inherit_initial else 0;frames=[];overlays=[];warp_overlays=[];ticks=0;hidden=False;loop=False;loopstart=0;sounds=[];fixed=None;follow=False;ended=False;signal_ticks={}
@@ -65,7 +65,9 @@ def trace(id,slot,target_near=None,stop_at_signal=None,include_signals=False,inh
   elif name in ['playsndrand','playsndbtwn']:pass
   elif name=='trgtrangecondjmp' and target_near is not None:
    if target_near:p=a[1]
-  elif name in ['randcondjmp','pwrupcondjmp','trgtrangecondjmp','trgtarccondjmp','curdirectcondjmp','liftoffcondjmp']:raise ValueError(('conditional',id,slot,name,a))
+  elif name in ['randcondjmp','pwrupcondjmp','trgtrangecondjmp','trgtarccondjmp','curdirectcondjmp','liftoffcondjmp']:
+   if stop_on_conditional:break
+   raise ValueError(('conditional',id,slot,name,a))
   elif name=='sigorder':
    signal_ticks[str(a[0])]=ticks
    if stop_at_signal==a[0]:break
