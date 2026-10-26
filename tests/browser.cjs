@@ -217,7 +217,7 @@ await page.keyboard.press('Space');await page.waitForTimeout(2100);await page.ke
 const finishedConstruction=await page.locator('#field').screenshot();
 assert.notDeepEqual(middleConstruction,finishedConstruction,'completion must replace the construction frames with the finished building');
 await page.keyboard.press('Space');
-await page.evaluate(()=>{const b=window.__visualTest.battle,unit=b.units.find(u=>u.alive&&u.productionOnly&&u.commanderId===0&&u.type===109);if(unit)b.select([unit.id],false)});
+await page.evaluate(()=>{const b=window.__visualTest.battle,unit=b.units.find(u=>u.alive&&u.productionOnly&&u.commanderId===0&&u.type===111);if(unit)b.select([unit.id],false)});
 await page.waitForFunction(()=>document.getElementById('order').textContent.includes('마린')&&document.getElementById('order').textContent.includes('6기'));assert.equal(await page.locator('#command-page-basic').isVisible(),true);
 await page.locator('#spaceToggle').click();
 assert.equal((await page.locator('#spaceToggle').boundingBox()).x,0);
