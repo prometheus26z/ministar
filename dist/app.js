@@ -1,14 +1,15 @@
-import {constructionVisual,healthBarLayout,waveDescription} from './presentation.js?v=0.16.13';
-import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.13';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.13';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.13';
-import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.13';
-import {researchAt} from './tech.js?v=0.16.13';
-import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.13';
-import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.13';
-import {psiFieldTiles} from './build-placement.js?v=0.16.13';
-import {createResourceStore,ResourceVersionError} from './resource-cache.js?v=0.16.13';
-import {createResourcePlanner} from './resource-planner.js?v=0.16.13';
+import {constructionVisual,healthBarLayout,waveDescription} from './presentation.js?v=0.16.14';
+import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.14';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.14';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.14';
+import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.14';
+import {researchAt} from './tech.js?v=0.16.14';
+import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.14';
+import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.14';
+import {psiFieldTiles} from './build-placement.js?v=0.16.14';
+import {resolveWeapon,attackHitCount} from './combat-rules.js?v=0.16.14';
+import {createResourceStore,ResourceVersionError} from './resource-cache.js?v=0.16.14';
+import {createResourcePlanner} from './resource-planner.js?v=0.16.14';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),mc=mini.getContext('2d');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';
@@ -37,7 +38,7 @@ function criticalSceneImageUrls(){const urls=new Set();for(const id of new Set([
 function dependencyImageUrls(imageIds){const urls=new Set(),visited=new Set(),queue=[...imageIds].filter(Number.isInteger).map(id=>({id,depth:0}));while(queue.length&&visited.size<2048){const {id,depth}=queue.shift();if(depth>8||visited.has(id))continue;visited.add(id);const graphic=data.graphics[id];if(!graphic)continue;for(const url of graphicUrls(graphic))urls.add(url);for(const track of Object.values(graphic.tracks||{})){const events=track?.overlayEvents||(track?.overlays||[]).map(image=>({image}));for(const event of events)if(Number.isInteger(event?.image))queue.push({id:event.image,depth:depth+1})}for(const overlay of graphic.persistentOverlays||[])if(Number.isInteger(overlay?.image))queue.push({id:overlay.image,depth:depth+1})}return urls}
 function selectedRaceImageUrls(selectedRace,constructionGraphics,turretGraphics,destructionGraphics){const types=new Set(data.races[selectedRace]||[]),images=[...types].map(type=>data.units[type]?.image).filter(Number.isInteger),urls=dependencyImageUrls(images);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const [type,graphic]of Object.entries(graphics))if(types.has(Number(type)))for(const url of graphicUrls(graphic))urls.add(url);for(const id of Object.values(BASE))for(const url of graphicUrls(data.graphics[data.units[id]?.image]))urls.add(url);return urls}
 function optionalImageUrls(constructionGraphics,turretGraphics,destructionGraphics){
- const optional=new Set(['ds-assets/production.webp?v=0.16.13']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
+ const optional=new Set(['ds-assets/production.webp?v=0.16.14']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
  for(const url of graphicUrls(data.graphics[215]))optional.add(url);
  for(const id of [210,211])for(const url of graphicUrls(data.graphics[id]))optional.add(url);
  const images=new Set([523,504,524,503,536]);for(const weapon of Object.values(data.weapons||{}))if(weapon?.damage&&Number.isInteger(weapon.image))images.add(weapon.image);
@@ -124,9 +125,13 @@ function hudUI(){
 function clearVitals(){for(const id of ['hp','shields','energy','groundAttack','airAttack','armor'])$(id).textContent=''}
 function meter(id,label,current,max){const el=$(id),ratio=max>0?clamp(current/max,0,1):0;el.innerHTML=`${label} ${Math.ceil(current)}/${Math.ceil(max)}<i style="width:${Math.round(ratio*100)}%"></i>`}
 function attackValue(u,air){
- const target={def:{air}},weapon=battle.weapon(u,target);if(!weapon)return null;if(u.hallucination)return '0';
- const hits=air?u.def.airHits||1:u.def.groundHits||1,mult=(u.type===125||u.type===72)?4:1;
- return `${Math.round(weapon.damage*(weapon.factor||1)*mult)}${hits>1?`×${hits}`:''}`;
+ if(u.hallucination)return '0';
+ let attacker=u;
+ if(u.type===72)attacker={type:73,team:u.team,commanderId:u.commanderId,sourceCombatPlayer:u.sourceCombatPlayer,baseDef:data.units[73],def:data.units[73]};
+ if(u.type===83)attacker={type:85,team:u.team,commanderId:u.commanderId,sourceCombatPlayer:u.sourceCombatPlayer,baseDef:data.units[85],def:data.units[85]};
+ const target={def:{air}},weapon=(u.type===72||u.type===83)?resolveWeapon(data,battle,attacker,air):battle.weapon(attacker,target);if(!weapon||weapon.controlOnly||!weapon.damage)return null;
+ const hits=attackHitCount(attacker,weapon,air),mult=u.type===125?4:1;
+ return `${Math.round(weapon.damage)}${hits>1?`×${hits}`:''}${mult>1?` · ${mult}명`:''}`;
 }
 function showVitals(units){
  clearVitals();document.body.dataset.inspect=units.length?'yes':'no';if(!units.length)return;
@@ -134,20 +139,25 @@ function showVitals(units){
  meter('hp','HP',hp,maxHp);
  const shieldUnits=units.filter(u=>u.def.shield>0);if(shieldUnits.length)meter('shields','실드',shieldUnits.reduce((n,u)=>n+u.shield,0),shieldUnits.reduce((n,u)=>n+u.def.shield,0));
  const energyUnits=units.filter(u=>u.def.energy>0);if(energyUnits.length)meter('energy','마나',energyUnits.reduce((n,u)=>n+u.energy,0),energyUnits.reduce((n,u)=>n+u.def.energy,0));
- const weaponSummary=(air)=>{const rows=new Map();for(const u of units){let value;if(u.garrison?.length){const crew=new Map();for(const id of u.garrison){const d=data.units[id];if(!d)continue;const wid=air?d.airWeapon:d.groundWeapon,w=data.weapons[wid];if(!w?.damage||!(air?w.air:w.ground))continue;const hits=air?d.airHits||1:d.groundHits||1,key=`${d.name} ${Math.round(w.damage*(w.factor||1))}${hits>1?`×${hits}`:''}`;crew.set(key,(crew.get(key)||0)+1)}value=[...crew].map(([name,count])=>`${name}${count>1?` ×${count}`:''}`).join(' · ')}
+ const weaponSummary=(air)=>{const rows=new Map();for(const u of units){let value;if(u.garrison?.length){const crew=new Map();for(const id of u.garrison){const d=data.units[id];if(!d)continue;const shooter={type:id,team:u.team,commanderId:u.commanderId,sourceCombatPlayer:u.sourceCombatPlayer,baseDef:d,def:d},w=resolveWeapon(data,battle,shooter,air);if(!w?.damage)continue;const hits=attackHitCount(shooter,w,air),range=battle.bunkerRange?.(id,w)??w.range,key=`${d.name} ${Math.round(w.damage)}${hits>1?`×${hits}`:''} · 사거리 ${range}`;crew.set(key,(crew.get(key)||0)+1)}value=[...crew].map(([name,count])=>`${name}${count>1?` ×${count}`:''}`).join(' · ')}
    else value=attackValue(u,air);if(!value)continue;const key=units.length===1?value:`${data.units[u.type]?.name||u.def.name} ${value}`;rows.set(key,(rows.get(key)||0)+1)}
   return [...rows].map(([name,count])=>count>1?`${name}×${count}`:name).join(' / ')||'—'};
  $('groundAttack').textContent=`지상 ${weaponSummary(false)}`;$('airAttack').textContent=`공중 ${weaponSummary(true)}`;
  const armor=units.length===1?String(units[0].def.armor):`${Math.min(...units.map(u=>u.def.armor))}–${Math.max(...units.map(u=>u.def.armor))}`;$('armor').textContent=`방어 ${armor}`;
 }
-function refreshVitals(){if(!battle)return;const selected=battle.selected,unit=battle.laneMode?(selected[0]||battle.inspectedUnit):null;showVitals(battle.laneMode?(unit?[unit]:[]):selected)}
+function updateLaneHangarStatus(unit){
+ const el=$('order'),snapshot=unit?.type===72||unit?.type===83?battle.hangarSnapshot(unit):null;
+ const status=snapshot?.kind==='carrier'?`인터셉터 ${snapshot.total}/${snapshot.capacity} · 비행 ${snapshot.active}`:snapshot?.kind==='reaver'?`스캐럽 ${snapshot.inside}/${snapshot.capacity} · 비행 ${snapshot.active}/1`:'';
+ el.textContent=[el.dataset.baseOrder||'',status].filter(Boolean).join(' · ');
+}
+function refreshVitals(){if(!battle)return;const selected=battle.selected,unit=battle.laneMode?(selected[0]||battle.inspectedUnit):null;showVitals(battle.laneMode?(unit?[unit]:[]):selected);if(battle.laneMode)updateLaneHangarStatus(unit)}
 function selectionUI(){
  if(!battle)return;const units=battle.selected;
  if(battle.laneMode){
   const unit=units[0]||battle.inspectedUnit,entries=unit?.productionOnly?battle.commanderWave(unit.commanderId,unit.id):new Map(),lineup=[...entries].map(([type,count])=>`${data.units[type].name} ${count}기`).join(' · ');$('unitName').textContent=unit?unit.def.name:'';document.querySelector('.unit-info').style.setProperty('--unit-icon',`url("${icon(unit?.type??BASE[race])}")`);
   showVitals(unit?[unit]:[]);
   const role=unit?.def.building?waveDescription(unit.type,battle.waveUnitsForBuilding(unit.type),data):'';
-  $('order').textContent=unit?.garrison?.length?'수비 병력':unit?.construction?`건설 중 · ${role}`:unit?.productionOnly&&lineup?lineup:unit?.productionOnly&&unit?.def.building?role:unit?.def.building?'전장 방어 시설':'';
+  $('order').dataset.baseOrder=unit?.garrison?.length?'수비 병력':unit?.construction?`건설 중 · ${role}`:unit?.productionOnly&&lineup?lineup:unit?.productionOnly&&unit?.def.building?role:unit?.def.building?'전장 방어 시설':'';updateLaneHangarStatus(unit);
   $('chips').replaceChildren();hudUI();productionUI();return;
  }
  $('unitName').textContent=units.length===1?units[0].def.name:units.length?units.length+'기 선택됨' :'';showVitals(units);
@@ -316,7 +326,7 @@ function drawRelief(){
 }
 function drawProductionBoard(){
  ctx.fillStyle='#1c100a';ctx.fillRect(0,PRODUCTION_OFFSET,1280,PRODUCTION_HEIGHT);
- if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.13');
+ if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.14');
  ctx.save();if(productionTeam){ctx.translate(1280,0);ctx.scale(-1,1)}
  if(desertProduction)ctx.drawImage(desertProduction,PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
  ctx.restore();ctx.strokeStyle='#c49b61';ctx.lineWidth=2;ctx.strokeRect(productionTeam?1280-PRODUCTION_GROUND_X-PRODUCTION_GROUND_WIDTH:PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
@@ -425,14 +435,14 @@ async function boot(){if(bootInProgress)return;bootInProgress=true;const retry=$
  if(!await retireOfflineStorage())return;
  const cacheState=await resourceStore.init();if(!cacheState.manifest)console.warn('Resource manifest unavailable; continuing with online requests only');
  if(!uiEnhanced){enhanceSelects();uiEnhanced=true}
- const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.13');
+ const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.14');
  const [base,extra,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations]=await Promise.all([
   fetchJson('assets/data.json','전투 데이터를 읽을 수 없습니다.'),
-  fetchJson('rts-data.json?v=0.16.13','생산 데이터를 읽을 수 없습니다.'),
-  fetchJson('construction-data.json?v=0.16.13','건설 그래픽을 읽을 수 없습니다.'),
-  fetchJson('turret-data.json?v=0.16.13','포탑 그래픽을 읽을 수 없습니다.'),
-  fetchJson('destruction-data.json?v=0.16.13','건물 파괴 그래픽을 읽을 수 없습니다.'),
-  fetchJson('original-animation-data.json?v=0.16.13','원본 애니메이션을 읽을 수 없습니다.')
+  fetchJson('rts-data.json?v=0.16.14','생산 데이터를 읽을 수 없습니다.'),
+  fetchJson('construction-data.json?v=0.16.14','건설 그래픽을 읽을 수 없습니다.'),
+  fetchJson('turret-data.json?v=0.16.14','포탑 그래픽을 읽을 수 없습니다.'),
+  fetchJson('destruction-data.json?v=0.16.14','건물 파괴 그래픽을 읽을 수 없습니다.'),
+  fetchJson('original-animation-data.json?v=0.16.14','원본 애니메이션을 읽을 수 없습니다.')
  ]);
  data=base;warmupGraphics=[constructionGraphics,turretGraphics,destructionGraphics];clearMediaSession();Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations);
  for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);
