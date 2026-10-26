@@ -108,6 +108,10 @@ async function testInspection(browser){
   const large=await page.evaluate(id=>window.__inspectionTest.bar(id),ids.dragoon);
   assert.equal(large.width,small.width);assert.ok(Math.abs(large.pixels/small.pixels-3.5)<1e-8);
   await page.locator('#field').screenshot({path:'/tmp/ministar-health-bar-zoom-14.png'});
+  await page.locator('#statDetails').focus();
+  const consoleLayout=await page.evaluate(()=>{const info=document.querySelector('#panel .unit-info'),name=document.querySelector('#unitName').getBoundingClientRect(),hp=document.querySelector('#hp').getBoundingClientRect(),icons=document.querySelector('#statDetails').getBoundingClientRect(),bounds=info.getBoundingClientRect();return{scroll:info.scrollTop,nameTop:name.top,top:bounds.top,hpRight:hp.right,iconsLeft:icons.left,bottom:bounds.bottom,iconsBottom:icons.bottom}});
+  assert.equal(consoleLayout.scroll,0,'focusing details must not scroll and clip the unit name');
+  assert.ok(consoleLayout.nameTop>=consoleLayout.top&&consoleLayout.hpRight<=consoleLayout.iconsLeft&&consoleLayout.iconsBottom<=consoleLayout.bottom,JSON.stringify(consoleLayout));
   await page.screenshot({path:'/tmp/ministar-inspection-panel-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);
  }finally{await context.close()}

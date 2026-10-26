@@ -74,7 +74,7 @@ const cy=()=>63+(H-panelHeight()-63)/2;
 const toWorld=(x,y)=>({x:camera.x+(x-W/2)/camera.zoom,y:camera.y+(y-cy())/camera.zoom});
 const toScreen=(x,y)=>({x:W/2+(x-camera.x)*camera.zoom,y:cy()+(y-camera.y)*camera.zoom});
 function limitCamera(){if(!battle)return;const hw=W/2/camera.zoom,hh=(H-panelHeight()-63)/2/camera.zoom,offset=viewMode==='production'?PRODUCTION_OFFSET:0;camera.x=clamp(camera.x,Math.min(640,hw),Math.max(640,1280-hw));camera.y=clamp(camera.y,offset+Math.min(1024,hh),offset+Math.max(1024,2048-hh))}
-function updateInspectionScale(){const wrap=$('inspectionWrap'),scaled=$('inspectionScaled');if(!wrap||!scaled)return;const scale=Math.min(1,Math.max(.55,(innerWidth-12)/358));wrap.style.width=`${358*scale}px`;wrap.style.height=`${92*scale}px`;scaled.style.transform=`scale(${scale})`}
+function updateInspectionScale(){const wrap=$('inspectionWrap'),scaled=$('inspectionScaled');if(!wrap||!scaled)return;const scale=Math.min(1,Math.max(.55,(innerWidth-12)/358));wrap.style.width=`${358*scale}px`;wrap.style.height=`${112*scale}px`;scaled.style.transform=`scale(${scale})`}
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,settings.quality==='low'?1.2:2);canvas.width=W*DPR;canvas.height=H*DPR;updateInspectionScale();limitCamera()}addEventListener('resize',resize);resize();
 function focus(units=battle.selected){if(!units.length)return;camera.x=units.reduce((n,u)=>n+u.x,0)/units.length;camera.y=units.reduce((n,u)=>n+u.y,0)/units.length;limitCamera()}
 function zoom(z,x=W/2,y=cy()){const p=toWorld(x,y);camera.zoom=clamp(z,.25,2.8);const q=toWorld(x,y);camera.x+=p.x-q.x;camera.y+=p.y-q.y;limitCamera();settings.zoom=camera.zoom;save('settings',settings)}
@@ -152,7 +152,7 @@ function showVitals(units){
  const iconRows=[];if(model?.armor)iconRows.push({kind:'방어',...model.armor});if(model?.shield?.icon)iconRows.push({kind:'실드',icon:model.shield.icon,level:model.shield.level});for(const weapon of model?.weapons||[])iconRows.push({kind:weapon.kind==='air'?'공중 무기':'지상 무기',icon:weapon.icon,level:weapon.level});
  const icons=$('statIcons');icons.replaceChildren();for(const row of iconRows){const item=document.createElement('span');item.className='stat-icon';item.title=`${row.kind}${row.level?` +${row.level}`:''}`;const image=document.createElement('img');image.src=icon(row.icon);image.alt='';item.append(image);if(row.level){const level=document.createElement('b');level.textContent=row.level;item.append(level)}icons.append(item)}
  $('statDetails').disabled=!model||!inspectionDetailRows(model).length;
- $('hp').textContent=model?`${model.shield?`실드 ${model.shield.current}/${model.shield.max}  `:''}HP ${model.hp.current}/${model.hp.max}`:'';$('shields').textContent='';
+ $('hp').textContent=model?`${model.shield?`실드 ${model.shield.current}/${model.shield.max}\n`:''}HP ${model.hp.current}/${model.hp.max}`:'';$('shields').textContent='';
  $('energy').textContent=model?.energy?`에너지 ${model.energy.current}/${model.energy.max}`:model?.lifespan!==null&&model?.lifespan!==undefined?`수명 ${model.lifespan}초`:'';
  $('killCount').textContent=model?.killCount!==null&&model?.killCount!==undefined?`처치 ${model.killCount}`:'';$('killCount').hidden=model?.killCount===null||model?.killCount===undefined;
  $('unitStatus').textContent=(model?.status||[]).join(' · ');
