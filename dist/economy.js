@@ -1,8 +1,8 @@
-import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.21';
-import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.16.21';
-import {inPsionicMatrixRange,footprintTiles} from './build-placement.js?v=0.16.21';
-import {CreepField} from './creep.js?v=0.16.21';
-import {DESERT_STRIKE,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_OFFSET} from './lane-rules.js?v=0.16.21';
+import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.22';
+import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.16.22';
+import {inPsionicMatrixRange,footprintTiles} from './build-placement.js?v=0.16.22';
+import {CreepField} from './creep.js?v=0.16.22';
+import {DESERT_STRIKE,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_OFFSET} from './lane-rules.js?v=0.16.22';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export class Battle extends CombatBattle{
  constructor(data,options){super(data,options);this.money=50;this.gas=0;this.maxSupply=0;this.timeLimit=Infinity;this.nodes=[];this.researched=new Set();this.orderSerial=1;this.economyClock=0;this.lastError='';this.produced=0;this.creepFields=new Map();this.creepClock=0;

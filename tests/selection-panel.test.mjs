@@ -55,11 +55,19 @@ test('ground inspection damage uses ground hit count even when the unit also has
 });
 
 
-test('stat callouts keep base values separate from bonuses and preserve multi-hit weapons',()=>{
+test('stat callouts show original labels and combine base damage with upgrade bonuses',()=>{
  const items=selectionStatItems({armor:{icon:1,level:2,base:1,bonus:2},shield:{icon:2,level:1,armorBase:0,armorBonus:1},weapons:[{kind:'ground',sourceId:64,icon:3,level:3,baseDamage:8,bonus:3,hits:2}]});
- assert.deepEqual(items.map(item=>item.valueText),['1 +2','0 +1','(8 +3) ×2']);
+ assert.deepEqual(items.map(item=>item.valueText),['장갑: 1+2','보호막: 0+1','공격력: 8+3']);
  assert.equal(selectionStatItems(null).length,0);
  const b=battle(),unit=b.create(1,0,100,100);unit.energy=0;
  assert.ok(inspectionEnergyMaximum(b,unit)>0,'zero current mana still has a visible maximum');
  unit.team=1;assert.equal(inspectionEnergyMaximum(b,unit),250,'visible units retain their runtime mana maximum');
+});
+
+test('source labels and multi-hit damage are shown in original form',()=>{
+ const b=battle(),zealot=b.create(65,0,100,100),scout=b.create(70,0,200,100);
+ const z=selectionPanelModel(b,zealot,data),s=selectionPanelModel(b,scout,data);
+ assert.ok(z.weapons[0].name);assert.equal(z.weapons[0].baseDamage,16);
+ assert.equal(s.weapons.find(w=>w.kind==='air').baseDamage,28);
+ assert.equal(selectionStatItems(z).find(item=>item.key.startsWith('weapon:')).valueText,`공격력: ${z.weapons[0].baseDamage}${z.weapons[0].bonus?'+'+z.weapons[0].bonus:''}`);
 });
