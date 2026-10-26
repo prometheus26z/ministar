@@ -64,16 +64,24 @@ async function testInspection(browser){
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
   await page.waitForFunction(()=>window.__inspectionTest.wireframeCacheSize>0);
-  assert.match(await page.locator('#hp').innerText(),/실드 51\/80\s+HP 74\/100/,'inspection values use original HP ceiling and shield floor rules');
+  assert.equal(await page.locator('#shields').innerText(),'실드 51/80');
+  assert.match(await page.locator('#hp').innerText(),/HP 74\/100/,'inspection values use original HP ceiling and shield floor rules');
   assert.equal(await page.locator('#killCount').innerText(),'처치 3');
   assert.ok(await page.locator('#statIcons .stat-icon').count()>=2,'armor and weapon icons appear in the source panel slots');
   assert.equal(await page.locator('#portrait').getAttribute('src'),ids.portrait);
   assert.equal(await page.locator('#portrait').isVisible(),true);
-  assert.equal(await page.locator('#statDetails').isDisabled(),false);
-  await page.locator('#statDetails').click();
-  await page.locator('#modal').waitFor({state:'visible'});
-  assert.match(await page.locator('#modalContent').innerText(),/방어력|지상|공중/);
-  await page.locator('#closeModal').click();
+  const stat=page.locator('#statIcons button').first();
+  await stat.tap();
+  await page.locator('#statTooltip').waitFor({state:'visible'});
+  assert.equal(await page.locator('#modal').isVisible(),false);
+  assert.match(await page.locator('#statTooltip').innerText(),/^\d+(?: \+\d+)?$/);
+  const callout=await page.locator('#statTooltip').boundingBox(),anchor=await stat.boundingBox();
+  assert.ok(callout.y+callout.height<=anchor.y,'stat callout appears above the tapped icon');
+  await stat.tap();
+  assert.equal(await page.locator('#statTooltip').isVisible(),false);
+  await stat.tap();
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#statTooltip').isVisible(),false);
 
   const enemyPoint=await page.evaluate(id=>window.__inspectionTest.centerOn(id,1.2),ids.enemy);
   await page.locator('#field').tap({position:enemyPoint});
@@ -89,7 +97,7 @@ async function testInspection(browser){
   await page.evaluate(()=>window.__inspectionTest.clearSelection());
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='');
   assert.equal(await page.locator('#portrait').getAttribute('src'),null,'clearing inspection releases the previous portrait');
-  assert.equal(await page.locator('#statDetails').isDisabled(),true);
+  assert.equal(await page.locator('#statIcons button').count(),0);
 
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
@@ -108,7 +116,7 @@ async function testInspection(browser){
   const large=await page.evaluate(id=>window.__inspectionTest.bar(id),ids.dragoon);
   assert.equal(large.width,small.width);assert.ok(Math.abs(large.pixels/small.pixels-3.5)<1e-8);
   await page.locator('#field').screenshot({path:'/tmp/ministar-health-bar-zoom-14.png'});
-  await page.locator('#statDetails').focus();
+  await page.locator('#statIcons button').first().focus();
   const consoleLayout=await page.evaluate(()=>{const info=document.querySelector('#panel .unit-info'),name=document.querySelector('#unitName').getBoundingClientRect(),hp=document.querySelector('#hp').getBoundingClientRect(),icons=document.querySelector('#statDetails').getBoundingClientRect(),bounds=info.getBoundingClientRect();return{scroll:info.scrollTop,nameTop:name.top,top:bounds.top,hpRight:hp.right,iconsLeft:icons.left,bottom:bounds.bottom,iconsBottom:icons.bottom}});
   assert.equal(consoleLayout.scroll,0,'focusing details must not scroll and clip the unit name');
   assert.ok(consoleLayout.nameTop>=consoleLayout.top&&consoleLayout.hpRight<=consoleLayout.iconsLeft&&consoleLayout.iconsBottom<=consoleLayout.bottom,JSON.stringify(consoleLayout));

@@ -70,5 +70,10 @@ for raw_id,source_graphic in sorted(graphics.items(),key=lambda pair:int(pair[0]
   shadow.setdefault('tracks',{})['idle']={**(shadow.get('tracks',{}).get('idle') or {}),'followParent':bool((shadow_init or {}).get('followParent'))}
  changed+=len(layers)
 
+# Legacy RTS bundles contain empty alternate palettes. Omit those links so
+# teamImage falls back to the available palette instead of loading an empty file.
+for graphic in original.values():
+ graphic['images']={team:url for team,url in graphic.get('images',{}).items() if (ROOT/'dist'/url).is_file() and (ROOT/'dist'/url).stat().st_size>0}
+
 original_path.write_text(json.dumps(original,separators=(',',':')))
 print(f'Restored {changed} original shadow links across {len(original)} animation graphics.')
