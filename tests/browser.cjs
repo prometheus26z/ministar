@@ -134,7 +134,7 @@ async function testBuildingCatalogUI(browser,url){
   await page.screenshot({path:'/tmp/ministar-building-catalog-zerg.png',fullPage:true});
 
   await page.evaluate(()=>window.__catalogTest.battle.finish(true,'catalog test'));await page.locator('#toTitle').click();await choose('protoss');ids=await inject('protoss');
-  await select(ids.robo);assert.match(await page.locator('#order').innerText(),/옵저버토리·로보틱스 서포트 베이 해금 · 최대 1개/);await openSelected();assert.match(await page.getByRole('button',{name:/옵저버토리/}).getAttribute('title'),/옵저버 2기/);assert.match(await page.getByRole('button',{name:/로보틱스 서포트 베이/}).getAttribute('title'),/리버 2기/);await close();
+  await select(ids.robo);assert.match(await page.locator('#order').innerText(),/옵저버토리·로보틱스 서포트 베이 해금 · 최대 1개/);await page.locator('#command-page-advanced').click();assert.match(await page.getByRole('button',{name:/옵저버토리/}).getAttribute('title'),/옵저버 2기/);assert.match(await page.getByRole('button',{name:/로보틱스 서포트 베이/}).getAttribute('title'),/리버 2기/);await close();
   await select(ids.pylon);assert.match(await page.locator('#order').innerText(),/기존 보급 건물 · 출격 수량 증가·추가 해금 없음/);
   await select(ids.stargate);assert.match(await page.locator('#order').innerText(),/스카웃 2기 · 커세어 1기/);
   await select(ids.special);assert.match(await page.locator('#order').innerText(),/건설 중.*절반을 아군으로 전환.*자동 발동·소모/);await openSelected();assert.match(await page.locator('#commandGrid').innerText(),/건설 취소/);await close();
