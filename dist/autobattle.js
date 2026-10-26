@@ -1,12 +1,14 @@
-import {LaneAI} from './lane-ai.js?v=0.16.13';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.13';
-import {SATISFIES} from './tech.js?v=0.16.13';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.13';
-import {buildingDestruction} from './presentation.js?v=0.16.13';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.13';
-import {clamp,dist} from './core.js?v=0.16.13';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.13';
-import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.13';
+import {LaneAI} from './lane-ai.js?v=0.16.14';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.14';
+import {SATISFIES} from './tech.js?v=0.16.14';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.14';
+import {buildingDestruction} from './presentation.js?v=0.16.14';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.14';
+import {clamp,dist} from './core.js?v=0.16.14';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.14';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.14';
+import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.14';
+import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.14';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -25,7 +27,7 @@ export class Battle extends EconomyBattle{
   this.botMoney=DESERT_STRIKE.startingMinerals;
   this.botGas=0;
   this.builder=null;
-  this.wrecks=[];this.outpostDefenses=[[],[]];this.incomeRemaining=[INCOME_SECONDS,INCOME_SECONDS];this.gasInvestmentLevel=[0,0];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.inSimulationStep=false;this.waveId=0;
+  this.wrecks=[];this.outpostDefenses=[[],[]];this.incomeRemaining=[INCOME_SECONDS,INCOME_SECONDS];this.gasInvestmentLevel=[0,0];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.inSimulationStep=false;this.waveId=0;this.hangarFrame=0;this.hangarAccumulator=0;this.reaverRefillClock=0;this.waveElapsedTotal=0;this.carrierRefillEvents=new Set();
   this.menuMode='build';
   this.teamSize=[1,2,3].includes(Number(options.teamSize))?Number(options.teamSize):1;this.random=options.random||Math.random;this.ownerByTeam=[0,3];this.commanders=[];this.commanderScopeDepth=0;this.commanderEvents=[];
   this.enemyRace=ENEMY_RACES.includes(options.enemyRace)?options.enemyRace:randomEnemyRace(options.random);
@@ -43,9 +45,9 @@ export class Battle extends EconomyBattle{
  updateVision(){this.fog.fill(1);this.explored.fill(1)}
  get inspectedUnit(){return this.units.find(u=>u.id===this.inspectedId&&u.alive&&!u.hidden&&!u.loaded&&this.canSee(0,u))||null}
  isHighlighted(u){return this.selection.includes(u.id)||this.inspectedId===u.id&&this.inspectedUnit===u}
- select(ids,voice=true){this.inspectedId=null;return super.select(ids.filter(id=>{const u=this.units.find(a=>a.id===id);return u?.alive&&u.team===0&&!u.hidden&&(!u.productionOnly||u.commanderId===0)}),voice)}
+ select(ids,voice=true){this.inspectedId=null;return super.select(ids.filter(id=>{const u=this.units.find(a=>a.id===id);return u?.alive&&u.team===0&&!u.hidden&&!u.fighter&&(!u.productionOnly||u.commanderId===0)}),voice)}
  inspect(unit){
-  if(!unit?.alive||unit.hidden||unit.loaded||!this.canSee(0,unit))return false;
+  if(!unit?.alive||unit.hidden||unit.loaded||unit.fighter||!this.canSee(0,unit))return false;
   const own=unit.team===0&&(!unit.productionOnly||unit.commanderId===0);this.select(own?[unit.id]:[],false);
   if(!own){this.inspectedId=unit.id;this.emit('selection')}
   return true;
@@ -57,7 +59,7 @@ export class Battle extends EconomyBattle{
  begin(){
   if(this.phase!=='title')return false;
   this.phase='battle';this.paused=false;this.time=0;this.timeLeft=Infinity;this.ownerByTeam=[0,3];this.commanders=[];
-  this.units=[];this.creepFields.clear();this.creepClock=0;this.projectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;
+  this.units=[];this.creepFields.clear();this.creepClock=0;this.projectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;this.hangarFrame=0;this.hangarAccumulator=0;this.reaverRefillClock=0;this.waveElapsedTotal=0;this.carrierRefillEvents=new Set();
   this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
   this.money=DESERT_STRIKE.startingMinerals;this.gas=0;this.botMoney=DESERT_STRIKE.startingMinerals;this.botGas=0;this.maxSupply=200;
   this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.waveClock=WAVE_SECONDS;
@@ -97,7 +99,35 @@ export class Battle extends EconomyBattle{
  commanderWave(id,buildingId=null){const c=this.commanders.find(c=>c.id===id);return c?this.withCommander(id,()=>this.activeWave(c.team,buildingId)):new Map()}
  commanderSnapshot(id){const c=this.commanders.find(c=>c.id===id);if(!c)return null;return this.withCommander(id,()=>({id,team:c.team,slot:c.slot,race:c.race,human:c.human,minerals:c.team?this.botMoney:this.money,income:this.incomeTotal[c.team],gas:this.completedGasCount(c.team),units:[...this.activeWave(c.team).values()].reduce((n,v)=>n+v,0),production:this.waveProducers(c.team).length}))}
  raceFor(team){return team?this.enemyRace:this.race}
- create(type,team,x,y){const u=super.create(type,team,x,y);if(!u)return u;u.commanderId=this.ownerByTeam?.[team]??team*3;const override=DESERT_STRIKE.unitOverrides?.[type];if(override){u.def={...u.def,...override,shield:u.def.shield?override.shield:0};u.hp=u.maxHp=override.hp;u.shield=u.def.shield}return u}
+ create(type,team,x,y){const u=super.create(type,team,x,y);if(!u)return u;u.commanderId=this.ownerByTeam?.[team]??team*3;u.sourceCombatPlayer=COMBAT_SOURCE.sourceCombatPlayerByTeam?.[team]??(team?7:3);const override=DESERT_STRIKE.unitOverrides?.[type];u.mapDefOverride=override?{...override,shield:u.baseDef.shield?override.shield:0}:null;u.def=resolveUnitDefinition(this,u,u.baseDef,u.mapDefOverride);u.maxEnergy=u.def.energy||0;if(override){u.hp=u.maxHp=override.hp;u.shield=u.def.shield}if(type===72||type===83)initializeHangarRuntime(this,u,null);return u;}
+ initializeHangar(parent,requested=null){return initializeHangarRuntime(this,parent,requested)}
+ refillCarrier(parent,amount=1){return refillCarrierRuntime(this,parent,amount)}
+ refillReaver(parent,amount=10){return refillReaverRuntime(this,parent,amount)}
+ hangarSnapshot(parent){return hangarSnapshotRuntime(this,parent)}
+ clearHangar(parent){return clearHangar(this,parent)}
+ tickHangarFrame(dt=1/24){return runHangarFrame(this,dt)}
+ onUnitDeath(unit){return onHangarUnitDeath(this,unit)}
+ transferOwnershipWithChildren(unit,team,commanderId=null){
+  if(!unit?.alive)return false;
+  const oldHp=unit.hp,oldShield=unit.shield,oldEnergy=unit.energy;
+  unit.team=team;unit.commanderId=Number.isInteger(commanderId)?commanderId:(this.ownerByTeam?.[team]??unit.commanderId??team*3);
+  unit.sourceCombatPlayer=COMBAT_SOURCE.sourceCombatPlayerByTeam?.[team]??(team?7:3);
+  unit.def=resolveUnitDefinition(this,unit,unit.baseDef||this.data.units[unit.type],unit.mapDefOverride);
+  unit.hp=Math.min(oldHp,unit.maxHp||unit.def.hp);unit.shield=Math.min(oldShield,unit.def.shield||0);unit.energy=oldEnergy;unit.maxEnergy=unit.def.energy||0;
+  transferHangarOwnership(this,unit,team,unit.commanderId);
+  for(const id of unit.passengers||[]){const passenger=this.units.find(candidate=>candidate.id===id&&candidate.alive);if(passenger)this.transferOwnershipWithChildren(passenger,team,unit.commanderId)}
+  this.spatial?.update(unit);return true;
+ }
+ advanceAmmoRefills(dt){
+  const before=this.waveElapsedTotal||0,after=before+dt,period=WAVE_SECONDS,offsets=[2,26/3,68/3];
+  for(let cycle=Math.floor(before/period);cycle<=Math.floor(after/period);cycle++)for(let index=0;index<offsets.length;index++){
+   const at=cycle*period+offsets[index],key=`${cycle}:${index}`;
+   if(at>before+1e-9&&at<=after+1e-9&&!this.carrierRefillEvents.has(key)){this.carrierRefillEvents.add(key);refillAllCarriers(this,1)}
+  }
+  this.waveElapsedTotal=after;this.reaverRefillClock=(this.reaverRefillClock||0)+dt;
+  while(this.reaverRefillClock+1e-9>=DESERT_STRIKE.hyperCycleSeconds){this.reaverRefillClock-=DESERT_STRIKE.hyperCycleSeconds;refillAllReavers(this,10)}
+ }
+
  installSide(team){
   const layout=DESERT_STRIKE.map.mobileLayout,mainPosition=layout?.mains?.[team],position=layout?.outposts?.[team];if(!mainPosition||!position)throw Error(`Missing mobile objective layout for team ${team}`);
   const main=this.create(173,team,mainPosition.x,mainPosition.y);main.isMain=true;main.def={...main.def,detector:true,sight:layout.objectiveDetectionRange};main.order='hold';main.hp=main.maxHp=30000;
@@ -253,7 +283,7 @@ export class Battle extends EconomyBattle{
   return this.withCommander(commanderId,()=>{
    const u=this.create(type,team,point.x,point.y);u.order='attackmove';u.laneArmy=true;u.laneOffset=spread;u.waveId=request.waveId;u.commanderId=commanderId;
    const objective=this.laneObjective(team);this.setAdvanceGoal(u,objective);u.laneObjectiveId=objective.id;
-   const prop=DESERT_STRIKE.properties[type===103?2:3];if(prop){u.hp=u.maxHp*prop.hp/100;u.shield=u.def.shield*prop.shield/100;u.energy=(u.def.energy||0)*prop.energy/100;if(type!==103&&prop.specialValid&2)u.burrowed=!!(prop.status&2)}
+   const prop=DESERT_STRIKE.properties[type===103?2:3];if(prop){u.hp=u.maxHp*prop.hp/100;u.shield=u.def.shield*prop.shield/100;u.maxEnergy=u.def.energy||0;u.energy=u.maxEnergy*prop.energy/100;if((type===72||type===83)&&(prop.propertyValid&32))initializeHangarRuntime(this,u,prop.hangar);if(type!==103&&prop.specialValid&2)u.burrowed=!!(prop.status&2)}
    if(type===103){u.lurkerState='ground';u.burrowed=false;u.action='idle';u.lurkerResumeOrder='attackmove'}
    if(type===63||type===68){u.skipSpawnIntro=true;u.visualTime=steadyStartSeconds(this.data.graphics[u.def.image],'idle',{seed:u.id})}
    if(team===0)this.produced++;return u;
@@ -310,10 +340,10 @@ export class Battle extends EconomyBattle{
    for(const u of this.units.filter(u=>this.ownsProduction(u,team)&&this.ready(u))){
     if(u.type===139&&!this.evolutionBonus[team]){this.evolutionBonus[team]=true;if(team)this.botMoney+=100;else this.money+=100;this.incomeTotal[team]+=100}
     const spec=DESERT_STRIKE.specials[u.type];if(!spec||this.specialStates[team][spec.effect])continue;
-    const enemies=this.units.filter(t=>t.alive&&t.team!==team&&!t.productionOnly&&!t.def.building&&!t.hidden&&!t.loaded);
+    const enemies=this.units.filter(t=>t.alive&&t.team!==team&&!t.productionOnly&&!t.def.building&&!t.hidden&&!t.loaded&&!t.fighter);
     if(spec.requires?.some(id=>!this.hasTeam(team,id)))continue;
     this.specialStates[team][spec.effect]={clock:0,pulses:0};u.refunded=true;this.die(u,1-team);
-    if(spec.effect==='mind'){enemies.forEach((t,i)=>{if(i%2===0){t.team=team;t.commanderId=this.ownerByTeam[team];t.target=null;t.laneArmy=true;this.setAdvanceGoal(t,this.laneObjective(team))}});delete this.specialStates[team].mind}
+    if(spec.effect==='mind'){enemies.forEach((t,i)=>{if(i%2===0){this.transferOwnershipWithChildren(t,team,this.ownerByTeam[team]);t.target=null;t.laneArmy=true;this.setAdvanceGoal(t,this.laneObjective(team))}});refillAllCarriers(this,8);delete this.specialStates[team].mind}
     if(spec.effect==='broodlings'){for(const target of enemies){const p={x:target.x,y:target.y};this.die(target,team);const point=this.deploymentPoint(this.data.units[40],team,p);if(point){const a=this.create(40,team,point.x,point.y);a.laneArmy=true;a.expiresAt=this.time+1800/24;this.setAdvanceGoal(a,this.laneObjective(team))}}delete this.specialStates[team].broodlings}
     this.emit('notice',{text:spec.effect==='heal'?'Heal & Repair!':spec.effect==='mind'?'Mind Control!':'Broodling!'})
    }
@@ -342,6 +372,7 @@ export class Battle extends EconomyBattle{
   super.tickUnit(u,dt);
  }
  beforeUnitActions(u,dt){
+  if(u.fighter||u.type===72||u.type===83)return false;
   if(!u.def.building&&u.laneArmy)this.maintainAdvance(u,dt);
   if(u.type===103&&u.laneArmy){if(this.updateLaneLurker(u,dt))return false}
   else if(!u.def.building&&!u.loaded)this.autoCast(u);
@@ -349,14 +380,7 @@ export class Battle extends EconomyBattle{
   return super.beforeUnitActions(u,dt);
  }
 
- weapon(u,target){
-  if(target.productionOnly||u.productionOnly||u.garrison)return null;
-  if(u.isFortification&&this.raceFor(u.team)==='terran'){
-   const weapon=this.data.weapons[target.def.air?u.def.airWeapon:u.def.groundWeapon];
-   return weapon&&weapon.damage&&(!target.def.air||weapon.air)&& (target.def.air||weapon.ground)?weapon:null;
-  }
-  return super.weapon(u,target);
- }
+ weapon(u,target){if(target.productionOnly||u.productionOnly||u.garrison)return null;return super.weapon(u,target);}
  animationDuration(u,action,fallback=.45){
   const seconds=transitionSeconds(this.data.graphics[u.def.image],action,fallback,u.lurkerAnimSeed||0);
   return Math.max(1/24,seconds);
@@ -403,7 +427,7 @@ export class Battle extends EconomyBattle{
   this.inSimulationStep=true;this.deploymentBudget=[8,8];
   try{
    super.step(dt);if(this.phase!=='battle')return;
-   this.fireBunkers(dt);this.tickIncome(dt);this.tickSpecials(dt);for(const c of this.commanders.filter(c=>c.slot>0))this.withCommander(c.id,()=>{this.tickIncome(dt,[c.team]);this.tickSpecials(dt,[c.team])});this.checkBaseWarning();
+   this.advanceAmmoRefills(dt);this.fireBunkers(dt);this.tickIncome(dt);this.tickSpecials(dt);for(const c of this.commanders.filter(c=>c.slot>0))this.withCommander(c.id,()=>{this.tickIncome(dt,[c.team]);this.tickSpecials(dt,[c.team])});this.checkBaseWarning();
    this.waveClock-=dt;
    while(this.waveClock<=0){for(const c of this.commanders)this.withCommander(c.id,()=>this.spawnWave(c.team));this.ai.observe();const history=this.ai.snapshot();history.commanders=this.commanders.map(c=>this.commanderSnapshot(c.id));this.waveHistory.push(history);this.waveClock+=WAVE_SECONDS;this.emit('wave')}
    this.drainPendingDeployments();this.botStep(dt);for(const c of this.commanders.filter(c=>c.slot>0))this.withCommander(c.id,()=>c.ai.step(dt));
@@ -411,26 +435,24 @@ export class Battle extends EconomyBattle{
   this.corpseCleanupClock=(this.corpseCleanupClock||0)+dt;
   if(this.corpseCleanupClock>=1){this.corpseCleanupClock=0;this.units=this.units.filter(u=>u.alive||u.lurkerSpines?.length||(!u.refunded&&this.time-(u.deathTime??this.time)<=(u.deathDuration||1.8)))}
  }
- bunkerRange(type,weapon){
-  // OpenBW weapon_max_range: +64 from the loaded soldier's bounds, not the bunker hull.
-  // U-238 Shells is enabled in the original map's starting upgrade settings.
-  return weapon.range+64+(type===0&&DESERT_STRIKE.upgrades[16]?.initialLevel?32:0);
- }
+ bunkerRange(type,weapon){return weapon.range+64;}
  fireBunkers(dt){
   for(const bunker of this.units.filter(u=>u.alive&&u.garrison?.length)){
    const cooldowns=bunker.garrisonCooldowns||=Array(bunker.garrison.length).fill(0);
    for(const [slot,id]of bunker.garrison.entries()){
     cooldowns[slot]=Math.max(0,(cooldowns[slot]||0)-dt);if(cooldowns[slot]>0)continue;
     const soldier=this.data.units[id];if(!soldier)continue;
-    const weaponFor=target=>this.data.weapons[target.def.air?soldier.airWeapon:soldier.groundWeapon];
-    const target=this.units.filter(u=>{
-     if(!u.alive||u.productionOnly||u.hidden||u.loaded||u.team===bunker.team||!this.canSee(bunker.team,u))return false;
+    const shooter={...bunker,type:id,baseDef:soldier,def:soldier,garrison:null,productionOnly:false,isFortification:false,sourceCombatPlayer:bunker.sourceCombatPlayer??COMBAT_SOURCE.sourceCombatPlayerByTeam?.[bunker.team]};
+    shooter.def=resolveUnitDefinition(this,shooter,soldier);
+    const weaponFor=target=>this.weapon(shooter,target);
+    const target=this.nearby(bunker,this.spatialRange(640)).filter(u=>{
+     if(!u.alive||u.def.invincible||u.productionOnly||u.hidden||u.loaded||u.team===bunker.team||!this.canSee(bunker.team,u))return false;
      const w=weaponFor(u),distance=Math.max(0,dist(u,bunker)-(soldier.radius||10)-u.r);
      return w?.damage&&(u.def.air?w.air:w.ground)&&distance<=this.bunkerRange(id,w)&&distance>=(w.minRange||0);
     }).sort((a,b)=>dist(a,bunker)-dist(b,bunker))[0];if(!target)continue;
     const weapon=weaponFor(target),direction=(Math.round(Math.atan2(target.x-bunker.x,bunker.y-target.y)*16/Math.PI)+32)%32,angle=direction*Math.PI/16;
     const x=bunker.x+Math.sin(angle)*30+(slot-1.5)*6,y=bunker.y-Math.cos(angle)*22;
-    const shooter={...bunker,type:id,def:soldier,x,y};this.attack(shooter,target,weapon);cooldowns[slot]=weapon.cooldown;
+    shooter.x=x;shooter.y=y;this.attack(shooter,target,weapon);cooldowns[slot]=shooter.cooldown||weapon.cooldown;
     this.effects.push({x,y,image:id===32?421:527,team:bunker.team,direction,left:id===32?.45:.18,duration:id===32?.45:.18,kind:'bunker-shot'});
    }
   }
