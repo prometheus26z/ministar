@@ -43,6 +43,28 @@ test('grid queries include boundary centers and preserve array order after cell 
  assert.equal(grid.maxExtent,80);assert.equal(grid.byId.get(2),b);
 });
 
+test('any-match queries preserve the legacy broad-phase fallback and handle both bucketed coordinate axes',()=>{
+ const make=(id,x,y,alive=true)=>({id,x,y,r:10,alive,def:{sight:320,footprint:[64,64]}});
+ const units=[make(0,-257,-129),make(1,-128,-128),make(2,0,0),make(3,128,128),make(4,257,257)];
+ const grid=new UnitGrid(units,32),near=(point,r,predicate)=>grid.queryAny(point,r,predicate,units);
+ for(const point of [{x:-128,y:-128},{x:0,y:0},{x:256,y:256}])for(const radius of [0,1,32,128,512])for(const wanted of [-1,0,1,2,3,4,5]){
+  const predicate=u=>u.id===wanted;
+  assert.equal(near(point,radius,predicate),grid.query(point,radius,units).some(predicate),JSON.stringify({point,radius,wanted}));
+ }
+ const packed=Array.from({length:9},(_,id)=>make(id,id<4?0:512,0)),packedGrid=new UnitGrid(packed,32);
+ assert.equal(packedGrid.queryAny({x:0,y:0},0,u=>u.id===8,packed),true,'dense fallback intentionally checks the same full-array superset as query()');
+ const dead=units[2];dead.alive=false;grid.update(dead);
+ assert.equal(grid.queryAny({x:0,y:0},0,u=>u.id===dead.id,units),false);
+});
+
+test('bounded exact any-match predicates need no full-array fallback',()=>{
+ const units=Array.from({length:300},(_,id)=>({id,x:(id%30-15)*41,y:(Math.floor(id/30)-5)*37,team:id%2,alive:id%17!==0,r:8,def:{sight:64,footprint:[16,16]}})),grid=new UnitGrid(units,32);
+ for(const point of [{x:0,y:0},{x:-220,y:75},{x:405,y:-80}])for(const radius of [0,24,64,110,260]){
+  const predicate=u=>u.alive&&u.team===1&&dist(point,u)<radius;
+  assert.equal(grid.queryAny(point,radius,predicate),units.some(predicate),JSON.stringify({point,radius}));
+ }
+});
+
 test('same-step recalls, new units, deaths and between-step external edits refresh the broad phase',()=>{
  const b=new Battle(data,{race:'protoss',enemyRace:'protoss'});b.begin();b.botStep=()=>{};b.waveClock=1e9;
  const caster=b.create(71,0,300,700),friend=b.create(65,0,1100,1000);caster.energy=200;
