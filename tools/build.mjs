@@ -1,6 +1,7 @@
 import fs from 'node:fs';import path from 'node:path';import zlib from 'node:zlib';import crypto from 'node:crypto';
 import {deriveBuildingCatalog,SOURCE_PLAYER_BY_COMMANDER} from './desert-strike-source.mjs';
 import {execFileSync} from 'node:child_process';
+import {buildCombatData} from './build-combat-data.mjs';
 // Regenerate the background from upright source artwork on every clean build.
 execFileSync('python3',[path.resolve(import.meta.dirname,'battlefield_terrain.py')],{stdio:'inherit'});
 const root=path.resolve(import.meta.dirname,'..'),meta=JSON.parse(fs.readFileSync(path.join(root,'resources/manifest.json'))),packed=Buffer.concat(meta.parts.map(p=>Buffer.from(fs.readFileSync(path.join(root,'resources',p),'utf8'),'base64')));
@@ -91,6 +92,8 @@ console.log('Restored 6 race-specific music cues.');
 const {restoreOriginalAnimations}=await import('./restore-original-animations.mjs');
 restoreOriginalAnimations(root);
 execFileSync('python3',[path.resolve(import.meta.dirname,'import-warp-anchor.py')],{stdio:'inherit'});
+const combatData=buildCombatData(root);
+console.log(`Restored source-backed Brood War combat rules (${combatData.players} players, ${combatData.units} units, ${combatData.weapons} weapons).`);
 const {buildResourceManifest}=await import('./build-resource-manifest.mjs');
 const packageVersion=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
 const resourceManifest=buildResourceManifest(path.join(root,'dist'),packageVersion);
