@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "appVersion": "0.16.22",
+  "appVersion": "0.16.23",
   "entries": {
     "assets/audio/1000.ogg": {
       "sha256": "62f4a427c632f163e43f5f271a48951e4d9927abef37ca6276ac90f0974813df",
@@ -8595,5 +8595,5 @@
       "kind": "metadata"
     }
   },
-  "buildId": "a7b77147d2da8e0b5275586157fcb6a878d3189256f98a12be1a0bde061d1b97"
+  "buildId": "f6169f0fd7dffa6a61a650063e23dd619f0caaeead9d4031e55ba11acec1547b"
 }

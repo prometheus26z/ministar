@@ -1,5 +1,5 @@
-import {UNIT_UI,ORIGINAL_STAT_LABELS} from './selection-ui-data.js?v=0.16.22';
-import {attackHitCount} from './combat-rules.js?v=0.16.22';
+import {UNIT_UI,ORIGINAL_STAT_LABELS} from './selection-ui-data.js?v=0.16.23';
+import {attackHitCount} from './combat-rules.js?v=0.16.23';
 
 const floorNonNegative=value=>Math.floor(Math.max(0,Number(value)||0));
 const ceilNonNegative=value=>Math.ceil(Math.max(0,Number(value)||0));
