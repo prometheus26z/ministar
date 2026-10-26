@@ -1,14 +1,14 @@
-import {LaneAI} from './lane-ai.js?v=0.16.14';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.14';
-import {SATISFIES} from './tech.js?v=0.16.14';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.14';
-import {buildingDestruction} from './presentation.js?v=0.16.14';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.14';
-import {clamp,dist} from './core.js?v=0.16.14';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.14';
-import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.14';
-import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.14';
-import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.14';
+import {LaneAI} from './lane-ai.js?v=0.16.15';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.15';
+import {SATISFIES} from './tech.js?v=0.16.15';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.15';
+import {buildingDestruction} from './presentation.js?v=0.16.15';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.15';
+import {clamp,dist} from './core.js?v=0.16.15';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.15';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.15';
+import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.15';
+import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.15';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -35,13 +35,13 @@ export class Battle extends EconomyBattle{
  }
  get battleTimeScale(){return 1}
  get timeScale(){return 1}
-  powered(unit){if(unit?.sourceProducer)return this.units.some(u=>u.id===unit.sourceProducer&&this.ready(u));return super.powered(unit)}
+  powered(unit){if(unit?.sourceProducer){const producer=this.units.find(u=>u.id===unit.sourceProducer);return !!producer&&this.ready(producer)&&super.powered(producer)}return super.powered(unit)}
  get nextWave(){return Math.max(0,this.waveClock)}
  get supply(){return this.allies.filter(u=>u.commanderId===0&&!u.hidden&&!u.def.building&&!u.egg).reduce((n,u)=>n+u.def.supply,0)}
  supplyCap(team=0){return Math.min(200,this.units.filter(u=>u.alive&&u.team===team&&u.commanderId===this.ownerByTeam[team]&&this.ready(u)).reduce((n,u)=>n+(this.race==='zerg'&&[131,132,133].includes(u.type)?10:BUILDINGS[u.type]?.supply||(u.type===42?8:0)),0))}
  armySupply(team=0){return this.units.filter(u=>u.alive&&u.team===team&&!u.hidden&&!u.def.building&&!u.egg).reduce((n,u)=>n+u.def.supply,0)}
  refreshSupply(){this.maxSupply=this.supplyCap(0)}
- canSee(team,u){const burrowHidden=this.isHiddenByBurrow(u);return u?.team===team||!(u?.cloaked||burrowHidden)||!burrowHidden&&(u.buffs.ensnare>0||u.buffs.maelstrom>0||u.buffs.plague>0)||this.detectedBy(team,u)}
+ canSee(team,u){if(u?.team===team)return true;const burrowHidden=this.isHiddenByBurrow(u),revealed=!burrowHidden&&(u?.buffs?.ensnare>0||u?.buffs?.maelstrom>0||u?.buffs?.plague>0);return !(this.isEffectivelyCloaked(u)||burrowHidden)||revealed||this.detectedBy(team,u)}
  updateVision(){this.fog.fill(1);this.explored.fill(1)}
  get inspectedUnit(){return this.units.find(u=>u.id===this.inspectedId&&u.alive&&!u.hidden&&!u.loaded&&this.canSee(0,u))||null}
  isHighlighted(u){return this.selection.includes(u.id)||this.inspectedId===u.id&&this.inspectedUnit===u}
@@ -59,7 +59,7 @@ export class Battle extends EconomyBattle{
  begin(){
   if(this.phase!=='title')return false;
   this.phase='battle';this.paused=false;this.time=0;this.timeLeft=Infinity;this.ownerByTeam=[0,3];this.commanders=[];
-  this.units=[];this.creepFields.clear();this.creepClock=0;this.projectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;this.hangarFrame=0;this.hangarAccumulator=0;this.reaverRefillClock=0;this.waveElapsedTotal=0;this.carrierRefillEvents=new Set();
+  this.units=[];this.creepFields.clear();this.creepClock=0;this.projectiles=[];this.pendingProjectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;this.hangarFrame=0;this.hangarAccumulator=0;this.reaverRefillClock=0;this.waveElapsedTotal=0;this.carrierRefillEvents=new Set();
   this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
   this.money=DESERT_STRIKE.startingMinerals;this.gas=0;this.botMoney=DESERT_STRIKE.startingMinerals;this.botGas=0;this.maxSupply=200;
   this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.waveClock=WAVE_SECONDS;

@@ -1,4 +1,4 @@
-import {COMBAT_SOURCE,sourcePlayerForUnit,upgradeLevel,resolveWeapon,cooldownFrames,unitBoundsGap} from './combat-rules.js?v=0.16.14';
+import {COMBAT_SOURCE,sourcePlayerForUnit,upgradeLevel,resolveWeapon,cooldownFrames,unitBoundsGap} from './combat-rules.js?v=0.16.15';
 
 const FRAME=1/24,MAX_CARRIER=8,MAX_REAVER=10,INTERCEPTOR_LAUNCH_GAP=7,INTERCEPTOR_WARMUP=15,SCARAB_LAUNCH_GAP=60,SCARAB_COLLISION_GRACE=7,SCARAB_LIFETIME=90,SCARAB_SPEED=384;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -220,14 +220,7 @@ function launchScarab(battle,parent,target){
 function visibleGroundTarget(battle,parent,target){return targetValid(battle,parent,target,true)}
 
 function areaDamage(battle,child,point,weapon){
- const [inner,medium,outer]=weapon.splash||[20,40,60],radius=outer+(battle.spatial?.maxExtent||64),team=child.team,hit=new Set();
- for(const target of battle.nearby(point,radius)){
-  if(!target?.alive||target.team===team||target.def.air||target.hidden||target.loaded||target.productionOnly||target.def.invincible||target.buffs?.stasis>0||hit.has(target.id))continue;
-  const gap=unitBoundsGap(point,target,battle.data);let multiplier=gap<=inner?1:gap<=medium?.5:gap<=outer?.25:0;
-  if(target.burrowed&&gap>inner)multiplier=0;
-  if(!multiplier)continue;hit.add(target.id);battle.hitUnit(target,weapon.damage*multiplier,team,weapon.type,null,child);
- }
- return hit.size;
+ const splashWeapon={...weapon,explosionType:'Enemy_Splash'};const hits=battle.splashHits(point,splashWeapon,null,child);battle.applySplashHits(hits,splashWeapon,weapon.damage,child.team,child);return hits.length;
 }
 
 function explodeScarab(battle,child,point,target=null){

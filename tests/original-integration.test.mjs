@@ -169,7 +169,7 @@ test('AI observes deployed air and shifts candidate score without reading future
 test('paid defensive structures deploy only on completion and share destruction with their producer',()=>{
  for(const [race,type]of [['terran',124],['zerg',146],['protoss',162]]){
   const b=fresh(race);assert.equal(b.units.filter(u=>u.isFortification).length,0);
-  const u=complete(b,type);u.completed=false;u.construction={time:0,total:2,started:true};
+  const u=complete(b,type);if(type===162){const pylon=complete(b,156);pylon.x=u.x+64;pylon.commanderId=u.commanderId}u.completed=false;u.construction={time:0,total:2,started:true};
   b.tickBotConstruction(u,1);assert.equal(u.deployedDefenseId,undefined);
   b.tickBotConstruction(u,1);const defense=b.units.find(t=>t.id===u.deployedDefenseId);assert.ok(defense);assert.equal(b.powered(defense),true);
   if(type===124){const ground=b.create(0,1,defense.x,defense.y-70),air=b.create(8,1,defense.x,defense.y-70);assert.equal(b.weapon(defense,ground),null);assert.ok(b.weapon(defense,air))}
