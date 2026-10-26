@@ -212,7 +212,7 @@ body[data-inspect=no] #panel .unit-info::before{display:none}
 /* Mobile StarCraft inspection strip: scaled source StatData + StatPort geometry. */
 :root{--panel:210px}
 #panel{display:flex;flex-direction:column;gap:0}
-#inspectionWrap{position:relative;flex:none;max-width:100%;overflow:hidden;margin:0 auto 3px}
+#inspectionWrap{position:relative;flex:none;max-width:100%;overflow:hidden;margin:0 auto 0}
 #inspectionScaled{position:relative;display:flex;gap:0;width:358px;height:112px;transform-origin:top left}
 #panel .unit-info{position:relative;flex:0 0 270px;width:270px;max-width:none;height:112px;min-height:112px;padding:0;background:#020606;border:5px solid transparent;border-image:url('assets/ui/console.png') 58 44 20 44 fill / 7px 5px 4px 5px;box-shadow:0 1px #72797c;overflow:hidden}
 #panel .unit-info::before{display:none}
