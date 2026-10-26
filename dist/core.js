@@ -10,6 +10,10 @@ export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
 export const HIGH_GROUND_MISS_CHANCE=120/256;
 export const MAX_DEATH_VISUAL_SECONDS=12;
+const ATTACK_STALL_WINDOW=.4;
+const ATTACK_PROGRESS_EPSILON=1;
+const MAX_ATTACK_RETRIES=3;
+const FAILED_APPROACH_TTL=.8;
 const SPELL_IMPACT_IMAGES=Object.freeze({ensnare:383,plague:387,stasis:364,maelstrom:998,matrix:[377,378,379]});
 class PathHeap{
  constructor(){this.items=[]}
@@ -107,7 +111,7 @@ export class Battle{
  start(){if(this.phase!=='prep')return false;this.phase='battle';this.simAccumulator=0;this.simFrame=0;this.closeMenu();this.emit('phase');if(!this.allies.length)this.finish(false,'투입된 병력이 없습니다.');return true}
  openMenu(){if(this.phase!=='battle'||!this.selected.length)return false;this.menuOpen=true;this.targeting=null;this.emit('menu');return true}closeMenu(){this.menuOpen=false;this.targeting=null;this.emit('menu');}
  chooseCommand(key){if(!this.menuOpen)return false;if(['move','attack','patrol'].includes(key)||SPELLS[key]&&SPELLS[key][3]!=='instant'){this.targeting=key;this.emit('menu');return true}return this.execute(key)}
- setGoal(u,point,order){u.goal={x:clamp(point.x,20,1260),y:clamp(point.y,20,2028)};u.path=this.path(u,u.goal,u.def.air,u.def.air?0:u.r*.55,u);u.order=order;u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.aiClock=0;}
+ setGoal(u,point,order){u.goal={x:clamp(point.x,20,1260),y:clamp(point.y,20,2028)};u.path=this.path(u,u.goal,u.def.air,u.def.air?0:u.r*.55,u);u.order=order;u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.attackProgress=null;u.failedAttackApproaches=[];u.aiClock=0;}
  execute(command,point=null,target=null){if(this.phase!=='battle'||!this.menuOpen||!this.selected.length)return false;let applied=0;const list=[...this.selected];if(['move','attack','patrol'].includes(command)&&!point)return false;
  for(const [i,u]of list.entries()){
   if(['move','attack','patrol'].includes(command)){if(u.def.building||u.burrowed||u.sieged)continue;this.clearActionControl(u,command);const p={x:point.x+(i%5-2)*u.r*2.3,y:point.y+(Math.floor(i/5)-Math.floor(list.length/10))*u.r*2.3};u.anchor={x:u.x,y:u.y};this.setGoal(u,p,command==='attack'?(target?.team!==undefined&&target.team!==u.team?'focus':'attackmove'):command);if(u.order==='focus')u.target=target;applied++}
@@ -171,23 +175,54 @@ export class Battle{
  tickProjectileVisuals(dt){for(const visual of this.projectileVisuals)visual.age+=dt;this.projectileVisuals=this.projectileVisuals.filter(visual=>{if(!visual.firstRendered)return true;const life=visual.kind==='projectile'?Math.max(.12,visual.flightElapsed+.06):visual.kind==='contact'?visual.duration:visual.duration;return visual.age<life});}
  edgeDistance(a,b){if(b.def.building){const [w,h]=b.def.footprint||this.data.units[b.type]?.footprint||[64,64],dx=Math.max(0,Math.abs(a.x-b.x)-w/2),dy=Math.max(0,Math.abs(a.y-b.y)-h/2);return Math.max(0,Math.hypot(dx,dy)-(a.r||0))}return Math.max(0,dist(a,b)-(a.r||0)-(b.r||0))}
  canAttackTarget(u,t){return !!t&&t.alive&&!t.def?.invincible&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.fighter?.docked&&t.team!==u.team&&this.canSee(u.team,t)&&!!this.weapon(u,t)&&!t.buffs?.stasis}
- approachPath(u,t,edgeRange){
-  const [w,h]=t.def.building?(t.def.footprint||this.data.units[t.type]?.footprint||[64,64]):[0,0],angles=[0,Math.PI/4,Math.PI/2,Math.PI*3/4,Math.PI,-Math.PI*3/4,-Math.PI/2,-Math.PI/4],direct=[],crowdAt=p=>this.nearby(p,this.spatialRange(u.r+10)).reduce((n,a)=>n+(a!==u&&a.alive&&!a.hidden&&!a.productionOnly&&!a.loaded&&!a.def.building&&a.def.air===u.def.air&&dist(a,p)<u.r+a.r+10?Math.max(0,u.r+a.r+10-dist(a,p))*2:0),0),points=[];
-  for(const angle of angles){const dx=Math.cos(angle),dy=Math.sin(angle),boundary=t.def.building?Math.min(Math.abs(dx)>1e-4?w/2/Math.abs(dx):Infinity,Math.abs(dy)>1e-4?h/2/Math.abs(dy):Infinity):t.r,p={x:clamp(t.x+dx*(boundary+u.r+edgeRange),20,1260),y:clamp(t.y+dy*(boundary+u.r+edgeRange),20,2028)};if(!u.def.air&&this.staticBlocked(p.x,p.y,u.r*.55,u))continue;points.push(p);if(u.def.air||this.clearGroundSegment(u,p,u.r*.55,u))direct.push({path:[p],point:p,score:dist(u,p)+crowdAt(p)})}
+ canPursueTarget(u,t){
+  if(!this.canAttackTarget(u,t))return false;
+  const weapon=this.weapon(u,t),edge=this.edgeDistance(u,t);
+  return edge<=weapon.range&&edge>=(weapon.minRange||0)||!(u.unreachableTargets?.[t.id]>this.time);
+ }
+ approachPath(u,t,edgeRange,{avoidPoints=[]}={}){
+  const [w,h]=t.def.building?(t.def.footprint||this.data.units[t.type]?.footprint||[64,64]):[0,0],baseAngles=[0,Math.PI/4,Math.PI/2,Math.PI*3/4,Math.PI,-Math.PI*3/4,-Math.PI/2,-Math.PI/4],angles=avoidPoints.length?baseAngles.flatMap((angle,index)=>[angle,angle+Math.PI/8]).map(angle=>((angle+Math.PI*2)%(Math.PI*2))):baseAngles,direct=[],crowdAt=p=>this.nearby(p,this.spatialRange(u.r+10)).reduce((n,a)=>n+(a!==u&&a.alive&&!a.hidden&&!a.productionOnly&&!a.loaded&&!a.def.building&&a.def.air===u.def.air&&dist(a,p)<u.r+a.r+10?Math.max(0,u.r+a.r+10-dist(a,p))*2:0),0),points=[],isAvoided=p=>avoidPoints.some(a=>dist(p,a)<Math.max(8,u.r));
+  for(const angle of angles){const dx=Math.cos(angle),dy=Math.sin(angle),boundary=t.def.building?Math.min(Math.abs(dx)>1e-4?w/2/Math.abs(dx):Infinity,Math.abs(dy)>1e-4?h/2/Math.abs(dy):Infinity):t.r,p={x:clamp(t.x+dx*(boundary+u.r+edgeRange),20,1260),y:clamp(t.y+dy*(boundary+u.r+edgeRange),20,2028)};if(isAvoided(p)||!u.def.air&&this.staticBlocked(p.x,p.y,u.r*.55,u))continue;points.push(p);if(u.def.air||this.clearGroundSegment(u,p,u.r*.55,u))direct.push({path:[p],point:p,score:dist(u,p)+crowdAt(p)})}
   if(direct.length)return direct.sort((a,b)=>a.score-b.score)[0];const routed=[];for(const p of points){const path=this.path(u,p,u.def.air,u.def.air?0:u.r*.55,u);if(!path.length||dist(path[path.length-1],p)>36)continue;if(dist(path[path.length-1],p)>4){if(!u.def.air&&!this.clearGroundSegment(path[path.length-1],p,u.r*.55,u))continue;path.push(p)}let length=dist(u,path[0]);for(let i=1;i<path.length;i++)length+=dist(path[i-1],path[i]);routed.push({path,point:p,score:length+crowdAt(p)})}return routed.sort((a,b)=>a.score-b.score)[0]||null;
+ }
+ resetAttackPursuit(u,{resetRetries=true}={}){u.attackPath=[];u.attackPathTarget=null;u.attackTargetPoint=null;u.attackProgress=null;u.failedAttackApproaches=[];u.attackStall=0;if(resetRetries)u.attackRetries=0;}
+ recoverAttackPursuit(u,target,weapon){
+  u.attackRetries=(u.attackRetries||0)+1;
+  const failedPoint=u.attackPath?.at(-1)||u.attackProgress?.waypoint||{x:u.x,y:u.y};
+  u.failedAttackApproaches=(u.failedAttackApproaches||[]).filter(point=>point.expiresAt>this.time);
+  u.failedAttackApproaches.push({...failedPoint,expiresAt:this.time+FAILED_APPROACH_TTL});
+  u.attackStall=0;u.attackProgress=null;u.attackPath=[];u.aiClock=0;
+  if(u.attackRetries>=MAX_ATTACK_RETRIES){
+   u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.5;
+   this.resetAttackPursuit(u);if(u.target===target)u.target=null;
+   if(u.goal)u.path=this.path(u,u.goal,u.def.air,u.def.air?0:u.r*.55,u);
+   u.combatMoving=false;return false;
+  }
+  const avoided=u.failedAttackApproaches.filter(point=>point.expiresAt>this.time),approach=this.approachPath(u,target,Math.max(weapon.minRange||0,weapon.range-Math.max(8,u.r*.25)),{avoidPoints:avoided});
+  if(approach){u.attackPath=approach.path;u.attackPathTarget=target.id;u.attackTargetPoint={x:target.x,y:target.y};u.aiClock=.55;return true}
+  if(u.attackRetries>=MAX_ATTACK_RETRIES-1){u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.5;this.resetAttackPursuit(u);if(u.target===target)u.target=null;u.combatMoving=false;return false}
+  u.aiClock=.4;return true;
+ }
+ updateAttackProgress(u,target,dt){
+  const waypoint=u.attackPath?.[0]||target,position={x:u.x,y:u.y},remaining=dist(position,waypoint),state=u.attackProgress;
+  if(!state||state.targetId!==target.id||state.waypoint!==waypoint){u.attackProgress={targetId:target.id,waypoint,remaining,elapsed:0};return false}
+  state.elapsed+=dt;
+  if(remaining<state.remaining-ATTACK_PROGRESS_EPSILON){state.remaining=remaining;state.elapsed=0;u.attackStall=0;return false}
+  if(state.elapsed<ATTACK_STALL_WINDOW)return false;
+  u.attackStall=ATTACK_STALL_WINDOW;return true;
  }
  targetScore(u,t,w=this.weapon(u,t)){const edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge),threat=this.unitThreatens(t,u)?1:0,passive=t.def.building&&!threat?1:0;return((gap>0||minGap>0)?240:0)+gap*2+minGap*3+dist(u,t)*.18-threat*90+passive*45}
  unitThreatens(attacker,target){if(!attacker?.alive||attacker.hidden||attacker.productionOnly||attacker.loaded||attacker.buffs.stasis>0||attacker.buffs.lockdown>0||attacker.buffs.maelstrom>0)return false;if(attacker.def.building&&typeof this.powered==='function'&&!this.powered(attacker))return false;if(attacker.garrison?.length)return attacker.garrison.some(id=>{const d=this.data.units[id],w=this.data.weapons[target.def.air?d?.airWeapon:d?.groundWeapon];return !!w?.damage&&(target.def.air?w.air:w.ground)});return !!this.weapon(attacker,target)}
  activelyAttacking(attacker,target){return !!attacker?.alive&&attacker.target===target&&['attack','airAttack'].includes(attacker.action)}
  betterTarget(u,current){
-  const aggro=[this.findUnit(u.aggroTarget)].find(t=>this.canAttackTarget(u,t));
+  const aggro=[this.findUnit(u.aggroTarget)].find(t=>this.canPursueTarget(u,t));
   if(u.order!=='focus'&&aggro&&u.aggroUntil>this.time){if(current===aggro)return aggro;if(this.activelyAttacking(current,u))return current;return aggro}
-  const cw=this.weapon(u,current),base=this.targetScore(u,current,cw),scanRange=acquisitionRange(this,u),threats=this.nearby(u,this.spatialRange(scanRange+u.r)).filter(t=>t!==current&&this.canAttackTarget(u,t)&&dist(u,t)<=acquisitionRange(this,u,t.def.air)+u.r+t.r).map(t=>({t,w:this.weapon(u,t),edge:this.edgeDistance(u,t)})).filter(a=>a.edge<=a.w.range&&a.edge>=(a.w.minRange||0)).sort((a,b)=>this.targetScore(u,a.t,a.w)-this.targetScore(u,b.t,b.w));
+  const cw=this.weapon(u,current),base=this.targetScore(u,current,cw),scanRange=acquisitionRange(this,u),threats=this.nearby(u,this.spatialRange(scanRange+u.r)).filter(t=>t!==current&&this.canPursueTarget(u,t)&&dist(u,t)<=acquisitionRange(this,u,t.def.air)+u.r+t.r).map(t=>({t,w:this.weapon(u,t),edge:this.edgeDistance(u,t)})).filter(a=>a.edge<=a.w.range&&a.edge>=(a.w.minRange||0)).sort((a,b)=>this.targetScore(u,a.t,a.w)-this.targetScore(u,b.t,b.w));
   return threats.length&&base-this.targetScore(u,threats[0].t,threats[0].w)>80?threats[0].t:current;
  }
- acquireTarget(u){const scanRange=acquisitionRange(this,u),candidates=this.nearby(u,this.spatialRange(scanRange+u.r)).filter(t=>this.canAttackTarget(u,t)&&dist(u,t)<=acquisitionRange(this,u,t.def.air)+u.r+t.r);const unavailable=u.unreachableTargets||{};const source=[this.findUnit(u.aggroTarget)].find(t=>this.canAttackTarget(u,t));if(source&&u.aggroUntil>this.time&&(!unavailable[source.id]||unavailable[source.id]<=this.time)&&dist(u,source)<=acquisitionRange(this,u,source.def.air)+u.r+source.r){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
-  const scored=candidates.filter(t=>!unavailable[t.id]||unavailable[t.id]<=this.time).map(t=>{const w=this.weapon(u,t),edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge);return{t,w,edge,gap,minGap,score:this.targetScore(u,t,w)}}).sort((a,b)=>a.score-b.score);
-  for(const c of scored){if(c.gap<=0&&c.minGap<=0)return c.t;if(u.order==='hold')continue;if(this.approachPath(u,c.t,Math.max(c.w.minRange||0,c.w.range-3)))return c.t;u.unreachableTargets||={};u.unreachableTargets[c.t.id]=this.time+1.5}
+ acquireTarget(u){const scanRange=acquisitionRange(this,u),candidates=this.nearby(u,this.spatialRange(scanRange+u.r)).filter(t=>this.canPursueTarget(u,t)&&dist(u,t)<=acquisitionRange(this,u,t.def.air)+u.r+t.r);const source=[this.findUnit(u.aggroTarget)].find(t=>this.canPursueTarget(u,t));if(source&&u.aggroUntil>this.time&&dist(u,source)<=acquisitionRange(this,u,source.def.air)+u.r+source.r){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
+  const unavailable=u.unreachableTargets||{},scored=candidates.filter(t=>!unavailable[t.id]||unavailable[t.id]<=this.time).map(t=>{const w=this.weapon(u,t),edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge);return{t,w,edge,gap,minGap,score:this.targetScore(u,t,w)}}).sort((a,b)=>a.score-b.score);
+  for(const c of scored){if(c.gap<=0&&c.minGap<=0)return c.t;if(u.order==='hold')continue;if(this.approachPath(u,c.t,Math.max(c.w.minRange||0,c.w.range-Math.max(8,u.r*.25))))return c.t;u.unreachableTargets||={};u.unreachableTargets[c.t.id]=this.time+1.5}
   return null;
  }
  moveCombat(u,p,dt,finalWaypoint=true){return !!p&&this.move(u,p,dt,finalWaypoint);
@@ -278,6 +313,7 @@ export class Battle{
   const setAggro=u=>{
    if(!this.unitThreatens(u,source)||!this.canAttackTarget(u,source))return;
    u.aggroTarget=source.id;u.aggroUntil=this.time+4;
+   if(!this.canPursueTarget(u,source))return;
    const newW=this.weapon(u,source);if(!newW)return;
    const old=this.canAttackTarget(u,u.target)?u.target:null,oldW=old&&this.weapon(u,old),newEdge=this.edgeDistance(u,source),newInRange=newEdge<=newW.range&&newEdge>=(newW.minRange||0),oldInRange=old&&this.edgeDistance(u,old)<=oldW.range&&this.edgeDistance(u,old)>=(oldW.minRange||0);
    if(u.order==='move'||u.order==='focus'&&old||u.order==='hold'&&!newInRange||dist(u,source)>acquisitionRange(this,u,source.def.air)+u.r+source.r)return;
@@ -432,13 +468,20 @@ export class Battle{
   if(this.medicHeal(u,dt))return;
   if(u.order==='repair'&&u.target?.alive){const t=u.target;if(this.edgeDistance(u,t)<=20&&this.money>0){const amount=Math.min(12*dt,t.maxHp-t.hp,this.money*4);t.hp+=amount;this.money-=amount/4}else this.move(u,t,dt);return;}
   const mayAttack=u.order!=='move';let target=null;
-  if(mayAttack){const w=u.target&&this.weapon(u,u.target),edge=u.target&&this.edgeDistance(u,u.target),holdValid=u.order!=='hold'||w&&edge<=w.range&&edge>=(w.minRange||0);if(this.canAttackTarget(u,u.target)&&holdValid&&(u.order==='focus'||dist(u,u.target)<=u.def.sight+u.r+u.target.r)){target=u.target;u.targetReviewClock=(u.targetReviewClock||0)-dt;if(u.order!=='focus'&&u.targetReviewClock<=0){target=this.betterTarget(u,target);u.targetReviewClock=.45}}else{u.target=null;target=this.acquireTarget(u)}if(target&&target!==u.target){u.target=target;u.attackPathTarget=null;u.attackPath=[];u.attackStall=0}}
+  if(mayAttack){const w=u.target&&this.weapon(u,u.target),edge=u.target&&this.edgeDistance(u,u.target),holdValid=u.order!=='hold'||w&&edge<=w.range&&edge>=(w.minRange||0);if(this.canPursueTarget(u,u.target)&&holdValid&&(u.order==='focus'||dist(u,u.target)<=u.def.sight+u.r+u.target.r)){target=u.target;u.targetReviewClock=(u.targetReviewClock||0)-dt;if(u.order!=='focus'&&u.targetReviewClock<=0){target=this.betterTarget(u,target);u.targetReviewClock=.45}}else{u.target=null;target=this.acquireTarget(u)}if(target&&target!==u.target){u.target=target;this.resetAttackPursuit(u);}}
   if(target&&mayAttack){const w=this.weapon(u,target),edge=this.edgeDistance(u,target),inRange=edge<=w.range&&edge>=(w.minRange||0),inWeb=this.areas.some(a=>a.kind==='web'&&!u.def.air&&Math.abs(u.x-a.x)<=a.halfWidth+u.r&&Math.abs(u.y-a.y)<=a.halfHeight+u.r),inSwarm=!target.def.air&&this.areas.some(a=>a.kind==='swarm'&&Math.abs(target.x-a.x)<=a.halfWidth+target.r&&Math.abs(target.y-a.y)<=a.halfHeight+target.r);
-   if(inRange){u.combatMoving=true;u.attackPath=[];u.attackPathTarget=target.id;u.attackStall=0;u.attackRetries=0;if(brakeUnitMovement(this,u,dt))return;const facing=this.aimTarget(u,target,u.attackControl?0:dt);if(facing&&u.cooldown===0&&!u.attackControl&&!inWeb&&!(inSwarm&&w.range>40&&!(u.type===103&&w.id===109)))this.attack(u,target,w);return}
+   if(inRange){u.combatMoving=true;u.attackPath=[];u.attackPathTarget=target.id;u.attackStall=0;u.attackRetries=0;u.attackProgress=null;u.failedAttackApproaches=[];if(brakeUnitMovement(this,u,dt))return;const facing=this.aimTarget(u,target,u.attackControl?0:dt);if(facing&&u.cooldown===0&&!u.attackControl&&!inWeb&&!(inSwarm&&w.range>40&&!(u.type===103&&w.id===109)))this.attack(u,target,w);return}
    if(u.order!=='hold'){
     u.combatMoving=true;u.aiClock-=dt;
-    if(u.attackPathTarget!==target.id||!u.attackPath?.length&&u.aiClock<=0||u.attackTargetPoint&&dist(u.attackTargetPoint,target)>20){const approach=this.approachPath(u,target,Math.max(w.minRange||0,w.range-3));u.attackTargetPoint={x:target.x,y:target.y};u.attackPathTarget=target.id;u.attackPath=approach?.path||[];u.aiClock=.55;if(!approach){u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.25;u.target=null;u.attackPathTarget=null}}
-    if(u.target===target&&u.attackPath?.length){const p=u.attackPath[0],before={x:u.x,y:u.y};this.moveCombat(u,p,dt,u.attackPath.length<=1);if(dist(u,p)<5)u.attackPath.shift();if(dist(u,before)<.05){u.attackStall=(u.attackStall||0)+dt;if(u.attackStall>.4){u.attackPath=[];u.aiClock=0;u.attackRetries=(u.attackRetries||0)+1;u.attackStall=0;if(u.attackRetries>=3){u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.5;u.target=null;u.attackPathTarget=null;u.attackRetries=0}}}else u.attackStall=0;return}
+    if(u.attackPathTarget!==target.id||!u.attackPath?.length&&u.aiClock<=0||u.attackTargetPoint&&dist(u.attackTargetPoint,target)>20){const approach=this.approachPath(u,target,Math.max(w.minRange||0,w.range-Math.max(8,u.r*.25)),{avoidPoints:(u.failedAttackApproaches||[]).filter(point=>point.expiresAt>this.time)});u.attackTargetPoint={x:target.x,y:target.y};u.attackPathTarget=target.id;u.attackPath=approach?.path||[];u.aiClock=.55;if(!approach){u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.25;this.resetAttackPursuit(u);if(u.target===target)u.target=null;u.combatMoving=false}}
+    if(u.target===target){
+     if(u.attackPath?.length){const p=u.attackPath[0],wasFinal=u.attackPath.length===1,moved=this.moveCombat(u,p,dt,wasFinal),edgeAfter=this.edgeDistance(u,target),reached=dist(u,p)<5&&(!wasFinal||edgeAfter<=w.range&&edgeAfter>=(w.minRange||0)||moved);if(reached){u.attackPath.shift();if(!u.attackPath.length)u.attackProgress=null}}
+     if(u.attackTargetPoint&&dist(u.attackTargetPoint,target)>20){u.attackTargetPoint={x:target.x,y:target.y};u.attackPath=[];u.attackProgress=null;u.aiClock=0}
+     if(this.updateAttackProgress(u,target,dt)){this.recoverAttackPursuit(u,target,w);return}
+     if(u.attackPath?.length)return;
+     if(u.aiClock>0)return;
+     if(u.target===target)return;
+    }
     if(u.target===target)return;
    }
   }
