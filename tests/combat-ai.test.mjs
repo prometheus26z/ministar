@@ -64,6 +64,51 @@ test('actual damage draws aggro to a valid source and releases a dead source',()
  b.die(source,0);b.tickUnit(defender,.05);
  assert.notEqual(defender.target,source,'a dead attacker cannot remain a target');
 });
+
+test('recent damage does not reacquire an attacker excluded after failed pursuit',()=>{
+ const b=lane();b.units=[];
+ const defender=b.create(65,0,600,700),ally=b.create(65,0,620,700),source=b.create(0,1,720,700);
+ defender.order='attackmove';ally.order='attackmove';defender.unreachableTargets={[source.id]:b.time+1.5};ally.unreachableTargets={[source.id]:b.time+1.5};
+ b.onUnitDamaged(defender,source);
+ assert.equal(defender.aggroTarget,source.id,'damage source is remembered for a later retry');
+ assert.equal(defender.target,null,'damage does not bypass the active failed-pursuit exclusion');
+ assert.equal(ally.target,null,'nearby allies also honor their own failed-pursuit exclusion');
+ assert.equal(b.acquireTarget(defender),null,'the aggro fast path cannot bypass the exclusion either');
+ source.x=625;
+ assert.equal(b.canPursueTarget(defender,source),true,'a previously unreachable target becomes attackable when it enters weapon range');
+ assert.equal(b.acquireTarget(defender),source);
+});
+
+test('an excluded target entering range is acquired without recent damage',()=>{
+ const b=lane();b.units=[];
+ const defender=b.create(65,0,600,700),source=b.create(0,1,720,700);
+ defender.order='attackmove';defender.unreachableTargets={[source.id]:b.time+1.5};
+ assert.equal(b.acquireTarget(defender),null);
+ source.x=625;
+ assert.equal(b.acquireTarget(defender),source,'weapon range overrides the temporary pursuit exclusion without aggro');
+});
+
+test('a blocked pursuit retries another approach and resumes when movement becomes possible',()=>{
+ const b=combat();b.map.rocks=[];b.canSee=()=>true;
+ const attacker=b.create(0,0,400,700),target=b.create(0,1,600,700);attacker.order='attackmove';attacker.target=target;target.order='hold';
+ const moveCombat=b.moveCombat.bind(b);b.moveCombat=()=>false;
+ for(let frame=0;frame<16;frame++)b.tickUnit(attacker,1/24);
+ assert.ok(attacker.attackRetries>=1,'no-progress time is tracked while the current approach path exists');
+ assert.ok(attacker.failedAttackApproaches.length,'the failed approach point is recorded');
+ b.moveCombat=moveCombat;const start={x:attacker.x,y:attacker.y};
+ for(let frame=0;frame<24&&attacker.x===start.x&&attacker.y===start.y;frame++)b.tickUnit(attacker,1/24);
+ assert.ok(Math.hypot(attacker.x-start.x,attacker.y-start.y)>1,'the attacker follows a newly selected approach after movement recovers');
+});
+
+test('recovery approach search avoids the endpoint that just stalled',()=>{
+ const b=combat();b.map.rocks=[];b.canSee=()=>true;
+ const attacker=b.create(65,0,400,700),target=b.create(0,1,600,700),weapon=b.weapon(attacker,target);
+ const first=b.approachPath(attacker,target,weapon.range-8);
+ assert.ok(first?.path?.length);
+ const failed=first.path.at(-1),retry=b.approachPath(attacker,target,weapon.range-8,{avoidPoints:[failed]});
+ assert.ok(retry?.path?.length);
+ assert.ok(Math.hypot(retry.path.at(-1).x-failed.x,retry.path.at(-1).y-failed.y)>=Math.max(8,attacker.r),'recovery chooses a different valid attack endpoint');
+});
 test('a flank Marine stays the retaliation target while the old target is not attacking back',()=>{
  const b=lane();b.units=[];
  const defender=b.create(65,0,600,700),oldTarget=b.create(65,1,620,700),marine=b.create(0,1,675,700);
