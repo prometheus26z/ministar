@@ -257,3 +257,13 @@ body:not([data-panel=expanded]) #panel #portrait{display:block}
 @media(max-width:380px){#panel{padding-inline:5px}#panel #panelTop{gap:4px}#panel #inspectionScaled{grid-template-columns:minmax(0,1fr) clamp(62px,20vw,76px);gap:3px}#panel .unit-info strong{font-size:10px}#panel .unit-info #order,#panel .unit-info #unitStatus,#panel .unit-info #killCount{font-size:8px}#panel #inspectionNumbers{left:4px;width:55px}#panel #statDetails{left:62px;right:2px}#panel .stat-icon{flex-basis:28px;width:28px;height:30px;min-width:28px;min-height:30px}#panel .lane-views{gap:3px}}
 @media(max-width:350px){#panel{padding-inline:5px}#panel #panelTop{min-height:132px}#panel #inspectionScaled{grid-template-columns:minmax(0,1fr) 64px;gap:3px}#panel #wireframe{width:49px;height:49px}#panel .unit-info strong,#panel .unit-info #order,#panel .unit-info #unitStatus,#panel .unit-info #killCount{left:52px}#panel #inspectionNumbers{left:3px;width:47px;font-size:7px}#panel #statDetails{left:53px}#panel .stat-icon{flex-basis:27px;width:27px;height:29px;min-width:27px;min-height:29px}#panel #commandButton,#panel #productionButton{font-size:8px}}
 @media(max-height:520px){:root,body[data-panel=normal],body[data-panel=expanded],body[data-panel=min]{--panel:152px}#panel{gap:3px;padding-top:4px;padding-bottom:4px}#panel #panelTop{min-height:110px}#panel .unit-info{min-height:110px}#panel .panel-main{grid-template-rows:repeat(2,minmax(44px,1fr));gap:3px!important}#panel .lane-views{min-height:25px;padding-top:2px}#panel .lane-views button{min-height:23px}}
+
+.hud-timers{display:flex;flex:0 1 auto;gap:4px;min-width:0}
+.timer{flex:0 1 auto;min-width:0;padding:2px 6px 1px}
+.next-wave-timer{min-width:64px}
+.elapsed-timer{min-width:62px}
+.timer strong{font-size:clamp(12px,4vw,16px);letter-spacing:0;white-space:nowrap}
+.next-wave-timer strong{font-size:clamp(15px,4.6vw,18px)}
+.resources{flex:0 1 auto;min-width:0}
+.resources>span{min-width:0}
+@media(max-width:350px){#hud{gap:4px}.hud-timers{gap:3px}.timer{padding-inline:4px}.next-wave-timer{min-width:59px}.elapsed-timer{min-width:58px}.resources>span{padding-inline:2px}}

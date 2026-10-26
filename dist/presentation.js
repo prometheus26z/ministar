@@ -1,4 +1,9 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.19';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.20';
+
+export function formatElapsedTime(value){
+ const seconds=Number.isFinite(value)?Math.max(0,Math.floor(value+1e-9)):0;
+ return`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
+}
 
 export function healthBarPixels(nominal){
  let original=Math.max(19,Math.min(81,Math.floor(nominal)));
