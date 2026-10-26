@@ -225,7 +225,7 @@ body[data-panel=normal],body[data-panel=expanded],body[data-panel=min]{--panel:2
 #panel .unit-info #order{top:20px;color:#9fb29c}
 #panel .unit-info #unitStatus{top:33px;color:#899990}
 #panel .unit-info #killCount{top:46px;color:#aab18c}
-#panel #inspectionNumbers{position:absolute;left:5px;bottom:5px;display:flex;flex-direction:column;gap:1px;width:59px;font:8px/11px ui-monospace,Consolas,monospace;letter-spacing:0;color:#aee48b}
+#panel #inspectionNumbers{position:absolute;left:5px;bottom:5px;display:flex;flex-direction:column;gap:1px;width:57px;font:8px/11px ui-monospace,Consolas,monospace;letter-spacing:0;color:#aee48b}
 #panel #inspectionNumbers span{display:block;min-height:11px;white-space:nowrap;overflow:hidden;text-overflow:clip}
 #panel #shields{color:#9dc8e5}
 #panel #hp{color:#aee48b}
