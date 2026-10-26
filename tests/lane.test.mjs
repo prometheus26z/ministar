@@ -39,7 +39,8 @@ test('bunker garrison fire emits original effects, sound and functioning weapon 
  const battle=fresh(),bunker=battle.makeBunker(0,640,1568);
  for(const u of battle.units)if(u!==bunker&&u.garrison)u.garrison=[];
  const target=battle.create(106,1,bunker.x,bunker.y-100),hp=target.hp,events=[];
- battle.on(e=>events.push(e));battle.fireBunkers(.01);
+ battle.on(e=>events.push(e));battle.fireBunkers(.01);assert.equal(target.hp,hp,'shot start is separate from the source hit events');
+ for(let frame=0;frame<5;frame++)battle.fireBunkers(1/24);
  assert.ok(target.hp<hp);assert.ok(events.some(e=>e.type==='sfx'&&data.audio[e.id]));
  assert.equal(battle.effects.filter(e=>e.kind==='bunker-shot').length,4);
  assert.ok(battle.effects.some(e=>e.image===421));

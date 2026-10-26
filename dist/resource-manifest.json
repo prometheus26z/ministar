@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "appVersion": "0.16.16",
+  "appVersion": "0.16.17",
   "entries": {
     "assets/audio/1000.ogg": {
       "sha256": "62f4a427c632f163e43f5f271a48951e4d9927abef37ca6276ac90f0974813df",
@@ -7737,8 +7737,8 @@
       "kind": "image"
     },
     "original-animation-data.json": {
-      "sha256": "eb787bca9efaa58ba73291f08436b1e671b3e8c61027ee02d38043db5e5ffcbb",
-      "bytes": 578752,
+      "sha256": "fe992d5f6ad45852fffef0b87002f4870f46641b9bdd432b880d64e8a315f636",
+      "bytes": 561944,
       "mime": "application/json",
       "kind": "metadata"
     },
@@ -8325,5 +8325,5 @@
       "kind": "metadata"
     }
   },
-  "buildId": "ebe2d618b753be2bf468d05001ba86562956e7f8a8d8deee72709a46bf38ac33"
+  "buildId": "a724da7a46022b7615b859ece414d934a6fc374e7045319aed085ecbcd5bea3f"
 }

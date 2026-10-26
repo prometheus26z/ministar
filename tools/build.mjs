@@ -95,6 +95,10 @@ execFileSync('python3',[path.resolve(import.meta.dirname,'import-original-spell-
 execFileSync('python3',[path.resolve(import.meta.dirname,'import-warp-anchor.py')],{stdio:'inherit'});
 const combatData=buildCombatData(root);
 console.log(`Restored source-backed Brood War combat rules (${combatData.players} players, ${combatData.units} units, ${combatData.weapons} weapons).`);
+const {buildAnimationControlData}=await import('./build-animation-control-data.mjs');
+const actionData=buildAnimationControlData(root);
+console.log(`Added repeat-attack visuals to ${actionData.images} unit images.`);
+execFileSync('python3',[path.resolve(import.meta.dirname,'pack-original-animations.py')],{stdio:'inherit'});
 const {buildResourceManifest}=await import('./build-resource-manifest.mjs');
 const packageVersion=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
 const resourceManifest=buildResourceManifest(path.join(root,'dist'),packageVersion);

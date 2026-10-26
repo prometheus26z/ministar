@@ -66,7 +66,7 @@ test('Mutalisk bounce uses the 96-pixel rectangle and marks hero weapon 49 proje
  const shot={source,target:first,team:0,image:0,weapon:b.weapon(source,first),speed:300,damage:9,baseDamage:9,bounceIndex:0,previousTargetIds:[],missed:false};
  b.queueMutaliskBounce(shot,first,{x:first.x,y:first.y});assert.equal(b.pendingProjectiles[0].target,corner,'a target inside the 96-pixel search square corner remains eligible');
  const hero=b.create(43,0,300,1200),victim=b.create(0,1,400,1200);hero.type=86;hero.def={...hero.def,groundWeapon:49,airWeapon:49};const weapon=b.weapon(hero,victim);assert.equal(weapon.sourceWeaponId,49);
- b.attack(hero,victim,weapon);assert.equal(b.projectiles.at(-1).bounceIndex,0,'weapon 49 receives the same first-bounce state');
+ b.canSee=()=>true;hero.direction=8;b.attack(hero,victim,weapon);for(let i=0;i<24;i++)b.tickUnit(hero,1/24);assert.equal(b.projectiles.at(-1).bounceIndex,0,'weapon 49 receives the same first-bounce state');
 });
 
 test('Devourer spores stack to nine, refresh only the shortest timer, and add damage before armor',()=>{
@@ -97,7 +97,7 @@ test('acid spore rectangle search includes corners, excludes invalid targets, an
 test('Irradiate uses fixed 1/256 pulses, adds spores per pulse, and continues while loaded',()=>{
  const totalDamage=loaded=>{const b=fresh(),infected=b.create(0,1,400,900),transport=b.create(9,1,400,900),near=b.create(0,1,410,900);infected.hp=infected.maxHp=1000;near.hp=near.maxHp=1000;infected.acidSporeTimers=[50,50];near.acidSporeTimers=[50,50];infected.buffs.irradiate=25;infected.irradiateOwner=1;if(loaded)infected.loaded=transport.id;b.tickUnit(infected,25);return{damage:1000-near.hp,infected,near}};
  const single=totalDamage(false),loaded=totalDamage(true),expected=75*(Math.floor(250*256/75)/256+2);
- assert.ok(Math.abs(single.damage-expected)<1e-8);assert.ok(Math.abs(loaded.damage-expected)<1e-8);assert.equal(loaded.infected.buffs.irradiate,0);
+ assert.ok(Math.abs(single.damage-expected)<1e-8);assert.equal(loaded.damage,0,'loaded Irradiate is confined to its transport rather than nearby outside units');assert.equal(loaded.infected.buffs.irradiate,0);
  const split=fresh(),target=split.create(0,1,400,900);target.hp=target.maxHp=1000;target.acidSporeTimers=[50,50];target.buffs.irradiate=25;target.irradiateOwner=1;
  for(let i=0;i<600;i++)split.tickUnit(target,1/24);assert.ok(Math.abs((1000-target.hp)-expected)<1e-8,'dt partitioning leaves the same pulse total');
 });
@@ -141,7 +141,7 @@ test('lane Protoss Cannon power follows its linked producer and commander Pylon'
  const foreign=b.create(156,0,400,1400);foreign.productionOnly=true;foreign.commanderId=1;foreign.completed=true;
  assert.equal(b.powered(tower),false,'a different commander Pylon does not power this producer');
  const pylon=b.create(156,0,400,1450);pylon.productionOnly=true;pylon.commanderId=0;pylon.completed=true;
- assert.equal(b.powered(tower),true);tower.cooldown=0;b.tickUnit(tower,.1);assert.ok(b.projectiles.length>0,'power restored through the linked producer resumes attacks');
+ assert.equal(b.powered(tower),true);tower.cooldown=0;for(let i=0;i<24;i++)b.tickUnit(tower,1/24);assert.ok(b.projectiles.length>0,'power restored through the linked producer resumes attacks');
  b.die(pylon);assert.equal(b.powered(tower),false);
 });
 

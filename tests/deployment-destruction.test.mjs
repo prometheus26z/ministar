@@ -18,7 +18,7 @@ test('36-unit waves on both sides spawn clear of HQ and turrets and every member
   const main=team?b.core:b.main,zone=DESERT_STRIKE.map.mobileLayout.deploymentZones[team],direction=team?1:-1;
   assert.ok(army.every(u=>direction*(u.y-main.y)<0&&u.x>=zone.left+u.r&&u.x<=zone.right-u.r&&u.y>=zone.top+u.r&&u.y<=zone.bottom-u.r));
   assert.ok(army.every(u=>!b.map.blocked(u.x,u.y,Math.max(20,u.r*.55))));
-  for(let frame=0;frame<300;frame++)for(const u of army)b.tickUnit(u,1/30);
+  for(let frame=0;frame<450;frame++)for(const u of army)b.tickUnit(u,1/30);
   assert.ok(army.every(u=>team?u.y>500:u.y<1500),JSON.stringify(army.filter(u=>team?u.y<=500:u.y>=1500).map(u=>[u.x,u.y,u.order])));
  }
 });

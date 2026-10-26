@@ -40,14 +40,19 @@ function setup(crew){const b=fresh(),bunker=b.makeBunker(0,640,1568);for(const u
 test('a bunker Firebat cannot shoot a Marine-range target but can shoot one within its own range',()=>{
  const {b,bunker}=setup([32]);const target=b.create(0,1,bunker.x,bunker.y-170),hp=target.hp;
  b.fireBunkers(.01);assert.equal(target.hp,hp);assert.equal(b.effects.length,0);assert.equal(b.projectiles.length,0);
- target.y=bunker.y-90;b.fireBunkers(.01);assert.ok(target.hp<hp);assert.ok(b.effects.some(e=>e.image===421));
+ target.y=bunker.y-90;b.fireBunkers(.01);assert.equal(target.hp,hp,'the bunker records a shot before its source hit event');
+ for(let frame=0;frame<3;frame++)b.fireBunkers(1/24);
+ assert.ok(target.hp<hp);assert.ok(b.effects.some(e=>e.image===421));
 });
 
 test('each garrison member checks its own range, cooldown and eligible air/ground target',()=>{
  const {b,bunker}=setup([0,32]);const ground=b.create(106,1,bunker.x,bunker.y-170),hp=ground.hp;
- b.fireBunkers(.01);assert.ok(ground.hp<hp);assert.equal(b.effects.filter(e=>e.image===421).length,0);
+ b.fireBunkers(.01);assert.equal(ground.hp,hp,'the shot animation starts before it reaches the source hit frame');
+ for(let frame=0;frame<5;frame++)b.fireBunkers(1/24);
+ assert.ok(ground.hp<hp);assert.equal(b.effects.filter(e=>e.image===421).length,0);
  const air=b.create(8,1,bunker.x,bunker.y-20);ground.y=bunker.y-90;const before=ground.hp;
- b.fireBunkers(.01);assert.ok(ground.hp<before);assert.ok(b.effects.some(e=>e.image===421));
+ for(let frame=0;frame<30;frame++)b.fireBunkers(1/24);
+ assert.ok(ground.hp<before);assert.ok(b.effects.some(e=>e.image===421));
  const after=ground.hp;b.fireBunkers(.01);assert.equal(ground.hp,after);
  assert.ok(b.bunkerRange(32,data.weapons[data.units[32].groundWeapon])<b.bunkerRange(0,data.weapons[data.units[0].groundWeapon]));
  assert.equal(air.alive,true);

@@ -1,4 +1,4 @@
-import {COMBAT_SOURCE,sourcePlayerForUnit,upgradeLevel,resolveWeapon,cooldownFrames,unitBoundsGap} from './combat-rules.js?v=0.16.16';
+import {COMBAT_SOURCE,sourcePlayerForUnit,upgradeLevel,resolveWeapon,cooldownFrames,unitBoundsGap} from './combat-rules.js?v=0.16.17';
 
 const FRAME=1/24,MAX_CARRIER=8,MAX_REAVER=10,INTERCEPTOR_LAUNCH_GAP=7,INTERCEPTOR_WARMUP=15,SCARAB_LAUNCH_GAP=60,SCARAB_COLLISION_GRACE=7,SCARAB_LIFETIME=90,SCARAB_SPEED=384;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -186,7 +186,10 @@ function tickInterceptor(battle,parent,child,dt){
  }
  if(!target){if(parent)setReturning(battle,child);return}
  const weapon=resolveWeapon(battle.data,battle,child,!!target.def.air),edge=battle.edgeDistance(child,target);
- if(frame>=fighter.warmupFrame&&frame>=fighter.shotReadyFrame&&weapon&&edge<=weapon.range)fireInterceptor(battle,child,target);
+ if(child.attackControl){battle.advanceAttackControl(child,dt);if(child.attackControl)return}
+ if(frame>=fighter.warmupFrame&&frame>=fighter.shotReadyFrame&&weapon&&edge<=weapon.range&&battle.aimTarget(child,target,dt)){
+  fireInterceptor(battle,child,target);if(child.attackControl)return;
+ }
  if(fighter.state==='launch'){
   advanceInterceptor(battle,child,fighter.waypoint||target,dt);
   if(frame-fighter.stateTick>=INTERCEPTOR_WARMUP){fighter.state='approach';fighter.stateTick=frame;fighter.waypoint=null}

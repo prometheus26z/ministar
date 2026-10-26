@@ -1,4 +1,4 @@
-import {COMBAT_SOURCE} from './broodwar-combat-data.js?v=0.16.16';
+import {COMBAT_SOURCE} from './broodwar-combat-data.js?v=0.16.17';
 
 const NO_WEAPON=130;
 const SPEED_UPGRADES={2:17,37:27,38:29,39:53,42:26,65:34,69:37,70:42,84:39};
@@ -35,8 +35,9 @@ export function resolveUnitDefinition(battle,unit,baseDef=unit?.baseDef||unit?.d
  if(!baseDef)return baseDef;
  const player=sourcePlayerForUnit(battle,unit),key=`${player??'base'}:${unitId(unit)}:${mapOverride?'override':''}`;
  if(!mapOverride){const cached=profileCache(baseDef).get(key);if(cached)return cached}
- const rule=unitRule(unit),profile=Number.isInteger(player)?COMBAT_SOURCE.players[player]:null;
+ const rule=unitRule(unit),engine=COMBAT_SOURCE.unitEngine?.[unitId(unit)],profile=Number.isInteger(player)?COMBAT_SOURCE.players[player]:null;
  const def={...baseDef,...(mapOverride||{})};
+ if(engine)def.regeneratesHp=!!engine.regeneratesHp;
  if(profile&&rule){
   const armorUpgrade=rule.armorUpgrade;
   const armorLevel=Number.isInteger(armorUpgrade)&&armorUpgrade<60?profile.initial[armorUpgrade]||0:0;
@@ -78,12 +79,12 @@ function rangeBonus(unit,weaponId,player){
  return 0;
 }
 
-export function resolveWeapon(data,battle,unit,targetAir=false){
- if(unit?.type===72||unit?.type===83)return controlWeapon(unit);
+export function resolveWeapon(data,battle,unit,targetAir=false,forcedWeaponId=null){
+ if((unit?.type===72||unit?.type===83)&&!Number.isInteger(forcedWeaponId))return controlWeapon(unit);
  if(unit?.type===103&&(unit.lurkerState!=='burrowed'||!unit.burrowed))return null;
  if(unit?.type!==103&&unit?.burrowed)return null;
  const id=unitId(unit),rule=COMBAT_SOURCE.units[id],fallback=unit?.def||data.units[id];
- const weaponId=rule?(targetAir?rule.sourceAirWeapon:rule.sourceGroundWeapon):(targetAir?fallback?.airWeapon:fallback?.groundWeapon);
+ const weaponId=Number.isInteger(forcedWeaponId)?forcedWeaponId:rule?(targetAir?rule.sourceAirWeapon:rule.sourceGroundWeapon):(targetAir?fallback?.airWeapon:fallback?.groundWeapon);
  if(!Number.isInteger(weaponId)||weaponId===NO_WEAPON)return null;
  const base=data.weapons?.[weaponId];if(!base||!base.damage||targetAir&&!base.air||!targetAir&&!base.ground)return null;
  const player=sourcePlayerForUnit(battle,unit),weaponRule=COMBAT_SOURCE.weapons[weaponId];
@@ -134,11 +135,29 @@ export function cooldownFrames(battle,unit,weapon,{jitter=0}={}){
 }
 
 export function movementSpeed(battle,unit){
- const def=unit?.def||{},base=unit?.movementSpeedOverride??def.speed??unit?.baseDef?.speed??0;
- const modifier=Number(unit?.buffs?.stim>0)+Number(def.speedUpgradeActive)-Number(unit?.buffs?.ensnare>0);
+ const def=unit?.def||{},profile=movementProfile(battle,unit);
+ if(!unit?.movementSpeedOverride&&(profile.movementControl===0||profile.movementControl===1))return profile.topSpeedRaw/256*24;
+ const base=unit?.movementSpeedOverride??def.speed??unit?.baseDef?.speed??0;
+ const modifier=Number(unit?.buffs?.stim>0)+Number(!!def.speedUpgradeActive)-Number(unit?.buffs?.ensnare>0);
  if(modifier>0){const minimum=unitId(unit)===70?160:80;return Math.max(base*1.5,minimum)}
  if(modifier<0)return base*.5;
  return base;
+}
+
+export function movementProfile(battle,unit){
+ const engine=COMBAT_SOURCE.unitEngine?.[unitId(unit)];
+ const movementControl=engine?.movementControl??2,baseTopSpeedRaw=engine?.topSpeedRaw??0,baseAccelerationRaw=engine?.accelerationRaw??0,baseTurnRateRaw=engine?.turnRateRaw??0;
+ const modifier=Number(unit?.buffs?.stim>0)+Number(!!unit?.def?.speedUpgradeActive)-Number(unit?.buffs?.ensnare>0);
+ let topSpeedRaw=baseTopSpeedRaw,accelerationRaw=baseAccelerationRaw,turnRateRaw=baseTurnRateRaw;
+ if(modifier>0){topSpeedRaw=baseTopSpeedRaw+Math.floor(baseTopSpeedRaw/2);if(topSpeedRaw<Math.floor(10/3*256))topSpeedRaw=Math.floor(10/3*256);accelerationRaw=baseAccelerationRaw*2;turnRateRaw=baseTurnRateRaw*2;if(unitId(unit)===70&&unit?.def?.speedUpgradeActive)topSpeedRaw=6*256+(256-Math.floor(256/3))}
+ else if(modifier<0){topSpeedRaw=Math.floor(baseTopSpeedRaw/2);accelerationRaw=baseAccelerationRaw-Math.floor(baseAccelerationRaw/4);turnRateRaw=baseTurnRateRaw-Math.floor(baseTurnRateRaw/4)}
+ const unchanged=modifier===0,haltDistanceRaw=unchanged?(engine?.haltDistanceRaw??0):accelerationRaw>0?topSpeedRaw*topSpeedRaw/(2*accelerationRaw*256):0;
+ return {movementControl,topSpeedRaw,accelerationRaw,turnRateRaw,haltDistanceRaw,baseTopSpeedRaw,baseAccelerationRaw,baseTurnRateRaw,modifier};
+}
+
+export function scriptProgramForImage(image,slot,targetNear=false){
+ const scriptId=COMBAT_SOURCE.imageScriptIds?.[image];if(!Number.isInteger(scriptId))return null;
+ return COMBAT_SOURCE.actionPrograms?.[`${scriptId}:${slot}:${targetNear?'near':'far'}`]||null;
 }
 
 function sizeMultiplier(target,type){

@@ -1,14 +1,14 @@
-import {LaneAI} from './lane-ai.js?v=0.16.16';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.16';
-import {SATISFIES} from './tech.js?v=0.16.16';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.16';
-import {buildingDestruction} from './presentation.js?v=0.16.16';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.16';
-import {clamp,dist} from './core.js?v=0.16.16';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.16';
-import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.16';
-import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.16';
-import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.16';
+import {LaneAI} from './lane-ai.js?v=0.16.17';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.17';
+import {SATISFIES} from './tech.js?v=0.16.17';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.17';
+import {buildingDestruction} from './presentation.js?v=0.16.17';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.17';
+import {clamp,dist} from './core.js?v=0.16.17';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.17';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.17';
+import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.17';
+import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.17';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -58,7 +58,7 @@ export class Battle extends EconomyBattle{
  }
  begin(){
   if(this.phase!=='title')return false;
-  this.phase='battle';this.paused=false;this.time=0;this.timeLeft=Infinity;this.ownerByTeam=[0,3];this.commanders=[];
+  this.phase='battle';this.simAccumulator=0;this.simFrame=0;this.paused=false;this.time=0;this.timeLeft=Infinity;this.ownerByTeam=[0,3];this.commanders=[];
   this.units=[];this.creepFields.clear();this.creepClock=0;this.projectiles=[];this.pendingProjectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;this.hangarFrame=0;this.hangarAccumulator=0;this.reaverRefillClock=0;this.waveElapsedTotal=0;this.carrierRefillEvents=new Set();
   this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
   this.money=DESERT_STRIKE.startingMinerals;this.gas=0;this.botMoney=DESERT_STRIKE.startingMinerals;this.botGas=0;this.maxSupply=200;
@@ -108,7 +108,7 @@ export class Battle extends EconomyBattle{
  tickHangarFrame(dt=1/24){return runHangarFrame(this,dt)}
  onUnitDeath(unit){return onHangarUnitDeath(this,unit)}
  transferOwnershipWithChildren(unit,team,commanderId=null){
-  if(!unit?.alive)return false;
+  if(!unit?.alive)return false;this.clearActionControl(unit,'ownership',true);
   const oldHp=unit.hp,oldShield=unit.shield,oldEnergy=unit.energy;
   unit.team=team;unit.commanderId=Number.isInteger(commanderId)?commanderId:(this.ownerByTeam?.[team]??unit.commanderId??team*3);
   unit.sourceCombatPlayer=COMBAT_SOURCE.sourceCombatPlayerByTeam?.[team]??(team?7:3);
@@ -400,7 +400,7 @@ export class Battle extends EconomyBattle{
   const refresh=targetChanged||!u.lurkerApproachPath?.length&&!u.lurkerApproachNoPath||u.lurkerApproachPoint&&dist(u.lurkerApproachPoint,target)>20||u.lurkerApproachClock<=0;
   if(refresh){const route=this.approachPath(u,target,Math.max(weapon.minRange||0,enterRange-3));u.lurkerApproachPath=route?.path||[];u.lurkerApproachPoint={x:target.x,y:target.y};u.lurkerApproachTargetId=target.id;u.lurkerApproachNoPath=!u.lurkerApproachPath.length;u.lurkerApproachClock=.55}
   if(u.lurkerApproachStall>=.4){const retry=this.approachPath(u,target,Math.max(weapon.minRange||0,enterRange-3));if(retry?.path?.length){u.lurkerApproachPath=retry.path;u.lurkerApproachPoint={x:target.x,y:target.y};u.lurkerApproachClock=.55;u.lurkerApproachStall=0;u.lurkerApproachNoPath=false}else if(edge<=weapon.range+1e-6){this.clearLaneLurkerApproach(u);this.cast(u,'burrow');return true}else{this.clearLaneLurkerApproach(u);return false}}
-  const waypoint=u.lurkerApproachPath?.[0];if(waypoint){this.moveCombat(u,waypoint,dt);if(dist(u,waypoint)<5)u.lurkerApproachPath.shift();u.action='walk'}return true;
+  const waypoint=u.lurkerApproachPath?.[0];if(waypoint){this.moveCombat(u,waypoint,dt,u.lurkerApproachPath.length<=1);if(dist(u,waypoint)<5)u.lurkerApproachPath.shift();u.action='walk'}return true;
  }
  cast(u,key,p,target){
   if(u.type===103&&(['burrowing','unburrowing'].includes(u.lurkerState)||key==='burrow'&&!['ground','burrowed'].includes(u.lurkerState)))return false;
@@ -433,12 +433,14 @@ export class Battle extends EconomyBattle{
  bunkerRange(type,weapon){return weapon.range+64;}
  fireBunkers(dt){
   for(const bunker of this.units.filter(u=>u.alive&&u.garrison?.length)){
-   const cooldowns=bunker.garrisonCooldowns||=Array(bunker.garrison.length).fill(0);
+   const controls=bunker.garrisonControls||=[];
    for(const [slot,id]of bunker.garrison.entries()){
-    cooldowns[slot]=Math.max(0,(cooldowns[slot]||0)-dt);if(cooldowns[slot]>0)continue;
     const soldier=this.data.units[id];if(!soldier)continue;
-    const shooter={...bunker,type:id,baseDef:soldier,def:soldier,garrison:null,productionOnly:false,isFortification:false,sourceCombatPlayer:bunker.sourceCombatPlayer??COMBAT_SOURCE.sourceCombatPlayerByTeam?.[bunker.team]};
-    shooter.def=resolveUnitDefinition(this,shooter,soldier);
+    let shooter=controls[slot];if(!shooter||shooter.garrisonUnitType!==id){if(shooter)this.clearActionControl(shooter,'morph',true);shooter={...bunker,type:id,baseDef:soldier,def:soldier,garrison:null,productionOnly:false,isFortification:false,attackRangeBonus:64,garrisonUnitType:id,garrisonParentId:bunker.id,garrisonSlot:slot,sourceCombatPlayer:bunker.sourceCombatPlayer??COMBAT_SOURCE.sourceCombatPlayerByTeam?.[bunker.team]};shooter.def=resolveUnitDefinition(this,shooter,soldier);shooter.motion={speedRaw:0,heading256:0,velocityDirection256:0,desiredDirection256:0,walkTick:0,walkSpeedRaw:0,walkStarted:false,walkImage:null};controls[slot]=shooter}
+    Object.assign(shooter,{alive:bunker.alive,team:bunker.team,commanderId:bunker.commanderId,sourceCombatPlayer:bunker.sourceCombatPlayer??COMBAT_SOURCE.sourceCombatPlayerByTeam?.[bunker.team],isFortification:false});
+    const cooldowns=bunker.garrisonCooldowns||=Array(bunker.garrison.length).fill(0);cooldowns[slot]=Math.max(0,(cooldowns[slot]||0)-dt);shooter.cooldown=Math.max(0,(shooter.cooldown||0)-dt);
+    if(shooter.attackControl){this.advanceAttackControl(shooter,dt);cooldowns[slot]=shooter.cooldown;if(shooter.attackControl)continue}
+    if(shooter.cooldown>0){cooldowns[slot]=shooter.cooldown;continue}
     const weaponFor=target=>this.weapon(shooter,target);
     const target=this.nearby(bunker,this.spatialRange(640)).filter(u=>{
      if(!u.alive||u.def.invincible||u.productionOnly||u.hidden||u.loaded||u.team===bunker.team||!this.canSee(bunker.team,u))return false;
@@ -447,13 +449,16 @@ export class Battle extends EconomyBattle{
     }).sort((a,b)=>dist(a,bunker)-dist(b,bunker))[0];if(!target)continue;
     const weapon=weaponFor(target),direction=(Math.round(Math.atan2(target.x-bunker.x,bunker.y-target.y)*16/Math.PI)+32)%32,angle=direction*Math.PI/16;
     const x=bunker.x+Math.sin(angle)*30+(slot-1.5)*6,y=bunker.y-Math.cos(angle)*22;
-    shooter.x=x;shooter.y=y;this.attack(shooter,target,weapon);cooldowns[slot]=shooter.cooldown||weapon.cooldown;
+    const heading=direction*8;shooter.x=x;shooter.y=y;shooter.direction=direction;shooter.motion.heading256=heading;shooter.motion.velocityDirection256=heading;shooter.motion.desiredDirection256=heading;
+    if(!this.attack(shooter,target,weapon))continue;cooldowns[slot]=shooter.cooldown||weapon.cooldown;
     this.effects.push({x,y,image:id===32?421:527,team:bunker.team,direction,left:id===32?.45:.18,duration:id===32?.45:.18,kind:'bunker-shot'});
    }
+   for(let slot=bunker.garrison.length;slot<controls.length;slot++){if(controls[slot])this.clearActionControl(controls[slot],'load',true);controls[slot]=null}
   }
  }
  die(u,team){
   if(!u.alive)return;const wasOutpost=u.isOutpost;const wasMain=u===this.main,wasCore=u===this.core;this.releaseGasSlot(u);
+  for(const shooter of u.garrisonControls||[])if(shooter)this.clearActionControl(shooter,'death',true);
   if(u.def.building){const visual=buildingDestruction(u);this.wrecks.push({x:u.x,y:u.y,team:u.team,image:visual.rubble,variant:u.id%4,productionOnly:!!u.productionOnly,commanderId:u.commanderId});this.effects.push({x:u.x,y:u.y,image:visual.explosion,left:1.15,duration:1.15,team:u.team,kind:'building-death',productionOnly:!!u.productionOnly,commanderId:u.commanderId})}
   if(u.garrison?.length){for(let i=0;i<u.garrison.length;i++){const type=u.garrison[i],crew=this.create(type,u.team,u.x+(i-1.5)*18,u.y),objective=this.laneObjective(u.team);crew.commanderId=u.commanderId;crew.order='attackmove';crew.laneArmy=true;this.setGoal(crew,{x:objective.x,y:objective.y},'attackmove');crew.laneObjectiveId=objective.id}u.garrison=[]}
   super.die(u,team);

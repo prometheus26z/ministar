@@ -15,6 +15,7 @@ test('open ground paths use diagonal steps and keep the direct heading',()=>{
 
 test('a unit can move diagonally at its normal travel distance',()=>{
  const battle=fresh(),unit=battle.create(0,0,760,1500),start={x:unit.x,y:unit.y};
+ unit.direction=4;unit.motion.heading256=unit.motion.velocityDirection256=32;
  assert.equal(battle.move(unit,{x:860,y:1400},.25),true);
  const dx=unit.x-start.x,dy=start.y-unit.y;
  assert.ok(dx>0&&dy>0);assert.ok(Math.abs(dx-dy)<1e-6);assert.ok(Math.abs(Math.hypot(dx,dy)-24)<1e-6);
