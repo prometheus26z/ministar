@@ -1,6 +1,6 @@
 # MINISTAR · 미니스타
 
-현재 버전 **v0.16.15** · [플레이](https://prometheus26z.github.io/ministar/)
+현재 버전 **v0.16.16** · [플레이](https://prometheus26z.github.io/ministar/)
 
 테란·저그·프로토스 중 종족을 고르고 1 vs 1, 2 vs 2, 3 vs 3으로 플레이하는 모바일 자동 전투 게임입니다. 생산 구역에 건물을 지으면 정해진 병력이 주기적으로 출격합니다. 상대 종족은 무작위이며, 팀전의 각 AI는 자기 자원과 생산 건물을 독립적으로 운영합니다. 아군 AI의 생산 구역도 확인할 수 있으며, 적 생산 구역은 열람할 수 없습니다.
 
@@ -186,6 +186,7 @@ npm install --no-save --package-lock=false playwright@1.56.1
 npx playwright install --with-deps chromium
 node tests/browser.cjs
 node tests/original-animation-browser.cjs
+node tests/spell-effects-browser.cjs
 ```
 
 `main` 변경은 GitHub Actions의 리소스 복원·애니메이션 감사·시뮬레이션·모바일 UI·이전 캐시 정리 검사를 통과한 후 GitHub Pages에 배포됩니다. PR에서는 같은 검사를 실행하고 실제 배포는 건너뜁니다.

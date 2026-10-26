@@ -31,7 +31,7 @@ function harness({entries,files,appVersion='0.16.13',cacheStorage=memoryStorage(
 test('generated manifest is deterministic, content addressed, and excludes native video',()=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'ministar-resource-manifest-'));
  try{
-  for(const file of ['assets/data.json','rts-data.json','construction-data.json','turret-data.json','destruction-data.json','original-animation-data.json']){
+  for(const file of ['assets/data.json','rts-data.json','construction-data.json','turret-data.json','destruction-data.json','original-animation-data.json','spell-visual-data.json']){
    const destination=path.join(root,file);fs.mkdirSync(path.dirname(destination),{recursive:true});
    fs.writeFileSync(destination,JSON.stringify(file==='assets/data.json'?{graphics:{1:{images:{blue:'assets/sprites/a.webp'}}},units:{1:{portrait:'assets/portraits/1.webm'}}}:{}));
   }
@@ -61,7 +61,7 @@ test('changed content fetches only its new hash and keeps unchanged assets reusa
 test('application version changes reuse identical hashes within the same scope',async()=>{
  const bytes=Buffer.from('same resource'),files=new Map([['assets/a.webp',bytes]]),storage=memoryStorage(),h=harness({entries:{'assets/a.webp':entry(bytes)},files,cacheStorage:storage});
  let store=h.makeStore('0.16.13');await store.init();await store.response('assets/a.webp');
- h.setManifest(manifest({'assets/a.webp':entry(bytes)},'0.16.14'));store=h.makeStore('0.16.14');await store.init();assert.equal(await(await store.response('assets/a.webp')).text(),'same resource');
+ h.setManifest(manifest({'assets/a.webp':entry(bytes)},'0.16.15'));store=h.makeStore('0.16.15');await store.init();assert.equal(await(await store.response('assets/a.webp')).text(),'same resource');
  assert.equal(h.counts.get('assets/a.webp'),1);
 });
 
@@ -99,7 +99,7 @@ test('hash mismatch, HTML fallback, and partial responses are rejected and never
 });
 
 test('manifest version mismatch stops before resource fetch',async()=>{
- const bytes=Buffer.from('ok'),h=harness({entries:{'assets/a.webp':entry(bytes)},files:new Map([['assets/a.webp',bytes]]),appVersion:'0.16.14'});
+ const bytes=Buffer.from('ok'),h=harness({entries:{'assets/a.webp':entry(bytes)},files:new Map([['assets/a.webp',bytes]]),appVersion:'0.16.15'});
  const store=h.makeStore('0.16.13');await assert.rejects(store.init(),ResourceVersionError);assert.equal(h.counts.size,0);
 });
 

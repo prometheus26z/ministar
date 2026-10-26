@@ -1,14 +1,14 @@
-import {LaneAI} from './lane-ai.js?v=0.16.15';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.15';
-import {SATISFIES} from './tech.js?v=0.16.15';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.15';
-import {buildingDestruction} from './presentation.js?v=0.16.15';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.15';
-import {clamp,dist} from './core.js?v=0.16.15';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.15';
-import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.15';
-import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.15';
-import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.15';
+import {LaneAI} from './lane-ai.js?v=0.16.16';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.16';
+import {SATISFIES} from './tech.js?v=0.16.16';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.16';
+import {buildingDestruction} from './presentation.js?v=0.16.16';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.16';
+import {clamp,dist} from './core.js?v=0.16.16';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.16';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.16';
+import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.16';
+import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.16';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -236,21 +236,16 @@ export class Battle extends EconomyBattle{
  formationGoal(u,objective){return{x:clamp(objective.x+(u.laneOffset||0),352,928),y:objective.y}}
  setAdvanceGoal(u,objective){
   const goal=this.formationGoal(u,objective),direction=u.team?1:-1,end={x:goal.x,y:goal.y-direction*128};
-  // A shared open corridor needs no per-soldier A* search. Verify every tile
-  // before using this route; blocked approach routes retain the pathfinder.
-  const clear=(a,b)=>{const length=dist(a,b),steps=Math.max(1,Math.ceil(length/32));for(let i=0;i<=steps;i++){const p={x:a.x+(b.x-a.x)*i/steps,y:a.y+(b.y-a.y)*i/steps};if(!u.def.air&&this.map.blocked(p.x,p.y,u.r*.55))return false}return true};
-  const turn={x:goal.x,y:u.y};
-  if(clear(u,turn)&&clear(turn,end)){
-   u.goal=goal;u.path=[turn,end];u.order='attackmove';u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.aiClock=0;u.stuck=0;
-  }else this.setGoal(u,goal,'attackmove');
+  const route=!u.def.air&&this.clearGroundSegment(u,end,u.r*.55,u)?[end]:this.path(u,end,u.def.air,u.def.air?0:u.r*.55,u);
+  u.goal=goal;u.path=route;u.order='attackmove';u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.aiClock=0;u.stuck=0;
  }
 
  deploymentPoint(def,team,point,spacing=32,ignore=null){
   const clearance=Math.max(20,(def.radius||10)*.55),direction=team?1:-1;
   const free=p=>{
    if(p.x<clearance||p.x>1280-clearance||p.y<clearance||p.y>2048-clearance)return false;
-   if(!def.air&&(this.map.blocked(p.x,p.y,clearance)||this.map.blocked(Math.floor(p.x/32)*32+16,Math.floor(p.y/32)*32+16,clearance)))return false;
-   return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.def.building&&u.def.air===def.air&&dist(u,p)<((u.r+(def.radius||10))*.85+2));
+   if(!def.air&&(this.staticBlocked(p.x,p.y,clearance,ignore)||this.staticBlocked(Math.floor(p.x/32)*32+16,Math.floor(p.y/32)*32+16,clearance,ignore)))return false;
+   if(def.air)return true;const radius=def.radius||10;return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&dist(u,p)<u.r+radius+2);
   };
   // Preserve each column, moving its spawn forward out of the HQ/tower footprints.
   for(let offset=0;offset<=2048;offset+=Math.max(32,spacing)){const p={x:point.x,y:point.y+direction*offset};if(free(p))return p}
@@ -262,8 +257,8 @@ export class Battle extends EconomyBattle{
   const zone=DESERT_STRIKE.map.mobileLayout.deploymentZones[team],radius=def.radius||10,clearance=Math.max(16,radius*.55),free=p=>{
    if(p.x<zone.left+clearance||p.x>zone.right-clearance||p.y<zone.top+clearance||p.y>zone.bottom-clearance)return false;
    const cell={x:Math.floor(p.x/32)*32+16,y:Math.floor(p.y/32)*32+16};
-   if(this.map.blocked(p.x,p.y,clearance)||this.map.blocked(cell.x,cell.y,clearance))return false;
-   return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.def.building&&u.def.air===def.air&&dist(u,p)<u.r+radius+2);
+   if(def.air)return true;if(this.staticBlocked(p.x,p.y,clearance,ignore)||this.staticBlocked(cell.x,cell.y,clearance,ignore))return false;
+   return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&dist(u,p)<u.r+radius+2);
   };
   if(preferred&&free(preferred))return preferred;
   spacing=Math.max(32,spacing);const columns=Math.floor((zone.right-zone.left)/spacing)+1,rows=Math.floor((zone.bottom-zone.top)/spacing)+1,center=640,xOrder=[];

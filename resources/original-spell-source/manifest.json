@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "source": "StarCraft: Remastered original HD2 animation atlases and DAT metadata",
+  "baseUrl": "https://us.cdn.blizzard.com/tpr/sc1live/",
+  "files": [
+    {
+      "path": "HD2/anim/main_337.anim",
+      "bytes": 1706156,
+      "sha256": "b920085f429d7a7532e66f59a9d786420872cb1ee878885f8a22d94c394f2355"
+    },
+    {
+      "path": "HD2/anim/main_361.anim",
+      "bytes": 229228,
+      "sha256": "064db78a91dfdb034f45c706fd91b93ff63f083736a39871e4a2c11770c8332f"
+    },
+    {
+      "path": "HD2/anim/main_362.anim",
+      "bytes": 454588,
+      "sha256": "7e2103ad3e6f37b26ff7988b9a7129e2bece5751e809c8b52779c8a304ff5543"
+    },
+    {
+      "path": "HD2/anim/main_363.anim",
+      "bytes": 732300,
+      "sha256": "de48d1d66b637d401e41d4de5bb3d62b627eb4b81a30e86aa21763baf08321ac"
+    },
+    {
+      "path": "HD2/anim/main_364.anim",
+      "bytes": 375100,
+      "sha256": "30d80e80053beff9e6bdc58c917351a2bb65b985942cf138f9cf3e93a2e281c4"
+    },
+    {
+      "path": "HD2/anim/main_365.anim",
+      "bytes": 172764,
+      "sha256": "5cbc47d33fa539b43abf6adbad81a17def34b7ab1490c3e6830a7d67f16b059e"
+    },
+    {
+      "path": "HD2/anim/main_367.anim",
+      "bytes": 431324,
+      "sha256": "eebf74ee8b1c21fbbc5fd02cc1baf58fa3d52c7a5f672b815e9dc72b5d6ae438"
+    },
+    {
+      "path": "HD2/anim/main_371.anim",
+      "bytes": 57980,
+      "sha256": "bddf1d1312b650b2768bb2d9c56e45168654ae2eba6b3b87fd729186d82fdf24"
+    },
+    {
+      "path": "HD2/anim/main_372.anim",
+      "bytes": 124396,
+      "sha256": "066de93ecd6219f41b5b6b8fc12414cc5b4877dd99c40470b4fbd6d9ec9dd7aa"
+    },
+    {
+      "path": "HD2/anim/main_373.anim",
+      "bytes": 198876,
+      "sha256": "6f9e82d911a5aa795753b87a06612a3feadd4e36d825eae6684a995a6f249db5"
+    },
+    {
+      "path": "HD2/anim/main_374.anim",
+      "bytes": 58172,
+      "sha256": "be1c01d1252aca78e451cf05c9879a4175ca842d860bc1338aa578a552b12e6b"
+    },
+    {
+      "path": "HD2/anim/main_375.anim",
+      "bytes": 140028,
+      "sha256": "12794dc237f9a5c53d1791d6ad8fb1a0c8cb9ddf784dbb0357d83219fbab35d7"
+    },
+    {
+      "path": "HD2/anim/main_376.anim",
+      "bytes": 195676,
+      "sha256": "60613d8df24d0b48c655d7cb586bd29424f015a35426118c78f9174fce17513a"
+    },
+    {
+      "path": "HD2/anim/main_377.anim",
+      "bytes": 80588,
+      "sha256": "199ca9fb810ba24dfac48b6748c435f3f040f4fcfd9f215472daba241de26db1"
+    },
+    {
+      "path": "HD2/anim/main_378.anim",
+      "bytes": 142604,
+      "sha256": "f9bb099a8053b6ff4091938f38d6747e823e82fb6891b0d56919eabbb73204a4"
+    },
+    {
+      "path": "HD2/anim/main_379.anim",
+      "bytes": 196460,
+      "sha256": "7afcbab01b7362812c280b07d6842ca21850ba1179e118a8403d482d3622954e"
+    },
+    {
+      "path": "HD2/anim/main_380.anim",
+      "bytes": 396540,
+      "sha256": "d610257d7d6c6f2a98a844ce8a11e66d0f1b418e8cc1194c679a7f29b41e5241"
+    },
+    {
+      "path": "HD2/anim/main_383.anim",
+      "bytes": 926492,
+      "sha256": "7cc9b6d23463d6d9fb2b8f2b6615b6f8ac678129a31f9cb70dd21815f9770224"
+    },
+    {
+      "path": "HD2/anim/main_384.anim",
+      "bytes": 10220,
+      "sha256": "358dfaa47b3bc70e6e0b0c1a18bcf6f0fef88c15bf32cdf8900133f5c9ef10fb"
+    },
+    {
+      "path": "HD2/anim/main_385.anim",
+      "bytes": 22220,
+      "sha256": "ae62ce0271609251aa3dbb8c8577489bb9ff3ffb43c44aad0d29842c28401b0f"
+    },
+    {
+      "path": "HD2/anim/main_386.anim",
+      "bytes": 38060,
+      "sha256": "6dcd6a90ac6cce25902f66b52089f67dcdd084a4455fa3e794f252583cce68ca"
+    },
+    {
+      "path": "HD2/anim/main_387.anim",
+      "bytes": 691660,
+      "sha256": "00d25d5b4b9b92a8c83624fe3077fe06edf0bb9e88738d11a8f0672d74e1d6a5"
+    },
+    {
+      "path": "HD2/anim/main_388.anim",
+      "bytes": 8684,
+      "sha256": "d7f5b30583ea925d1ac23930983008c2fcc4d04186770320230cc0b1569d6264"
+    },
+    {
+      "path": "HD2/anim/main_389.anim",
+      "bytes": 21004,
+      "sha256": "4a56c509a8110279a57da29572ffcff95034825d148a0d7e68a844b1c766da2e"
+    },
+    {
+      "path": "HD2/anim/main_390.anim",
+      "bytes": 38060,
+      "sha256": "ecb5ad73f27914469092a45095ab9f7481069f00e61f8384b060fcd59641d380"
+    },
+    {
+      "path": "HD2/anim/main_951.anim",
+      "bytes": 2884700,
+      "sha256": "8ee7ba69425a202b898be915bf8b81aa04ca39540d7abefceb35042d49200800"
+    },
+    {
+      "path": "HD2/anim/main_982.anim",
+      "bytes": 114172,
+      "sha256": "5f9299350023e07ba1df0b4bfe37aac9dabb5f1c3452e90e6eb41bb10f3bc5ca"
+    },
+    {
+      "path": "HD2/anim/main_983.anim",
+      "bytes": 429452,
+      "sha256": "c069bec7d64ddda51ce70021c224b7c60bf26fb0fd4ae558295333830af44785"
+    },
+    {
+      "path": "HD2/anim/main_984.anim",
+      "bytes": 1656188,
+      "sha256": "f183680f76aaf1f1dec664fab038cb400aa33c0f1fed7b15d35bf09f7c842162"
+    },
+    {
+      "path": "HD2/anim/main_998.anim",
+      "bytes": 375100,
+      "sha256": "ceac5af13d74d83aa5ad1eed4a053c022fdb337693630d2c49d7f5b73709f7e0"
+    },
+    {
+      "path": "images.dat",
+      "bytes": 37962,
+      "sha256": "6b6123e2cc6771d96f914fc9bb92d34da17cc3319dc02e2db0cd10b4f3d2efdc"
+    },
+    {
+      "path": "images.dat.json",
+      "bytes": 405318,
+      "sha256": "4a4b57b6896653ab71fdd89e54524321c869420c5c8cdaf54cfc49a2a2f39db0"
+    },
+    {
+      "path": "iscript.bin",
+      "bytes": 40482,
+      "sha256": "cd35e04eaa8ea95cbbccc980bfaf4cae236f4b18b620dfb4a765822ec32c1cd0"
+    },
+    {
+      "path": "sprites.dat",
+      "bytes": 3229,
+      "sha256": "3e5ea29bf9937558d0a3a302cd85852c220cd126ec049c0da176c77739bb4a71"
+    },
+    {
+      "path": "units.dat.json",
+      "bytes": 736215,
+      "sha256": "ee6d1f73f5796cff09f4f606ff72f85cdbce8dd4319c03d455710e2567c33cdb"
+    }
+  ]
+}
