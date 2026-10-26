@@ -1,14 +1,15 @@
-import {LaneAI} from './lane-ai.js?v=0.16.20';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.20';
-import {SATISFIES} from './tech.js?v=0.16.20';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.20';
-import {buildingDestruction} from './presentation.js?v=0.16.20';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.20';
-import {clamp,dist} from './core.js?v=0.16.20';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.20';
-import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.20';
-import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.20';
-import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.20';
+import {LaneAI} from './lane-ai.js?v=0.16.21';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.21';
+import {SATISFIES} from './tech.js?v=0.16.21';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.21';
+import {buildingDestruction} from './presentation.js?v=0.16.21';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.21';
+import {clamp,dist} from './core.js?v=0.16.21';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.21';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.21';
+import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.21';
+import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.21';
+import {isFullyBurrowed} from './movement.js?v=0.16.21';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -218,9 +219,9 @@ export class Battle extends EconomyBattle{
  morph(unit,type){type=Number(type);const reason=this.morphReason(unit,type);if(reason)return this.fail(reason);const u=this.startConstruction(0,type,{point:unit,reason:''},unit,true);if(u){this.closeMenu();this.emit('change')}return !!u}
  morphOptions(unit){if(!unit?.productionOnly||!this.ownsProduction(unit,unit.team))return[];return super.morphOptions(unit).filter(id=>isLaneBuildingAvailable(id,unit.commanderId))}
  addonOptions(unit){if(!unit?.productionOnly||!this.ownsProduction(unit,unit.team))return[];return super.addonOptions(unit).filter(id=>isLaneBuildingAvailable(id,unit.commanderId))}
- addonPoint(parent,type){const [w]=this.footprint(parent.type),[aw]=this.footprint(type);return{x:parent.x+w/2+aw/2,y:parent.y}}
- addonReason(parent,type){const reason=this.teamBuildReason(0,Number(type),parent);return reason||this.placementForTeam(0,Number(type),this.addonPoint(parent,type)).reason}
- addon(parent,type){type=Number(type);const reason=this.addonReason(parent,type);if(reason)return this.fail(reason);const u=this.startConstruction(0,type,this.placementForTeam(0,type,this.addonPoint(parent,type)),parent);if(u){this.closeMenu();this.emit('change')}return !!u}
+ addonPoint(parent,type){const [w,h]=this.footprint(parent.type),[aw,ah]=this.footprint(type);return{x:parent.x+w/2+aw/2,y:parent.y+h/2-ah/2}}
+ addonReason(parent,type){const reason=this.teamBuildReason(0,Number(type),parent);return reason||this.placementForTeam(0,Number(type),this.addonPoint(parent,type),parent).reason}
+ addon(parent,type){type=Number(type);const reason=this.addonReason(parent,type);if(reason)return this.fail(reason);const u=this.startConstruction(0,type,this.placementForTeam(0,type,this.addonPoint(parent,type),parent),parent);if(u){this.closeMenu();this.emit('change')}return !!u}
 
  cancel(unit,index=0){if(unit?.productionOnly&&unit.commanderId!==0)return false;if(unit?.team===0&&unit.construction)this.releaseGasSlot(unit);return super.cancel(unit,index)}
  execute(command,point=null,target=null){
@@ -245,7 +246,7 @@ export class Battle extends EconomyBattle{
   const free=p=>{
    if(p.x<clearance||p.x>1280-clearance||p.y<clearance||p.y>2048-clearance)return false;
    if(!def.air&&(this.staticBlocked(p.x,p.y,clearance,ignore)||this.staticBlocked(Math.floor(p.x/32)*32+16,Math.floor(p.y/32)*32+16,clearance,ignore)))return false;
-   if(def.air)return true;const radius=def.radius||10;return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&dist(u,p)<u.r+radius+2);
+   if(def.air)return true;const radius=def.radius||10;return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&!isFullyBurrowed(u)&&dist(u,p)<u.r+radius+2);
   };
   // Preserve each column, moving its spawn forward out of the HQ/tower footprints.
   for(let offset=0;offset<=2048;offset+=Math.max(32,spacing)){const p={x:point.x,y:point.y+direction*offset};if(free(p))return p}
@@ -258,7 +259,7 @@ export class Battle extends EconomyBattle{
    if(p.x<zone.left+clearance||p.x>zone.right-clearance||p.y<zone.top+clearance||p.y>zone.bottom-clearance)return false;
    const cell={x:Math.floor(p.x/32)*32+16,y:Math.floor(p.y/32)*32+16};
    if(def.air)return true;if(this.staticBlocked(p.x,p.y,clearance,ignore)||this.staticBlocked(cell.x,cell.y,clearance,ignore))return false;
-   return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&dist(u,p)<u.r+radius+2);
+   return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&!isFullyBurrowed(u)&&dist(u,p)<u.r+radius+2);
   };
   if(preferred&&free(preferred))return preferred;
   spacing=Math.max(32,spacing);const columns=Math.floor((zone.right-zone.left)/spacing)+1,rows=Math.floor((zone.bottom-zone.top)/spacing)+1,center=640,xOrder=[];

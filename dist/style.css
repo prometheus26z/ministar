@@ -211,13 +211,17 @@ body[data-inspect=no] #panel .unit-info::before{display:none}
 
 
 /* Responsive StarCraft selection console. */
-:root{--panel:210px}
+:root{--panel:210px;--portrait-size:clamp(64px,22vw,88px);--action-gap:4px}
 body[data-panel=normal],body[data-panel=expanded],body[data-panel=min]{--panel:210px}
-#panel{display:flex;flex-direction:column;gap:4px;min-height:var(--panel);padding:7px 8px max(6px,env(safe-area-inset-bottom));}
-#panel #panelTop{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:6px;align-items:stretch;flex:1;min-height:144px}
-#panel #inspectionWrap{position:relative;min-width:0;max-width:none;width:auto;height:auto;overflow:visible;margin:0}
-#panel #inspectionScaled{position:relative;display:grid;grid-template-columns:minmax(0,1fr) clamp(64px,22vw,108px);gap:4px;width:100%;height:100%;transform:none}
-#panel .unit-info{position:relative;display:block;flex:initial;width:auto;max-width:none;min-width:0;height:auto;min-height:144px;padding:0;overflow:hidden;background:#020606;border:5px solid transparent;border-image:url('assets/ui/console.png') 58 44 20 44 fill / 7px 5px 4px 5px;box-shadow:0 1px #72797c}
+#panel{display:flex;flex-direction:column;gap:4px;min-height:var(--panel);padding:5px 8px max(4px,env(safe-area-inset-bottom));}
+#panel #panelTop{display:grid;grid-template-columns:minmax(0,1fr) var(--portrait-size) clamp(56px,16vw,64px);gap:var(--action-gap);align-items:end;flex:1;min-height:128px}
+#panel #inspectionWrap{position:relative;align-self:stretch;min-width:0;max-width:none;width:auto;height:auto;overflow:visible;margin:0}
+#panel #inspectionScaled{position:relative;display:block;width:100%;height:100%;transform:none}
+#panel #portraitArea{display:grid;grid-template-rows:26px var(--portrait-size);gap:3px;align-self:end;min-width:0;width:100%}
+#panel #settings{min-width:0;width:100%;min-height:26px;padding:1px 3px;border:2px solid;border-color:#939a9d #212a2d #11171b #687277;border-radius:1px;background:linear-gradient(#465159,#101a20 45%,#0a1015 50%,#27313a);box-shadow:inset 0 0 0 1px #05090d;color:#d4e590;font-size:10px;font-weight:800;letter-spacing:.05em}
+#panel .portrait-frame{position:relative;width:100%;height:var(--portrait-size);min-width:0;overflow:hidden;background:#020607;border:2px solid;border-color:#778084 #171d20 #11171a #5e666a;box-shadow:inset 0 0 0 1px #000}
+#panel .portrait-frame video{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+#panel .unit-info{position:relative;display:block;flex:initial;width:auto;max-width:none;min-width:0;height:100%;min-height:128px;padding:0;overflow:hidden;background:#020606;border:5px solid transparent;border-image:url('assets/ui/console.png') 58 44 20 44 fill / 7px 5px 4px 5px;box-shadow:0 1px #72797c}
 #panel .unit-info::before{display:none}
 #panel #wireframe{position:absolute;left:3px;top:3px;width:58px;height:58px;object-fit:contain;image-rendering:auto}
 #panel .unit-info strong{position:absolute;left:64px;right:4px;top:3px;width:auto;font-size:12px;line-height:15px;color:#48ef52;text-shadow:0 0 5px #22b73335;font-weight:650}
@@ -239,9 +243,9 @@ body[data-panel=normal],body[data-panel=expanded],body[data-panel=min]{--panel:2
 #panel .unit-info #chips{display:none!important}
 #panel .unit-info #productionQueue{position:absolute;left:4px;top:59px;max-width:58px;margin:0;overflow:hidden;color:#bdc7b1;font-size:7px;line-height:9px}
 #panel .unit-info #productionQueue .production-progress{font-size:7px;line-height:9px}
-#panel #portrait{display:block;position:relative;grid-column:2;align-self:center;width:100%;height:auto;min-width:0;min-height:0;aspect-ratio:1;margin:0;object-fit:cover;background:#020607;border:2px solid;border-color:#778084 #171d20 #11171a #5e666a;box-shadow:inset 0 0 0 1px #000;pointer-events:none}
-#panel .panel-main{display:grid;grid-template-columns:clamp(56px,16vw,64px);grid-template-rows:repeat(2,minmax(44px,1fr));align-content:center;gap:4px!important;min-width:0;min-height:0;margin:0}
-#panel #commandButton,#panel #productionButton{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;min-height:44px;padding:2px 3px;font-size:9px;font-weight:700;color:#d5e78a;white-space:nowrap;border:2px solid;border-color:#959b9e #252b31 #13191f #71787e;border-radius:1px;background:linear-gradient(#495057 0,#242b31 5%,#070b0e 9%,#0c1114 88%,#3e474e 94%,#1b2228);box-shadow:inset 0 0 0 1px #010304,0 1px 1px #000;text-shadow:0 1px 2px #000}
+#panel #portrait{display:block;position:relative;width:100%;height:100%;min-width:0;min-height:0;margin:0;object-fit:cover}
+#panel .panel-main{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:repeat(2,minmax(0,1fr));align-content:stretch;gap:var(--action-gap)!important;width:100%;height:var(--portrait-size);min-width:0;min-height:0;margin:0}
+#panel #commandButton,#panel #productionButton{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;min-height:0;padding:2px 3px;font-size:9px;font-weight:700;color:#d5e78a;white-space:nowrap;border:2px solid;border-color:#959b9e #252b31 #13191f #71787e;border-radius:1px;background:linear-gradient(#495057 0,#242b31 5%,#070b0e 9%,#0c1114 88%,#3e474e 94%,#1b2228);box-shadow:inset 0 0 0 1px #010304,0 1px 1px #000;text-shadow:0 1px 2px #000}
 #panel #commandButton::before,#panel #productionButton::before{content:'';display:block;width:21px;height:18px;background-image:var(--builder-art);background-position:center;background-repeat:no-repeat;background-size:contain;filter:drop-shadow(0 1px 2px #000)}
 #panel #productionButton::before{background-image:var(--army-art)}
 #panel .lane-views{display:flex;flex:none;min-height:27px;margin:0;padding:4px 0 0;gap:5px}
@@ -254,9 +258,9 @@ body[data-panel=min] #panel .panel-main{display:grid;justify-content:initial}
 body:not([data-panel=expanded]) #panel #portrait{display:block}
 #statTooltip{position:fixed;z-index:30;min-width:42px;max-width:min(150px,calc(100vw - 12px));padding:4px 7px;border:1px solid #9ba77d;background:#101714f5;color:#e9e6ba;box-shadow:0 2px 8px #000c;font:10px/14px ui-monospace,Consolas,monospace;text-align:center;white-space:nowrap;pointer-events:none}
 @media(min-width:700px){#panel{padding-inline:max(12px,calc((100vw - 670px)/2))}}
-@media(max-width:380px){#panel{padding-inline:5px}#panel #panelTop{gap:4px}#panel #inspectionScaled{grid-template-columns:minmax(0,1fr) clamp(62px,20vw,76px);gap:3px}#panel .unit-info strong{font-size:10px}#panel .unit-info #order,#panel .unit-info #unitStatus,#panel .unit-info #killCount{font-size:8px}#panel #inspectionNumbers{left:4px;width:55px}#panel #statDetails{left:62px;right:2px}#panel .stat-icon{flex-basis:28px;width:28px;height:30px;min-width:28px;min-height:30px}#panel .lane-views{gap:3px}}
-@media(max-width:350px){#panel{padding-inline:5px}#panel #panelTop{min-height:132px}#panel #inspectionScaled{grid-template-columns:minmax(0,1fr) 64px;gap:3px}#panel #wireframe{width:49px;height:49px}#panel .unit-info strong,#panel .unit-info #order,#panel .unit-info #unitStatus,#panel .unit-info #killCount{left:52px}#panel #inspectionNumbers{left:3px;width:47px;font-size:7px}#panel #statDetails{left:53px}#panel .stat-icon{flex-basis:27px;width:27px;height:29px;min-width:27px;min-height:29px}#panel #commandButton,#panel #productionButton{font-size:8px}}
-@media(max-height:520px){:root,body[data-panel=normal],body[data-panel=expanded],body[data-panel=min]{--panel:152px}#panel{gap:3px;padding-top:4px;padding-bottom:4px}#panel #panelTop{min-height:110px}#panel .unit-info{min-height:110px}#panel .panel-main{grid-template-rows:repeat(2,minmax(44px,1fr));gap:3px!important}#panel .lane-views{min-height:25px;padding-top:2px}#panel .lane-views button{min-height:23px}}
+@media(max-width:380px){#panel{padding-inline:5px}#panel #panelTop{grid-template-columns:minmax(0,1fr) clamp(64px,20vw,76px) clamp(56px,17vw,62px);gap:3px}#panel .unit-info strong{font-size:10px}#panel .unit-info #order,#panel .unit-info #unitStatus,#panel .unit-info #killCount{font-size:8px}#panel #inspectionNumbers{left:4px;width:55px}#panel #statDetails{left:62px;right:2px}#panel .stat-icon{flex-basis:28px;width:28px;height:30px;min-width:28px;min-height:30px}#panel .lane-views{gap:3px}}
+@media(max-width:350px){#panel{padding-inline:5px}#panel #panelTop{min-height:128px;grid-template-columns:minmax(0,1fr) 64px 56px;gap:3px}#panel #wireframe{width:49px;height:49px}#panel .unit-info strong,#panel .unit-info #order,#panel .unit-info #unitStatus,#panel .unit-info #killCount{left:52px}#panel #inspectionNumbers{left:3px;width:47px;font-size:7px}#panel #statDetails{left:53px}#panel .stat-icon{flex-basis:27px;width:27px;height:29px;min-width:27px;min-height:29px}#panel #commandButton,#panel #productionButton{font-size:8px}}
+@media(max-height:520px){:root,body[data-panel=normal],body[data-panel=expanded],body[data-panel=min]{--panel:172px}#panel{gap:3px;padding-top:4px;padding-bottom:4px}#panel #panelTop{min-height:128px}#panel .unit-info{min-height:128px}#panel .panel-main{grid-template-rows:repeat(2,minmax(0,1fr));gap:3px!important}#panel .lane-views{min-height:25px;padding-top:2px}#panel .lane-views button{min-height:23px}}
 
 .hud-timers{display:flex;flex:0 1 auto;gap:4px;min-width:0}
 .timer{flex:0 1 auto;min-width:0;padding:2px 6px 1px}

@@ -1,7 +1,7 @@
-import {BUILDINGS} from './tech.js?v=0.16.20';
-import {BUILDING_WAVES,GAS_BUILDING,PRODUCTION_OFFSET,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,DESERT_STRIKE,WAVE_SECONDS,INCOME_SECONDS,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.20';
-import {inPsionicMatrixRange,overlapsFootprints,footprintTiles} from './build-placement.js?v=0.16.20';
-import {creepTileRangeContains} from './creep.js?v=0.16.20';
+import {BUILDINGS} from './tech.js?v=0.16.21';
+import {BUILDING_WAVES,GAS_BUILDING,PRODUCTION_OFFSET,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,DESERT_STRIKE,WAVE_SECONDS,INCOME_SECONDS,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.21';
+import {inPsionicMatrixRange,overlapsFootprints,footprintTiles} from './build-placement.js?v=0.16.21';
+import {creepTileRangeContains} from './creep.js?v=0.16.21';
 
 // Operates only through the same placement, prerequisites, payment and completion
 // methods as the player. Observations are taken from already deployed waves.
