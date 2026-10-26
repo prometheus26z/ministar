@@ -25,6 +25,7 @@ export class Battle{
  // The index lives only during a simulation step. External edits and UI queries
  // use the authoritative array; every step rebuilds it before any unit acts.
  nearby(point,radius){return this.spatial?this.spatial.query(point,radius,this.units):this.units}
+ nearbyAny(point,radius,predicate){return this.spatial?this.spatial.queryAny(point,radius,predicate,this.units):this.units.some(predicate)}
  findUnit(id){return this.spatial?this.spatial.byId.get(id):this.units.find(u=>u.id===id)}
  spatialRange(radius,extent=false){return radius+(this.spatial?(extent?this.spatial.maxExtent:this.spatial.maxRadius):0)}
  begin(){if(this.phase!=='title')return false;this.projectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.phase='prep';this.setupEnemy();this.updateVision();this.emit('phase');return true}

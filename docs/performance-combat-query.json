@@ -1,0 +1,278 @@
+{
+  "schema": 1,
+  "baselineCommit": "581538b77d5e0c66f581754ed119711f218a45cd",
+  "runtime": "Node v24.22.1",
+  "scene": "contact",
+  "warmupSteps": 30,
+  "measuredSteps": 180,
+  "stepSeconds": 0.03333333333333333,
+  "repetitions": 5,
+  "baseline": {
+    "120": {
+      "count": 120,
+      "scene": "contact",
+      "repetitions": 5,
+      "warmupSteps": 30,
+      "measuredSteps": 180,
+      "medianMs": 0.982,
+      "p95Ms": 3.239,
+      "p99Ms": 7.751,
+      "targetChecksPerRun": 108591,
+      "runs": [
+        {
+          "run": 1,
+          "medianMs": 1.148,
+          "p95Ms": 3.195,
+          "targetChecks": 108591
+        },
+        {
+          "run": 2,
+          "medianMs": 1.044,
+          "p95Ms": 3.78,
+          "targetChecks": 108591
+        },
+        {
+          "run": 3,
+          "medianMs": 0.957,
+          "p95Ms": 3.051,
+          "targetChecks": 108591
+        },
+        {
+          "run": 4,
+          "medianMs": 0.882,
+          "p95Ms": 3.97,
+          "targetChecks": 108591
+        },
+        {
+          "run": 5,
+          "medianMs": 0.886,
+          "p95Ms": 2.567,
+          "targetChecks": 108591
+        }
+      ]
+    },
+    "360": {
+      "count": 360,
+      "scene": "contact",
+      "repetitions": 5,
+      "warmupSteps": 30,
+      "measuredSteps": 180,
+      "medianMs": 8.662,
+      "p95Ms": 34.588,
+      "p99Ms": 47.299,
+      "targetChecksPerRun": 566184,
+      "runs": [
+        {
+          "run": 1,
+          "medianMs": 10.235,
+          "p95Ms": 41.013,
+          "targetChecks": 566184
+        },
+        {
+          "run": 2,
+          "medianMs": 10.769,
+          "p95Ms": 42.987,
+          "targetChecks": 566184
+        },
+        {
+          "run": 3,
+          "medianMs": 7.913,
+          "p95Ms": 26.498,
+          "targetChecks": 566184
+        },
+        {
+          "run": 4,
+          "medianMs": 7.52,
+          "p95Ms": 25.259,
+          "targetChecks": 566184
+        },
+        {
+          "run": 5,
+          "medianMs": 8.068,
+          "p95Ms": 25.445,
+          "targetChecks": 566184
+        }
+      ]
+    },
+    "600": {
+      "count": 600,
+      "scene": "contact",
+      "repetitions": 5,
+      "warmupSteps": 30,
+      "measuredSteps": 180,
+      "medianMs": 22.734,
+      "p95Ms": 86.885,
+      "p99Ms": 121.95,
+      "targetChecksPerRun": 1641177,
+      "runs": [
+        {
+          "run": 1,
+          "medianMs": 24.471,
+          "p95Ms": 82.046,
+          "targetChecks": 1641177
+        },
+        {
+          "run": 2,
+          "medianMs": 22.734,
+          "p95Ms": 78.071,
+          "targetChecks": 1641177
+        },
+        {
+          "run": 3,
+          "medianMs": 21.831,
+          "p95Ms": 91.933,
+          "targetChecks": 1641177
+        },
+        {
+          "run": 4,
+          "medianMs": 21.764,
+          "p95Ms": 97.559,
+          "targetChecks": 1641177
+        },
+        {
+          "run": 5,
+          "medianMs": 22.332,
+          "p95Ms": 77.897,
+          "targetChecks": 1641177
+        }
+      ]
+    }
+  },
+  "candidate": {
+    "120": {
+      "count": 120,
+      "scene": "contact",
+      "repetitions": 5,
+      "warmupSteps": 30,
+      "measuredSteps": 180,
+      "medianMs": 1.03,
+      "p95Ms": 2.78,
+      "p99Ms": 4.078,
+      "targetChecksPerRun": 108591,
+      "runs": [
+        {
+          "run": 1,
+          "medianMs": 1.259,
+          "p95Ms": 3.167,
+          "targetChecks": 108591
+        },
+        {
+          "run": 2,
+          "medianMs": 1.186,
+          "p95Ms": 3.211,
+          "targetChecks": 108591
+        },
+        {
+          "run": 3,
+          "medianMs": 0.891,
+          "p95Ms": 2.567,
+          "targetChecks": 108591
+        },
+        {
+          "run": 4,
+          "medianMs": 0.919,
+          "p95Ms": 2.293,
+          "targetChecks": 108591
+        },
+        {
+          "run": 5,
+          "medianMs": 0.892,
+          "p95Ms": 2.346,
+          "targetChecks": 108591
+        }
+      ]
+    },
+    "360": {
+      "count": 360,
+      "scene": "contact",
+      "repetitions": 5,
+      "warmupSteps": 30,
+      "measuredSteps": 180,
+      "medianMs": 7.753,
+      "p95Ms": 29.479,
+      "p99Ms": 53.654,
+      "targetChecksPerRun": 566184,
+      "runs": [
+        {
+          "run": 1,
+          "medianMs": 6.97,
+          "p95Ms": 29.402,
+          "targetChecks": 566184
+        },
+        {
+          "run": 2,
+          "medianMs": 6.794,
+          "p95Ms": 24.434,
+          "targetChecks": 566184
+        },
+        {
+          "run": 3,
+          "medianMs": 6.854,
+          "p95Ms": 23.532,
+          "targetChecks": 566184
+        },
+        {
+          "run": 4,
+          "medianMs": 7.203,
+          "p95Ms": 22.897,
+          "targetChecks": 566184
+        },
+        {
+          "run": 5,
+          "medianMs": 11.744,
+          "p95Ms": 52.329,
+          "targetChecks": 566184
+        }
+      ]
+    },
+    "600": {
+      "count": 600,
+      "scene": "contact",
+      "repetitions": 5,
+      "warmupSteps": 30,
+      "measuredSteps": 180,
+      "medianMs": 20.535,
+      "p95Ms": 82.917,
+      "p99Ms": 112.413,
+      "targetChecksPerRun": 1641177,
+      "runs": [
+        {
+          "run": 1,
+          "medianMs": 21.511,
+          "p95Ms": 78.246,
+          "targetChecks": 1641177
+        },
+        {
+          "run": 2,
+          "medianMs": 19.699,
+          "p95Ms": 75.041,
+          "targetChecks": 1641177
+        },
+        {
+          "run": 3,
+          "medianMs": 23.281,
+          "p95Ms": 81.644,
+          "targetChecks": 1641177
+        },
+        {
+          "run": 4,
+          "medianMs": 19.332,
+          "p95Ms": 105.358,
+          "targetChecks": 1641177
+        },
+        {
+          "run": 5,
+          "medianMs": 20.228,
+          "p95Ms": 82.413,
+          "targetChecks": 1641177
+        }
+      ]
+    }
+  },
+  "notes": [
+    "CPU simulation profile; not a mobile FPS measurement.",
+    "Baseline and candidate ran sequentially with the same profile script and deterministic seed.",
+    "Candidate improvements were below the 20% median target at 360 and 600 units; draft review is appropriate.",
+    "Physical Android validation was not performed."
+  ]
+}

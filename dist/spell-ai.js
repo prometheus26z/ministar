@@ -24,7 +24,7 @@ function cluster(battle,caster,key,point,radius){
   if(key==='swarm'){
    if(u.def.air||u.def.building)continue;
    if(u.team===caster.team){
-    const threat=battle.nearby(u,battle.spatialRange(200,true)).some(e=>valid(e)&&e.team!==caster.team&&battle.unitThreatens(e,u)&&battle.weapon(e,u)?.range>40);
+    const threat=battle.nearbyAny(u,battle.spatialRange(200,true),e=>valid(e)&&e.team!==caster.team&&battle.unitThreatens(e,u)&&battle.weapon(e,u)?.range>40);
     if(threat&&!battle.areas.some(a=>a.kind==='swarm'&&areaContains(u,a))){score+=value(u);count++}
    }else score-=value(u)*1.25;
    continue;
@@ -76,7 +76,7 @@ export function chooseAutomatedSpell(battle,caster,abilities){
  target('irradiate',enemies,u=>!u.def.building&&u.def.organic&&u.hp>=60&&!u.buffs.irradiate,
   u=>value(u)+battle.nearby(u,48).filter(a=>valid(a)&&a.team!==caster.team&&a.def.organic).length*30);
  area('emp',{radius:64,minCount:1,minScore:80});
- target('matrix',allies,u=>!u.matrix&&(u.hp/u.maxHp<.8&&battle.nearby(u,180).some(a=>valid(a)&&a.team!==caster.team&&battle.unitThreatens(a,u))||u.target&&u.target.team!==caster.team||u.aggroUntil>battle.time||battle.nearby(u,180).some(a=>valid(a)&&a.team!==caster.team&&battle.unitThreatens(a,u))),
+ target('matrix',allies,u=>!u.matrix&&(u.hp/u.maxHp<.8&&battle.nearbyAny(u,180,a=>valid(a)&&a.team!==caster.team&&battle.unitThreatens(a,u))||u.target&&u.target.team!==caster.team||u.aggroUntil>battle.time||battle.nearbyAny(u,180,a=>valid(a)&&a.team!==caster.team&&battle.unitThreatens(a,u))),
   u=>value(u)*(u.hp/u.maxHp<.65?2:1)+battle.nearby(u,180).filter(a=>valid(a)&&a.team!==caster.team&&battle.unitThreatens(a,u)).length*60);
  area('storm',{radius:48,minCount:2,minScore:140});
  area('plague',{radius:64,minCount:2,minScore:160});
@@ -91,7 +91,7 @@ export function chooseAutomatedSpell(battle,caster,abilities){
  target('hallucinate',allies,u=>!u.hallucination&&!u.def.building&&value(u)>=200,value);
  target('consume',allies,u=>caster.energy<=125&&u.type===37&&u.commanderId===caster.commanderId,value);
  if(abilities.includes('swarm')&&caster.energy>=100){
-  const threatened=allies.filter(u=>!u.def.air&&battle.nearby(u,battle.spatialRange(200,true)).some(e=>valid(e)&&e.team!==caster.team&&battle.unitThreatens(e,u)&&battle.weapon(e,u)?.range>40));
+  const threatened=allies.filter(u=>!u.def.air&&battle.nearbyAny(u,battle.spatialRange(200,true),e=>valid(e)&&e.team!==caster.team&&battle.unitThreatens(e,u)&&battle.weapon(e,u)?.range>40));
   const pick=bestCluster(battle,caster,'swarm',threatened,{radius:80,minCount:2,minScore:100});if(pick)opts.push({...pick,score:pick.score+200});
  }
  const priority={consume:0,feedback:1,matrix:1,storm:1,plague:1,stasis:1,web:1,lockdown:1,yamato:1,restore:1,broodlings:2,maelstrom:2,emp:2,mind:2,flare:2,irradiate:3,hallucinate:3,ensnare:4,parasite:5,swarm:0};

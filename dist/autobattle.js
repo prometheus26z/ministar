@@ -393,10 +393,10 @@ export class Battle extends EconomyBattle{
   const abilities=this.availableAbilities(u);
   if(u.type===103&&u.laneArmy&&abilities.includes('burrow'))return;
   if(!abilities.length)return;
-  if(abilities.includes('stim')&&u.buffs.stim<=0&&u.hp>20&&this.nearby(u,160).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<160))this.cast(u,'stim');
-  if(abilities.includes('siege')&&!u.sieged&&this.nearby(u,260).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<260))this.cast(u,'siege');
-  if(abilities.includes('cloak')&&!u.cloaked&&u.energy>=25&&this.nearby(u,240).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<240))this.cast(u,'cloak');
-  if(u.type!==103&&abilities.includes('burrow')&&!u.burrowed&&this.nearby(u,110).some(t=>t.alive&&t.team!==u.team&&dist(u,t)<110))this.cast(u,'burrow');
+  if(abilities.includes('stim')&&u.buffs.stim<=0&&u.hp>20&&this.nearbyAny(u,160,t=>t.alive&&t.team!==u.team&&dist(u,t)<160))this.cast(u,'stim');
+  if(abilities.includes('siege')&&!u.sieged&&this.nearbyAny(u,260,t=>t.alive&&t.team!==u.team&&dist(u,t)<260))this.cast(u,'siege');
+  if(abilities.includes('cloak')&&!u.cloaked&&u.energy>=25&&this.nearbyAny(u,240,t=>t.alive&&t.team!==u.team&&dist(u,t)<240))this.cast(u,'cloak');
+  if(u.type!==103&&abilities.includes('burrow')&&!u.burrowed&&this.nearbyAny(u,110,t=>t.alive&&t.team!==u.team&&dist(u,t)<110))this.cast(u,'burrow');
   if((u.spellThinkAt||0)<=this.time&&(u.spellReadyAt||0)<=this.time){u.spellThinkAt=this.time+.25;const pick=chooseAutomatedSpell(this,u,abilities);if(pick&&this.cast(u,pick.key,pick.point,pick.target))u.spellReadyAt=this.time+.8}
  }
  step(dt){
