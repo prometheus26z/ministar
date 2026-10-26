@@ -194,3 +194,23 @@ test('disabled Lurkers cannot burrow and status timers continue during transitio
   u.buffs[status]=0;assert.equal(b.cast(u,'burrow'),false,'an active transition cannot be toggled again');b.tickUnit(u,.1);assert.ok(u.lurkerTransition<remaining);
  }
 });
+
+for(const [mode,create] of [['combat',combat],['lane',lane]])test(`${mode} Lurkers remain visible and targetable until burrowing completes`,()=>{
+ const b=create();b.units=[]; // Isolate visibility from the lane's starting detector buildings.
+ const u=b.create(103,1,640,1100),enemy=b.create(0,0,680,1100);
+ assert.equal(b.beginLurkerTransition(u),true);
+ const duration=u.lurkerTransition;
+ for(const dt of [0,duration/2,duration/2-1e-6]){
+  if(dt)b.tickUnit(u,dt);
+  assert.equal(u.lurkerState,'burrowing');
+  assert.equal(b.canSee(0,u),true,'no detector is needed during entry');
+  assert.equal(b.canAttackTarget(enemy,u),true);
+  assert.equal(b.weapon(u,enemy),null,'entry cannot attack');
+  const start={x:u.x,y:u.y};assert.equal(b.move(u,{x:u.x+100,y:u.y},.1),false);assert.deepEqual({x:u.x,y:u.y},start);
+ }
+ b.tickUnit(u,2e-6);
+ assert.equal(u.lurkerState,'burrowed');assert.equal(b.canSee(0,u),false);assert.equal(b.canAttackTarget(enemy,u),false);
+ const detector=b.create(9,0,680,1100);assert.equal(b.canSee(0,u),true);detector.alive=false;
+ assert.equal(b.beginLurkerTransition(u),true);assert.equal(b.canSee(0,u),false,'exit concealment is preserved');
+ b.tickUnit(u,u.lurkerTransition+1e-6);assert.equal(u.lurkerState,'ground');assert.equal(b.canSee(0,u),true);
+});

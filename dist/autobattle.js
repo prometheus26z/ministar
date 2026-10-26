@@ -41,7 +41,7 @@ export class Battle extends EconomyBattle{
  supplyCap(team=0){return Math.min(200,this.units.filter(u=>u.alive&&u.team===team&&u.commanderId===this.ownerByTeam[team]&&this.ready(u)).reduce((n,u)=>n+(this.race==='zerg'&&[131,132,133].includes(u.type)?10:BUILDINGS[u.type]?.supply||(u.type===42?8:0)),0))}
  armySupply(team=0){return this.units.filter(u=>u.alive&&u.team===team&&!u.hidden&&!u.def.building&&!u.egg).reduce((n,u)=>n+u.def.supply,0)}
  refreshSupply(){this.maxSupply=this.supplyCap(0)}
- canSee(team,u){return u?.team===team||!(u?.cloaked||u?.burrowed)||!u.burrowed&&(u.buffs.ensnare>0||u.buffs.maelstrom>0||u.buffs.plague>0)||this.detectedBy(team,u)}
+ canSee(team,u){const burrowHidden=this.isHiddenByBurrow(u);return u?.team===team||!(u?.cloaked||burrowHidden)||!burrowHidden&&(u.buffs.ensnare>0||u.buffs.maelstrom>0||u.buffs.plague>0)||this.detectedBy(team,u)}
  updateVision(){this.fog.fill(1);this.explored.fill(1)}
  get inspectedUnit(){return this.units.find(u=>u.id===this.inspectedId&&u.alive&&!u.hidden&&!u.loaded&&this.canSee(0,u))||null}
  isHighlighted(u){return this.selection.includes(u.id)||this.inspectedId===u.id&&this.inspectedUnit===u}
