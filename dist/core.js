@@ -221,7 +221,7 @@ export class Battle{
   return threats.length&&base-this.targetScore(u,threats[0].t,threats[0].w)>80?threats[0].t:current;
  }
  acquireTarget(u){const scanRange=acquisitionRange(this,u),candidates=this.nearby(u,this.spatialRange(scanRange+u.r)).filter(t=>this.canPursueTarget(u,t)&&dist(u,t)<=acquisitionRange(this,u,t.def.air)+u.r+t.r);const source=[this.findUnit(u.aggroTarget)].find(t=>this.canPursueTarget(u,t));if(source&&u.aggroUntil>this.time&&dist(u,source)<=acquisitionRange(this,u,source.def.air)+u.r+source.r){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
-  const unavailable=u.unreachableTargets||{},scored=candidates.filter(t=>!unavailable[t.id]||unavailable[t.id]<=this.time).map(t=>{const w=this.weapon(u,t),edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge);return{t,w,edge,gap,minGap,score:this.targetScore(u,t,w)}}).sort((a,b)=>a.score-b.score);
+  const scored=candidates.map(t=>{const w=this.weapon(u,t),edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge);return{t,w,edge,gap,minGap,score:this.targetScore(u,t,w)}}).sort((a,b)=>a.score-b.score);
   for(const c of scored){if(c.gap<=0&&c.minGap<=0)return c.t;if(u.order==='hold')continue;if(this.approachPath(u,c.t,Math.max(c.w.minRange||0,c.w.range-Math.max(8,u.r*.25))))return c.t;u.unreachableTargets||={};u.unreachableTargets[c.t.id]=this.time+1.5}
   return null;
  }

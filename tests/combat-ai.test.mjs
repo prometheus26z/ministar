@@ -79,6 +79,15 @@ test('recent damage does not reacquire an attacker excluded after failed pursuit
  assert.equal(b.acquireTarget(defender),source);
 });
 
+test('an excluded target entering range is acquired without recent damage',()=>{
+ const b=lane();b.units=[];
+ const defender=b.create(65,0,600,700),source=b.create(0,1,720,700);
+ defender.order='attackmove';defender.unreachableTargets={[source.id]:b.time+1.5};
+ assert.equal(b.acquireTarget(defender),null);
+ source.x=625;
+ assert.equal(b.acquireTarget(defender),source,'weapon range overrides the temporary pursuit exclusion without aggro');
+});
+
 test('a blocked pursuit retries another approach and resumes when movement becomes possible',()=>{
  const b=combat();b.map.rocks=[];b.canSee=()=>true;
  const attacker=b.create(0,0,400,700),target=b.create(0,1,600,700);attacker.order='attackmove';attacker.target=target;target.order='hold';
