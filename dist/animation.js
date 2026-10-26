@@ -9,7 +9,7 @@ const TRACKS=Object.freeze({
 });
 export function trackFor(g,action,context={}){
  const tracks=g?.tracks||{},candidates=TRACKS[action]||[action];
- const track=candidates.map(key=>tracks[key]).find(Boolean)||tracks.idle||tracks.built||null;
+ const track=(context.trackOverride&&tracks[context.trackOverride])||candidates.map(key=>tracks[key]).find(Boolean)||tracks.idle||tracks.built||null;
  return track?.rangeVariants&&context.targetDistance<=track.rangeVariants.threshold?track.rangeVariants.near:track;
 }
 function frameTicks(track){

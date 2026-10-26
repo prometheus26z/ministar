@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {HANGAR_RULES} from '../dist/hangar.js?v=0.16.15';
+import {HANGAR_RULES} from '../dist/hangar.js?v=0.16.16';
 import {emptyLaneBattle} from './combat-test-data.mjs';
 
 test('Carrier attacks through individually launched Interceptors at the 256px control range',()=>{
@@ -17,7 +17,10 @@ test('an Interceptor waits 15 frames, then emits a real 9-damage weapon shot fro
  const carrier=battle.create(72,0,400,900),target=battle.create(0,1,450,900);carrier.r=target.r=0;
  battle.tickHangarFrame();const fighter=battle.units.find(unit=>unit.type===73&&!unit.hidden);assert.ok(fighter);
  for(let frame=0;frame<14;frame++)battle.tickHangarFrame();assert.equal(battle.projectiles.length,0,'no weapon fires during the 15-frame launch warmup');
- battle.tickHangarFrame();assert.equal(battle.projectiles.length,1);
+ battle.tickHangarFrame();assert.equal(battle.projectiles.length,0,'the 15-frame launch warmup ends before the fighter begins its pass');
+ battle.tickHangarFrame();assert.equal(battle.projectiles.length,0,'the fighter turns into its attack pass before starting the source script');
+ battle.tickHangarFrame();assert.equal(battle.projectiles.length,0,'starting the attack animation does not fire before its event');
+ battle.tickHangarFrame();assert.equal(battle.projectiles.length,1,'the source attack event creates the fighter shot after its turn');
  const shot=battle.projectiles[0];assert.equal(shot.source.id,fighter.id);assert.equal(shot.weapon.sourceWeaponId,79);assert.equal(shot.damage,9);
  assert.equal(HANGAR_RULES.interceptorWarmupFrames,15);assert.equal(HANGAR_RULES.interceptorLaunchGapFrames,7);
 });

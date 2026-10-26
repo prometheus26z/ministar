@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Battle as CombatBattle} from '../dist/core.js';
-import {COMBAT_SOURCE,resolveUnitDefinition,resolveWeapon,attackHitCount,cooldownFrames,movementSpeed,sourcePlayerForUnit,upgradeLevel} from '../dist/combat-rules.js?v=0.16.15';
+import {COMBAT_SOURCE,resolveUnitDefinition,resolveWeapon,attackHitCount,cooldownFrames,movementSpeed,sourcePlayerForUnit,upgradeLevel} from '../dist/combat-rules.js?v=0.16.16';
 import {combatData,laneBattle} from './combat-test-data.mjs';
 
 test('both lane combat profiles use the map starting weapon, armor, shield, and range upgrades',()=>{
@@ -40,7 +40,11 @@ test('non-lane combat keeps vanilla weapon values and resolves every hit separat
  const data=combatData(),battle=new CombatBattle(data);battle.phase='battle';
  const zealot=battle.create(65,0,400,900),victim=battle.create(0,1,420,900);victim.def={...victim.def,armor:1,size:1,shield:0};victim.hp=victim.maxHp=100;
  const weapon=battle.weapon(zealot,victim);assert.equal(weapon.damage,8);assert.equal(attackHitCount(zealot,weapon,false),2);
- assert.equal(battle.attack(zealot,victim,weapon),true);assert.equal(victim.hp,86,'two 8-damage hits each subtract armor 1');
+ zealot.direction=8;zealot.motion.heading256=zealot.motion.velocityDirection256=64;
+ assert.equal(battle.attack(zealot,victim,weapon),true);assert.equal(victim.hp,100,'attacks do not hit on the command frame');
+ for(let frame=0;frame<3;frame++)battle.step(1/24);assert.equal(victim.hp,100,'the source script delays the first melee event');
+ battle.step(1/24);assert.equal(victim.hp,93,'the first 8-damage hit subtracts armor 1 at script tick 4');
+ battle.step(2/24);assert.equal(victim.hp,86,'the second hit is a separate armor-adjusted melee event at tick 6');
 });
 
 test('armor, shields, ignore-armor weapons, size divisors, and minimum damage follow the hit order',()=>{
