@@ -1,4 +1,4 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.16';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.17';
 
 export function healthBarPixels(nominal){
  let original=Math.max(19,Math.min(81,Math.floor(nominal)));

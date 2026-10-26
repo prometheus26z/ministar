@@ -1,10 +1,23 @@
-import {COMBAT_SOURCE,movementProfile,scriptProgramForImage} from './combat-rules.js?v=0.16.16';
+import {COMBAT_SOURCE,movementProfile,scriptProgramForImage} from './combat-rules.js?v=0.16.17';
 
 const EPS=1e-9;
 const signedDelta=(from,to)=>((to-from+384)%256)-128;
 const angle256=(dx,dy)=>((Math.round(Math.atan2(dx,-dy)*128/Math.PI)+256)%256);
 const direction32=value=>((Math.round(value/8)%32)+32)%32;
 const rotate=(from,to,amount)=>{const delta=signedDelta(from,to);return (from+Math.sign(delta)*Math.min(Math.abs(delta),Math.max(0,amount))+256)%256};
+
+// Apply collision to the actual source-controlled movement segment, including
+// turning and braking. Only the moving unit may change position.
+function collisionStep(battle,unit,x,y){
+ if(unit.def.air)return{x,y,blocked:false};
+ const distance=Math.hypot(x-unit.x,y-unit.y);
+ if(distance<EPS)return{x:unit.x,y:unit.y,blocked:true};
+ if(typeof battle.movementLimit==='function'){
+  const allowed=battle.movementLimit(unit,unit,{x,y}),ratio=Math.min(1,allowed/distance);
+  return{x:unit.x+(x-unit.x)*ratio,y:unit.y+(y-unit.y)*ratio,blocked:ratio<1-EPS};
+ }
+ return battle.map.blocked(x,y,unit.r*.55)?{x:unit.x,y:unit.y,blocked:true}:{x,y,blocked:false};
+}
 
 export function ensureMotion(unit){
  return unit.motion||=(()=>{const heading=(unit.direction||0)*8;return{speedRaw:0,heading256:heading,velocityDirection256:heading,desiredDirection256:heading,walkTick:0,walkSpeedRaw:0,walkStarted:false,walkImage:null}})();
@@ -22,8 +35,8 @@ export function brakeUnitMovement(battle,unit,dt){
  const before=motion.speedRaw;motion.speedRaw=Math.max(0,before-profile.accelerationRaw*frames);const distance=(before+motion.speedRaw)*.5/256*frames;
  if(distance<=0)return false;
  const angle=motion.velocityDirection256*Math.PI/128,x=unit.x+Math.sin(angle)*distance,y=unit.y-Math.cos(angle)*distance;
- if(!unit.def.air&&battle.map.blocked(x,y,unit.r*.55)){motion.speedRaw=0;return false}
- unit.x=x;unit.y=y;unit.action='walk';battle.spatial?.update(unit);return true;
+ const next=collisionStep(battle,unit,x,y);if(next.blocked)motion.speedRaw=0;if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
+ unit.x=next.x;unit.y=next.y;unit.action='walk';battle.spatial?.update(unit);return true;
 }
 
 function movementScriptDistance(unit,motion,frames,profile){
@@ -78,16 +91,16 @@ export function advanceUnitMovement(battle,unit,point,dt,{finalWaypoint=true,sto
   if(originalError>=32||Math.abs(signedDelta(motion.heading256,desired))>16){motion.speedRaw=0;return false}
   const scriptDistance=movementScriptDistance(unit,motion,frames,profile),step=Math.min(distance,scriptDistance);
   if(step<=0)return false;
-  const x=unit.x+Math.sin(motion.heading256*Math.PI/128)*step,y=unit.y-Math.cos(motion.heading256*Math.PI/128)*step;
-  if(!unit.def.air&&battle.map.blocked(x,y,unit.r*.55))return false;
-  unit.x=x;unit.y=y;motion.speedRaw=motion.walkSpeedRaw;
-  if(finalWaypoint&&step>=distance-EPS){unit.x=point.x;unit.y=point.y;clearMovementControl(unit)}
+  const x=unit.x+dx/distance*step,y=unit.y+dy/distance*step;
+  const next=collisionStep(battle,unit,x,y);if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
+  unit.x=next.x;unit.y=next.y;motion.speedRaw=next.blocked?0:motion.walkSpeedRaw;
+  if(!next.blocked&&finalWaypoint&&step>=distance-EPS){unit.x=point.x;unit.y=point.y;clearMovementControl(unit)}
   battle.spatial?.update(unit);unit.action='walk';return true;
  }
  if(control!==0&&control!==1){
   const speed=unit.movementSpeedOverride??unit.def?.speed??0,step=Math.min(distance,speed*dt),x=unit.x+dx/distance*step,y=unit.y+dy/distance*step;
-  if(!unit.def.air&&battle.map.blocked(x,y,unit.r*.55))return false;
-  unit.x=x;unit.y=y;battle.spatial?.update(unit);unit.action='walk';return step>0;
+  const next=collisionStep(battle,unit,x,y);if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
+  unit.x=next.x;unit.y=next.y;battle.spatial?.update(unit);unit.action='walk';return step>0;
  }
  const turnError=Math.abs(signedDelta(motion.velocityDirection256,desired));
  motion.velocityDirection256=rotate(motion.velocityDirection256,desired,Math.floor(profile.turnRateRaw/2)*frames);
@@ -102,8 +115,8 @@ export function advanceUnitMovement(battle,unit,point,dt,{finalWaypoint=true,sto
  else motion.speedRaw=profile.topSpeedRaw;
  const travel=Math.max(0,(motion.speedRaw/256)*frames),step=Math.min(distance,travel),angle=motion.velocityDirection256*Math.PI/128,x=unit.x+Math.sin(angle)*step,y=unit.y-Math.cos(angle)*step;
  if(step<=0)return false;
- if(!unit.def.air&&battle.map.blocked(x,y,unit.r*.55)){motion.speedRaw=0;return false}
- unit.x=x;unit.y=y;
- if(finalWaypoint&&step>=distance-EPS){unit.x=point.x;unit.y=point.y;clearMovementControl(unit)}
+ const next=collisionStep(battle,unit,x,y);if(next.blocked)motion.speedRaw=0;if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
+ unit.x=next.x;unit.y=next.y;
+ if(!next.blocked&&finalWaypoint&&step>=distance-EPS){unit.x=point.x;unit.y=point.y;clearMovementControl(unit)}
  battle.spatial?.update(unit);unit.action='walk';return true;
 }

@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install terrain image tools
-        run: python3 -m pip install Pillow==12.0.0
+        run: python3 -m pip install Pillow==12.0.0 numpy==2.3.5
       - name: Restore and verify original resources
         run: npm run build
       - name: Verify generated building catalog documentation
@@ -41,6 +41,7 @@ jobs:
           node tests/browser.cjs
           node tests/projectile-browser.cjs
           node tests/original-animation-browser.cjs
+          node tests/spell-effects-browser.cjs
           node tests/performance-browser.cjs
           node tests/resource-cache-browser.cjs
       - name: Upload browser visual evidence
@@ -50,6 +51,7 @@ jobs:
           path: |
             /tmp/ministar-original-animations.png
             /tmp/ministar-original-deaths.png
+            /tmp/ministar-spell-effects-mobile.png
             /tmp/ministar-upright-terrain.png
             /tmp/ministar-performance-mobile.png
             /tmp/ministar-health-bar-174.png

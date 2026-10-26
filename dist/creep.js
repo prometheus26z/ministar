@@ -1,4 +1,4 @@
-import {footprintTiles} from './build-placement.js?v=0.16.16';
+import {footprintTiles} from './build-placement.js?v=0.16.17';
 
 export const CREEP_FRAME_SECONDS=.042;
 export const CREEP_GROWTH_DELAY_FRAMES=15;

@@ -31,7 +31,7 @@ function harness({entries,files,appVersion='0.16.13',cacheStorage=memoryStorage(
 test('generated manifest is deterministic, content addressed, and excludes native video',()=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'ministar-resource-manifest-'));
  try{
-  for(const file of ['assets/data.json','rts-data.json','construction-data.json','turret-data.json','destruction-data.json','original-animation-data.json']){
+  for(const file of ['assets/data.json','rts-data.json','construction-data.json','turret-data.json','destruction-data.json','original-animation-data.json','spell-visual-data.json']){
    const destination=path.join(root,file);fs.mkdirSync(path.dirname(destination),{recursive:true});
    fs.writeFileSync(destination,JSON.stringify(file==='assets/data.json'?{graphics:{1:{images:{blue:'assets/sprites/a.webp'}}},units:{1:{portrait:'assets/portraits/1.webm'}}}:{}));
   }

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "appVersion": "0.16.16",
+  "appVersion": "0.16.17",
   "entries": {
     "assets/audio/1000.ogg": {
       "sha256": "62f4a427c632f163e43f5f271a48951e4d9927abef37ca6276ac90f0974813df",
@@ -7556,9 +7556,189 @@
       "mime": "image/webp",
       "kind": "image"
     },
+    "original-animation-assets/spell-337-blue.webp": {
+      "sha256": "bc336fed9e3395baa23b70b89bcfbcdd993ef9e5368ac85a9a73a509a8439ee3",
+      "bytes": 502572,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-361-blue.webp": {
+      "sha256": "6ebfc5563e90f5e4ffe88dc41a0f03e4d39a8423188121ce538b66cb8fde728e",
+      "bytes": 77100,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-362-blue.webp": {
+      "sha256": "fe3d8fe4730de0b07e3c844dd4d41cd627a10214254252973281266f0b7af5f4",
+      "bytes": 126396,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-363-blue.webp": {
+      "sha256": "c874728814b97f415be18808e15340af5b3642e09420ba3b6e5bfdcda91dec22",
+      "bytes": 179446,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-364-blue.webp": {
+      "sha256": "44e858f45ce7d4ea0640e5ffd28abd9ce87685117d0c31cbb77f335d9e36c160",
+      "bytes": 111340,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-365-blue.webp": {
+      "sha256": "c85293b97462923d8a7e7114b03cceaea0403cf4d0bdf03d2d1a09387164c540",
+      "bytes": 88260,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-367-blue.webp": {
+      "sha256": "43eada8d60a2b36689a1f2a414ee32abc00bb016b6b579553e74c7f8686ef9c2",
+      "bytes": 167518,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-371-blue.webp": {
+      "sha256": "44161e60ac135151eea874d801cbab039f395baed609cd85128cd0eb65ce9da5",
+      "bytes": 10470,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-372-blue.webp": {
+      "sha256": "a497035a36c8f473d68e778a06d4065260195e37a499788d83f9585524167135",
+      "bytes": 19796,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-373-blue.webp": {
+      "sha256": "c5fd1cb7c121b2a37b131bd686be4d4d5a0965bc9ae30b4199d477dc31bdab9f",
+      "bytes": 25708,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-374-blue.webp": {
+      "sha256": "ab9f1483a937fa1027a49b9e1d0a78815e95b84d371433fce36688a98cbdaaf3",
+      "bytes": 8388,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-375-blue.webp": {
+      "sha256": "1136dbed8b1424d59dd559b4fcf0a2abc9ffa4adf64b2a00eccd393a361b9bad",
+      "bytes": 15626,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-376-blue.webp": {
+      "sha256": "4a2930fb519f6600ce2f2a4844f004a2b1d733616a91c76ed2895ec17ead08fb",
+      "bytes": 21480,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-377-blue.webp": {
+      "sha256": "24391250133ccfea12f9c696802a50f389339d3ae8ebc40c2cbd6b2603ca9e82",
+      "bytes": 19104,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-378-blue.webp": {
+      "sha256": "e9973824cc2d3be8aee2340e8aa8ece96eefba77a9e88c0d1b1ce9245c88de00",
+      "bytes": 30676,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-379-blue.webp": {
+      "sha256": "ba3bc32dc704584c0d7195c06a3579279973fa114ae259e28dacb430632e6aa6",
+      "bytes": 36468,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-380-blue.webp": {
+      "sha256": "ca4ea06eac06c9d5481f9f69d2e2bb70d5dcf950cbce1e3ffcddd2d76f732bae",
+      "bytes": 105574,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-383-blue.webp": {
+      "sha256": "adea014a0aecd0957483ffbcdb8e97a57c24fe9799398d3304b8176a9b460c70",
+      "bytes": 305494,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-384-blue.webp": {
+      "sha256": "7d49faa7f4c9857c863a6557fada4e446d67eac93acc6a25894bc6e1a8f02ff5",
+      "bytes": 4988,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-385-blue.webp": {
+      "sha256": "baff6c6684ee4c9c3d7b8109c95a01f4f8874c3c448d7131ba7752bfe3f25b40",
+      "bytes": 10598,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-386-blue.webp": {
+      "sha256": "4b8eee876f5b57ca11568fb372f8824c2c7d4fdfe0de2a91d93853267ca2a216",
+      "bytes": 18258,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-387-blue.webp": {
+      "sha256": "100c27ba2fecd4075946e4322ea4764fa1d8bb6f5b944fd5fd4e8678f02aa418",
+      "bytes": 262570,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-388-blue.webp": {
+      "sha256": "707f850f85265dec8e33fb446b0dd354e1c6a9293d3ec9d3ec1e70ad7c8f60b2",
+      "bytes": 3494,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-389-blue.webp": {
+      "sha256": "839064e466cf613f08c5f8549018c2c61ce89e84a6d19e97d3f333f96918e333",
+      "bytes": 8430,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-390-blue.webp": {
+      "sha256": "3ef52141b0844f1a36e8206b16359fb9ad3bcf68b1f0da6131a8104e7afedff3",
+      "bytes": 16966,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-951-blue.webp": {
+      "sha256": "dc4f383bf222ff4bfc07b6bdba9297da8ff2004c7de9e34caf1f45618e651079",
+      "bytes": 217936,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-982-blue.webp": {
+      "sha256": "01d4dcb4cc013b6c807cfcc38981ffcdb6e9ca27d4fc98a3f6df15869de8d33a",
+      "bytes": 62946,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-983-blue.webp": {
+      "sha256": "a0476db1d960f1433c386408da8c91a7292d75c8f669e0c5b69a3d3e73bc9bcb",
+      "bytes": 180520,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-984-blue.webp": {
+      "sha256": "950048be97e557c38e9efa6c25e8009cb23645e1b408f4fdc1bd46425063a85f",
+      "bytes": 517352,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "original-animation-assets/spell-998-blue.webp": {
+      "sha256": "014312555d87e8a6cf1e7fed338a07d462801ca435269c1fab00d15b542b8fdb",
+      "bytes": 96682,
+      "mime": "image/webp",
+      "kind": "image"
+    },
     "original-animation-data.json": {
-      "sha256": "b6e1bf748fedfd1c2e1a12f3aec584f01c595110e2b66cc76e71d2ac987a7fae",
-      "bytes": 531283,
+      "sha256": "fe992d5f6ad45852fffef0b87002f4870f46641b9bdd432b880d64e8a315f636",
+      "bytes": 561944,
       "mime": "application/json",
       "kind": "metadata"
     },
@@ -8120,6 +8300,12 @@
       "mime": "application/json",
       "kind": "metadata"
     },
+    "spell-visual-data.json": {
+      "sha256": "54f75cbbd8a04dd9d85c0c49c33cce2a30067f5d4376d0a95df81d496b5576cf",
+      "bytes": 2197,
+      "mime": "application/json",
+      "kind": "metadata"
+    },
     "turret-assets/297-blue.webp": {
       "sha256": "32d655389c9600a47a6594cdbe773f00b104e9ef7cedf7148db638ec32412ee2",
       "bytes": 69308,
@@ -8139,5 +8325,5 @@
       "kind": "metadata"
     }
   },
-  "buildId": "795d5a424c9558ce45237bb3c082a70dce70e5c4d830634d1f336242fcce7bee"
+  "buildId": "a724da7a46022b7615b859ece414d934a6fc374e7045319aed085ecbcd5bea3f"
 }

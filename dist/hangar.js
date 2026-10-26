@@ -1,4 +1,4 @@
-import {COMBAT_SOURCE,sourcePlayerForUnit,upgradeLevel,resolveWeapon,cooldownFrames,unitBoundsGap} from './combat-rules.js?v=0.16.16';
+import {COMBAT_SOURCE,sourcePlayerForUnit,upgradeLevel,resolveWeapon,cooldownFrames,unitBoundsGap} from './combat-rules.js?v=0.16.17';
 
 const FRAME=1/24,MAX_CARRIER=8,MAX_REAVER=10,INTERCEPTOR_LAUNCH_GAP=7,INTERCEPTOR_WARMUP=15,SCARAB_LAUNCH_GAP=60,SCARAB_COLLISION_GRACE=7,SCARAB_LIFETIME=90,SCARAB_SPEED=384;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -110,7 +110,7 @@ function selectTarget(battle,parent,{groundOnly=false,range=256}={}){
 function marchParent(battle,parent,dt){
  const goal=parent.goal;if(!parent.laneArmy||!goal)return;
  if(parent.def.air){battle.move(parent,goal,dt);return}
- if(!parent.path?.length||!parent.pathGoal||distance(parent.pathGoal,goal)>16){parent.path=battle.map.path(parent,goal,false);parent.pathGoal={x:goal.x,y:goal.y}}
+ if(!parent.path?.length||!parent.pathGoal||distance(parent.pathGoal,goal)>16){parent.path=battle.path(parent,goal,false,parent.r*.55,parent);parent.pathGoal={x:goal.x,y:goal.y}}
  const waypoint=parent.path?.[0];if(!waypoint)return;
  battle.move(parent,waypoint,dt);if(distance(parent,waypoint)<5)parent.path.shift();
 }
@@ -207,7 +207,7 @@ function tickInterceptor(battle,parent,child,dt){
 }
 
 function canReachTarget(battle,parent,target){
- const route=battle.map.path(parent,target,false);if(!route.length||distance(route.at(-1),target)>36)return false;
+ const route=battle.path(parent,target,false,parent.r*.55,parent);if(!route.length||distance(route.at(-1),target)>36)return false;
  let length=distance(parent,route[0]);for(let i=1;i<route.length;i++)length+=distance(route[i-1],route[i]);
  return length<512;
 }
@@ -237,7 +237,7 @@ function explodeScarab(battle,child,point,target=null){
 function updateScarabPath(battle,child,point,frame){
  const f=child.fighter,moved=Math.hypot(point.x-(f.pathTarget?.x??Infinity),point.y-(f.pathTarget?.y??Infinity));
  const waypointBlocked=f.path?.length&&battle.map.blocked(f.path[0].x,f.path[0].y,child.r*.55);
- if(moved>=32||frame>=f.repathAt||waypointBlocked){f.path=battle.map.path(child,point,false);f.pathTarget={x:point.x,y:point.y};f.repathAt=frame+6}
+ if(moved>=32||frame>=f.repathAt||waypointBlocked){f.path=battle.path(child,point,false,child.r*.55,child);f.pathTarget={x:point.x,y:point.y};f.repathAt=frame+6}
  return f.path?.[0]||null;
 }
 

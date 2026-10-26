@@ -12,20 +12,13 @@ Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics
 class FullScanBattle extends Battle{
  nearby(){return this.units}
  simulateStep(dt){this.spatial=null;super.simulateStep(dt)}
- separateUnits(mobile,dt){
-  for(let i=0;i<mobile.length;i++)for(let j=i+1;j<mobile.length;j++){
-   const a=mobile[i],b=mobile[j];if(a.def.air!==b.def.air)continue;
-   const d=dist(a,b),r=a.r+b.r;if(d>=r)continue;
-   const dx=d?(a.x-b.x)/d:1,dy=d?(a.y-b.y)/d:0,p=Math.min((r-d)/2,dt*80);
-   for(const [u,s]of [[a,1],[b,-1]]){const x=clamp(u.x+dx*p*s,16,1264),y=clamp(u.y+dy*p*s,16,2032);if(u.def.air||!this.map.blocked(x,y,u.r*.5)){u.x=x;u.y=y}}
-  }
- }
+
 }
 const snapshot=b=>({units:b.units.map(u=>[u.id,u.type,u.team,u.x,u.y,u.hp,u.shield,u.energy,u.alive,u.target?.id,u.action,u.lurkerState,u.buffs,u.path,u.healTarget?.id]),projectiles:b.projectiles.map(p=>[p.x,p.y,p.endX,p.endY,p.target?.id]),kills:b.kills,losses:b.losses,money:b.money});
 const seeded=()=>{let seed=47;return()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296)};
 const run=(random,fn)=>{const old=Math.random;Math.random=random;try{return fn()}finally{Math.random=old}};
 
-test('spatial combat preserves full-scan targets, damage, healing, movement and pair order each step',()=>{
+test('spatial combat preserves full-scan targets, damage, healing, and movement each step',()=>{
  const make=Type=>{const b=new Type(data,{race:'terran',enemyRace:'terran',random:seeded()});b.begin();b.botStep=()=>{};b.waveClock=1e9;
   const types=[0,65,37,34,103,61,84,66,39,5,12,45];
   for(let i=0;i<96;i++){const n=Math.floor(i/2),u=b.create(types[n%types.length],i%2,220+(n%12)*70,850+(i%2)*150+Math.floor(n/12)*7);u.hp*=.8;u.order='attackmove';u.laneArmy=true;u.laneOffset=(n%6-2.5)*24;b.setAdvanceGoal(u,b.laneObjective(u.team));u.laneObjectiveId=b.laneObjective(u.team).id}

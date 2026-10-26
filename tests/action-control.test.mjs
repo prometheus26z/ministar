@@ -4,7 +4,7 @@ import {Battle} from '../dist/core.js';
 import {COMBAT_SOURCE,movementProfile,scriptProgramForImage} from '../dist/combat-rules.js?v=0.16.16';
 import {combatData} from './combat-test-data.mjs';
 
-const fresh=()=>{const battle=new Battle(combatData());battle.phase='battle';battle.core={alive:true};battle.map.blocked=()=>false;battle.canSee=()=>true;return battle};
+const fresh=()=>{const battle=new Battle(combatData());battle.phase='battle';battle.core={alive:true};battle.map.blocked=()=>false;battle.map.water=[];battle.map.rocks=[];battle.canSee=()=>true;return battle};
 const face=(unit,direction)=>{unit.direction=direction;unit.motion.heading256=unit.motion.velocityDirection256=unit.motion.desiredDirection256=direction*8};
 const close=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-8,`${actual} differs from ${expected}`);
 

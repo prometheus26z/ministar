@@ -91,6 +91,7 @@ console.log('Restored 6 race-specific music cues.');
 // Original overlay/corpse sprites and full source-script visual timelines.
 const {restoreOriginalAnimations}=await import('./restore-original-animations.mjs');
 restoreOriginalAnimations(root);
+execFileSync('python3',[path.resolve(import.meta.dirname,'import-original-spell-effects.py')],{stdio:'inherit'});
 execFileSync('python3',[path.resolve(import.meta.dirname,'import-warp-anchor.py')],{stdio:'inherit'});
 const combatData=buildCombatData(root);
 console.log(`Restored source-backed Brood War combat rules (${combatData.players} players, ${combatData.units} units, ${combatData.weapons} weapons).`);

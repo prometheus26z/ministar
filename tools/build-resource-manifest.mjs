@@ -8,7 +8,7 @@ const MIME = Object.freeze({
 const MEDIA_MIME = Object.freeze({'.png':'image/png','.webp':'image/webp','.ogg':'audio/ogg'});
 const RESOURCE_DIRS = ['assets','rts-assets','original-animation-assets','construction-assets','destruction-assets','turret-assets','ds-assets'];
 const METADATA = [
- 'assets/data.json','rts-data.json','construction-data.json','turret-data.json','destruction-data.json','original-animation-data.json'
+ 'assets/data.json','rts-data.json','construction-data.json','turret-data.json','destruction-data.json','original-animation-data.json','spell-visual-data.json'
 ];
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 
