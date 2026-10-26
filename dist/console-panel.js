@@ -2,7 +2,7 @@ export function commandSlots(layout,race,page,availableTypes){
  const ids=layout?.[race]?.[page];
  if(!Array.isArray(ids)||ids.length!==9)throw new Error(`Invalid ${race} ${page} command layout`);
  const available=new Set(availableTypes||[]);
- return ids.map(id=>Number.isInteger(id)&&available.has(id)?id:null);
+ return ids.map(id=>id==='cancel'?'cancel':Number.isInteger(id)&&available.has(id)?id:null);
 }
 
 export function creepNeighborMask(field,x,y,neighborOrder){

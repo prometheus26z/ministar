@@ -4,77 +4,17 @@
     "zerg": 41,
     "protoss": 64
   },
-  "note": "Mobile command page order; validated against current BUILDINGS entries, not asserted as native executable slot order. Filter each page through battle.buildingOptions(builder); never change rule availability.",
+  "note": "Fixed classic 3x3 construction button positions, cross-checked against the Brood War building menus. Slot 9 is the original cancel/back command. Keep all unavailable building slots empty without shifting positions, and preserve game-rule availability.",
   "terran": {
-    "basic": [
-      106,
-      109,
-      110,
-      111,
-      112,
-      122,
-      124,
-      125,
-      null
-    ],
-    "advanced": [
-      113,
-      114,
-      116,
-      123,
-      null,
-      null,
-      null,
-      null,
-      null
-    ]
+    "basic": [106, 109, 110, 111, 122, 124, 112, 125, "cancel"],
+    "advanced": [113, 114, 116, 123, null, null, null, null, "cancel"]
   },
   "zerg": {
-    "basic": [
-      131,
-      149,
-      142,
-      139,
-      135,
-      143,
-      null,
-      null,
-      null
-    ],
-    "advanced": [
-      141,
-      138,
-      134,
-      140,
-      136,
-      null,
-      null,
-      null,
-      null
-    ]
+    "basic": [131, 143, 149, 142, 139, null, 135, null, "cancel"],
+    "advanced": [141, 138, 134, 140, 136, null, null, null, "cancel"]
   },
   "protoss": {
-    "basic": [
-      154,
-      156,
-      157,
-      160,
-      166,
-      162,
-      164,
-      172,
-      null
-    ],
-    "advanced": [
-      155,
-      167,
-      163,
-      171,
-      169,
-      165,
-      159,
-      170,
-      null
-    ]
+    "basic": [154, 156, 157, 160, 166, 162, 164, 172, "cancel"],
+    "advanced": [155, 167, 163, 171, 169, 165, 159, 170, "cancel"]
   }
 }

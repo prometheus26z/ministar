@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "appVersion": "0.16.23",
+  "appVersion": "0.16.24",
   "entries": {
     "assets/audio/1000.ogg": {
       "sha256": "62f4a427c632f163e43f5f271a48951e4d9927abef37ca6276ac90f0974813df",
@@ -5228,6 +5228,12 @@
       "mime": "image/webp",
       "kind": "image"
     },
+    "assets/original-ui/cmdicons.png": {
+      "sha256": "5ebee42ce08cede0f94923678c6d150fa97bd88273a823aab11e38cc667e89e8",
+      "bytes": 95705,
+      "mime": "image/png",
+      "kind": "image"
+    },
     "assets/original-ui/protoss/cmdbtns.webp": {
       "sha256": "461c1a991628408313e8d9579593fe4ff10282730abc9df3b3df847f5b3389b3",
       "bytes": 4676,
@@ -8595,5 +8601,5 @@
       "kind": "metadata"
     }
   },
-  "buildId": "f6169f0fd7dffa6a61a650063e23dd619f0caaeead9d4031e55ba11acec1547b"
+  "buildId": "0a47d48959311bc57127097d2988dfe16c22546a63ea920388e3cb5f3eef6c7b"
 }
