@@ -1,15 +1,16 @@
-import {constructionVisual,healthBarLayout,waveDescription} from './presentation.js?v=0.16.17';
-import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.17';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.17';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.17';
-import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.17';
-import {researchAt} from './tech.js?v=0.16.17';
-import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.17';
-import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.17';
-import {psiFieldTiles} from './build-placement.js?v=0.16.17';
-import {resolveWeapon,attackHitCount} from './combat-rules.js?v=0.16.17';
-import {createResourceStore,ResourceVersionError} from './resource-cache.js?v=0.16.17';
-import {createResourcePlanner} from './resource-planner.js?v=0.16.17';
+import {constructionVisual,healthBarLayout,healthBarFillWidth,waveDescription,formatSupply} from './presentation.js?v=0.16.18';
+import {selectionPanelModel,inspectionDetailRows} from './selection-panel.js?v=0.16.18';
+import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.18';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.18';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.18';
+import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.18';
+import {researchAt} from './tech.js?v=0.16.18';
+import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.18';
+import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.18';
+import {psiFieldTiles} from './build-placement.js?v=0.16.18';
+import {resolveWeapon,attackHitCount} from './combat-rules.js?v=0.16.18';
+import {createResourceStore,ResourceVersionError} from './resource-cache.js?v=0.16.18';
+import {createResourcePlanner} from './resource-planner.js?v=0.16.18';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),mc=mini.getContext('2d');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';
@@ -38,7 +39,7 @@ function criticalSceneImageUrls(){const urls=new Set();for(const id of new Set([
 function dependencyImageUrls(imageIds){const urls=new Set(),visited=new Set(),queue=[...imageIds].filter(Number.isInteger).map(id=>({id,depth:0}));while(queue.length&&visited.size<2048){const {id,depth}=queue.shift();if(depth>8||visited.has(id))continue;visited.add(id);const graphic=data.graphics[id];if(!graphic)continue;for(const url of graphicUrls(graphic))urls.add(url);for(const track of Object.values(graphic.tracks||{})){const events=track?.overlayEvents||(track?.overlays||[]).map(image=>({image}));for(const event of events)if(Number.isInteger(event?.image))queue.push({id:event.image,depth:depth+1})}for(const overlay of graphic.persistentOverlays||[])if(Number.isInteger(overlay?.image))queue.push({id:overlay.image,depth:depth+1})}return urls}
 function selectedRaceImageUrls(selectedRace,constructionGraphics,turretGraphics,destructionGraphics){const types=new Set(data.races[selectedRace]||[]),images=[...types].map(type=>data.units[type]?.image).filter(Number.isInteger),urls=dependencyImageUrls(images);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const [type,graphic]of Object.entries(graphics))if(types.has(Number(type)))for(const url of graphicUrls(graphic))urls.add(url);for(const id of Object.values(BASE))for(const url of graphicUrls(data.graphics[data.units[id]?.image]))urls.add(url);return urls}
 function optionalImageUrls(constructionGraphics,turretGraphics,destructionGraphics){
- const optional=new Set(['ds-assets/production.webp?v=0.16.17']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
+ const optional=new Set(['ds-assets/production.webp?v=0.16.18']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
  for(const url of graphicUrls(data.graphics[215]))optional.add(url);
  for(const id of [210,211])for(const url of graphicUrls(data.graphics[id]))optional.add(url);
  const images=new Set([523,504,524,503,536,337,364,383,387,951,998]);for(const value of Object.values(spellVisualData?.images||{}))for(const id of Array.isArray(value)?value:[value])if(Number.isInteger(id))images.add(id);for(const weapon of Object.values(data.weapons||{}))if(weapon?.damage&&Number.isInteger(weapon.image))images.add(weapon.image);
@@ -73,7 +74,8 @@ const cy=()=>63+(H-panelHeight()-63)/2;
 const toWorld=(x,y)=>({x:camera.x+(x-W/2)/camera.zoom,y:camera.y+(y-cy())/camera.zoom});
 const toScreen=(x,y)=>({x:W/2+(x-camera.x)*camera.zoom,y:cy()+(y-camera.y)*camera.zoom});
 function limitCamera(){if(!battle)return;const hw=W/2/camera.zoom,hh=(H-panelHeight()-63)/2/camera.zoom,offset=viewMode==='production'?PRODUCTION_OFFSET:0;camera.x=clamp(camera.x,Math.min(640,hw),Math.max(640,1280-hw));camera.y=clamp(camera.y,offset+Math.min(1024,hh),offset+Math.max(1024,2048-hh))}
-function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,settings.quality==='low'?1.2:2);canvas.width=W*DPR;canvas.height=H*DPR;limitCamera()}addEventListener('resize',resize);resize();
+function updateInspectionScale(){const wrap=$('inspectionWrap'),scaled=$('inspectionScaled');if(!wrap||!scaled)return;const scale=Math.min(1,Math.max(.55,(innerWidth-12)/358));wrap.style.width=`${358*scale}px`;wrap.style.height=`${92*scale}px`;scaled.style.transform=`scale(${scale})`}
+function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,settings.quality==='low'?1.2:2);canvas.width=W*DPR;canvas.height=H*DPR;updateInspectionScale();limitCamera()}addEventListener('resize',resize);resize();
 function focus(units=battle.selected){if(!units.length)return;camera.x=units.reduce((n,u)=>n+u.x,0)/units.length;camera.y=units.reduce((n,u)=>n+u.y,0)/units.length;limitCamera()}
 function zoom(z,x=W/2,y=cy()){const p=toWorld(x,y);camera.zoom=clamp(z,.25,2.8);const q=toWorld(x,y);camera.x+=p.x-q.x;camera.y+=p.y-q.y;limitCamera();settings.zoom=camera.zoom;save('settings',settings)}
 function setViewMode(mode){if(!battle||battle.phase!=='battle')return;if(battle.menuOpen)battle.closeMenu();viewMode=mode;$('productionSeat').hidden=mode!=='production'||battle.teamSize===1;refreshProductionSeat();document.body.dataset.space=mode;const button=$('spaceToggle');button.textContent=mode==='production'?'전장':'생산';button.setAttribute('aria-label',mode==='production'?'전장으로 돌아가기':'생산 공간으로 이동');map=false;$('mapWrap').hidden=true;$('map').setAttribute('aria-pressed','false');$('map').disabled=mode!=='field';battle.select([],false);camera={x:640,y:(mode==='production'?PRODUCTION_OFFSET:0)+(mode==='production'?PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT/2:1700),zoom:mode==='production'?defaultProductionZoom(W):DEFAULT_FIELD_ZOOM};limitCamera();selectionUI()}
@@ -111,40 +113,52 @@ function hudUI(){
   $('phase').textContent=battle.paused?'PAUSED':'NEXT WAVE';
   $('objective').textContent=`적 메인 ${Math.max(0,Math.ceil(battle.core?.hp||0)).toLocaleString()} HP · 아군 메인 ${Math.max(0,Math.ceil(battle.main?.hp||0)).toLocaleString()} HP`;
   $('money').textContent=Math.floor(battle.money).toLocaleString();$('gas').textContent=Math.floor(battle.gas).toLocaleString();$('gas').parentElement.hidden=!!battle.laneMode;if(battle.laneMode)$('incomeStatus').textContent=battle.incomePauseLeft>0?`수입 중단 ${Math.ceil(battle.incomePauseLeft)}초`:`시설 ${battle.completedGasCount(0)}/5 · +${battle.incomeAmount()} / ${INCOME_SECONDS.toFixed(2)}초`;
-  $('supply').textContent=Number(battle.supply.toFixed(1))+'/'+battle.maxSupply;$('slow').hidden=true;
+  $('supply').textContent=formatSupply(battle.supply,battle.maxSupply);$('slow').hidden=true;
   $('commandButton').disabled=battle.phase!=='battle'||viewMode!=='production'||productionTeam===1||productionSeat!==0;
-  const producer=units.length===1?units[0]:null;
   $('productionButton').disabled=battle.phase!=='battle';
-  $('researchButton').disabled=viewMode!=='production'||!producer||!producer.productionOnly||!producer.def.building||!battle.researchOptions(producer).length;
   return;
  }
  const seconds=Math.floor(battle.time);$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');$('phase').textContent=battle.paused?'PAUSED':'BATTLE';
- $('money').textContent=Math.floor(battle.money).toLocaleString();$('gas').textContent=Math.floor(battle.gas).toLocaleString();$('gas').parentElement.hidden=!!battle.laneMode;if(battle.laneMode)$('incomeStatus').textContent=battle.incomePauseLeft>0?`수입 중단 ${Math.ceil(battle.incomePauseLeft)}초`:`시설 ${battle.completedGasCount(0)}/5 · +${battle.incomeAmount()} / ${INCOME_SECONDS.toFixed(2)}초`;$('supply').textContent=Number(battle.supply.toFixed(1))+'/'+battle.maxSupply;$('slow').hidden=true;
+ $('money').textContent=Math.floor(battle.money).toLocaleString();$('gas').textContent=Math.floor(battle.gas).toLocaleString();$('gas').parentElement.hidden=!!battle.laneMode;if(battle.laneMode)$('incomeStatus').textContent=battle.incomePauseLeft>0?`수입 중단 ${Math.ceil(battle.incomePauseLeft)}초`:`시설 ${battle.completedGasCount(0)}/5 · +${battle.incomeAmount()} / ${INCOME_SECONDS.toFixed(2)}초`;$('supply').textContent=formatSupply(battle.supply,battle.maxSupply);$('slow').hidden=true;
  $('commandButton').disabled=!battle.selected.length||battle.phase!=='battle';
 }
-function clearVitals(){for(const id of ['hp','shields','energy','groundAttack','airAttack','armor'])$(id).textContent=''}
-function meter(id,label,current,max){const el=$(id),ratio=max>0?clamp(current/max,0,1):0;el.innerHTML=`${label} ${Math.ceil(current)}/${Math.ceil(max)}<i style="width:${Math.round(ratio*100)}%"></i>`}
-function attackValue(u,air){
- if(u.hallucination)return '0';
- let attacker=u;
- if(u.type===72)attacker={type:73,team:u.team,commanderId:u.commanderId,sourceCombatPlayer:u.sourceCombatPlayer,baseDef:data.units[73],def:data.units[73]};
- if(u.type===83)attacker={type:85,team:u.team,commanderId:u.commanderId,sourceCombatPlayer:u.sourceCombatPlayer,baseDef:data.units[85],def:data.units[85]};
- const target={def:{air}},weapon=(u.type===72||u.type===83)?resolveWeapon(data,battle,attacker,air):battle.weapon(attacker,target);if(!weapon||weapon.controlOnly||!weapon.damage)return null;
- const hits=attackHitCount(attacker,weapon,air),mult=u.type===125?4:1;
- return `${Math.round(weapon.damage)}${hits>1?`×${hits}`:''}${mult>1?` · ${mult}명`:''}`;
+const wireframeLayers=[0,1,2,3].map(layer=>`assets/selection-ui/wirefram-layer-${layer}.webp`),wireframeCache=new Map(),pendingWireframes=new Set();
+function paintWireframe(unit,model){
+ const canvas=$('wireframe'),context=canvas.getContext('2d');context.clearRect(0,0,canvas.width,canvas.height);if(!unit||!model)return;const fallback=getImage(icon(unit.type));if(fallback)context.drawImage(fallback,16,16,96,96);
+ const ratio=unit.hp/Math.max(1,unit.maxHp||unit.def.hp),band=ratio>2/3?'green':ratio>1/3?'yellow':'red',key=`${unit.type}:${band}`,cached=wireframeCache.get(key);
+ if(cached){context.drawImage(cached,0,0);wireframeCache.delete(key);wireframeCache.set(key,cached);return}
+ if(pendingWireframes.has(key))return;pendingWireframes.add(key);
+ Promise.all(wireframeLayers.map(loadImage)).then(images=>{
+  if(images.some(image=>!image)||lastInspection?.id!==unit.id)return;
+  const tint=band==='green'?[77,245,88]:band==='yellow'?[255,213,81]:[240,82,73],result=document.createElement('canvas');result.width=result.height=128;const output=result.getContext('2d');
+  for(const [layer,image]of images.entries()){
+   const part=document.createElement('canvas');part.width=part.height=128;const px=part.getContext('2d'),sx=(unit.type%16)*128,sy=Math.floor(unit.type/16)*128;
+   px.drawImage(image,sx,sy,128,128,0,0,128,128);const pixels=px.getImageData(0,0,128,128),values=pixels.data;
+   for(let i=0;i<values.length;i+=4){values[i]=Math.round(values[i]*tint[0]/255);values[i+1]=Math.round(values[i+1]*tint[1]/255);values[i+2]=Math.round(values[i+2]*tint[2]/255)}
+   px.putImageData(pixels,0,0);output.drawImage(part,0,0);void layer;
+  }
+  wireframeCache.set(key,result);while(wireframeCache.size>32)wireframeCache.delete(wireframeCache.keys().next().value);
+  if(lastInspection?.id===unit.id&&Math.floor((unit.hp/Math.max(1,unit.maxHp||unit.def.hp))*3)===Math.floor((ratio)*3))context.drawImage(result,0,0);
+ }).catch(()=>{}).finally(()=>pendingWireframes.delete(key));
 }
+function updatePortrait(unit){
+ const portrait=$('portrait'),url=unit?.def?.portrait;
+ portrait.hidden=!url;if(url){portrait.muted=true;portrait.loop=true;portrait.playsInline=true;const changed=portrait.getAttribute('src')!==url;if(changed){portrait.pause();portrait.src=url}if(changed||portrait.paused)portrait.play().catch(()=>{})}
+ else{portrait.pause();portrait.removeAttribute('src');portrait.load()}
+}
+let lastInspection=null;
 function showVitals(units){
- clearVitals();document.body.dataset.inspect=units.length?'yes':'no';if(!units.length)return;
- const hp=units.reduce((n,u)=>n+Math.max(0,u.hp),0),maxHp=units.reduce((n,u)=>n+(u.maxHp||u.def.hp),0);
- meter('hp','HP',hp,maxHp);
- const shieldUnits=units.filter(u=>u.def.shield>0);if(shieldUnits.length)meter('shields','실드',shieldUnits.reduce((n,u)=>n+u.shield,0),shieldUnits.reduce((n,u)=>n+u.def.shield,0));
- const energyUnits=units.filter(u=>u.def.energy>0);if(energyUnits.length)meter('energy','마나',energyUnits.reduce((n,u)=>n+u.energy,0),energyUnits.reduce((n,u)=>n+u.def.energy,0));
- const weaponSummary=(air)=>{const rows=new Map();for(const u of units){let value;if(u.garrison?.length){const crew=new Map();for(const id of u.garrison){const d=data.units[id];if(!d)continue;const shooter={type:id,team:u.team,commanderId:u.commanderId,sourceCombatPlayer:u.sourceCombatPlayer,baseDef:d,def:d},w=resolveWeapon(data,battle,shooter,air);if(!w?.damage)continue;const hits=attackHitCount(shooter,w,air),range=battle.bunkerRange?.(id,w)??w.range,key=`${d.name} ${Math.round(w.damage)}${hits>1?`×${hits}`:''} · 사거리 ${range}`;crew.set(key,(crew.get(key)||0)+1)}value=[...crew].map(([name,count])=>`${name}${count>1?` ×${count}`:''}`).join(' · ')}
-   else value=attackValue(u,air);if(!value)continue;const key=units.length===1?value:`${data.units[u.type]?.name||u.def.name} ${value}`;rows.set(key,(rows.get(key)||0)+1)}
-  return [...rows].map(([name,count])=>count>1?`${name}×${count}`:name).join(' / ')||'—'};
- $('groundAttack').textContent=`지상 ${weaponSummary(false)}`;$('airAttack').textContent=`공중 ${weaponSummary(true)}`;
- const armor=units.length===1?String(units[0].def.armor):`${Math.min(...units.map(u=>u.def.armor))}–${Math.max(...units.map(u=>u.def.armor))}`;$('armor').textContent=`방어 ${armor}`;
+ const unit=units.length===1?units[0]:null,model=selectionPanelModel(battle,unit,data);lastInspection=model;document.body.dataset.inspect=units.length?'yes':'no';
+ const iconRows=[];if(model?.armor)iconRows.push({kind:'방어',...model.armor});if(model?.shield?.icon)iconRows.push({kind:'실드',icon:model.shield.icon,level:model.shield.level});for(const weapon of model?.weapons||[])iconRows.push({kind:weapon.kind==='air'?'공중 무기':'지상 무기',icon:weapon.icon,level:weapon.level});
+ const icons=$('statIcons');icons.replaceChildren();for(const row of iconRows){const item=document.createElement('span');item.className='stat-icon';item.title=`${row.kind}${row.level?` +${row.level}`:''}`;const image=document.createElement('img');image.src=icon(row.icon);image.alt='';item.append(image);if(row.level){const level=document.createElement('b');level.textContent=row.level;item.append(level)}icons.append(item)}
+ $('statDetails').disabled=!model||!inspectionDetailRows(model).length;
+ $('hp').textContent=model?`${model.shield?`실드 ${model.shield.current}/${model.shield.max}  `:''}HP ${model.hp.current}/${model.hp.max}`:'';$('shields').textContent='';
+ $('energy').textContent=model?.energy?`에너지 ${model.energy.current}/${model.energy.max}`:model?.lifespan!==null&&model?.lifespan!==undefined?`수명 ${model.lifespan}초`:'';
+ $('killCount').textContent=model?.killCount!==null&&model?.killCount!==undefined?`처치 ${model.killCount}`:'';$('killCount').hidden=model?.killCount===null||model?.killCount===undefined;
+ $('unitStatus').textContent=(model?.status||[]).join(' · ');
+ paintWireframe(unit,model);updatePortrait(unit);
 }
+$('statDetails').onclick=()=>{if(!lastInspection)return;const rows=inspectionDetailRows(lastInspection);modal('inspection',`<div class="eyebrow">UNIT STATUS</div><h2>${lastInspection.name}</h2><div class="stats">${rows.map(row=>`<div><span>${row.label}</span><b>${row.value}</b></div>`).join('')}</div>`)};
 function updateLaneHangarStatus(unit){
  const el=$('order'),acid=unit?.acidSporeTimers?.length?`애시드 스포어 ${unit.acidSporeTimers.length}`:'',snapshot=unit?.type===72||unit?.type===83?battle.hangarSnapshot(unit):null;
  const status=snapshot?.kind==='carrier'?`인터셉터 ${snapshot.total}/${snapshot.capacity} · 비행 ${snapshot.active}`:snapshot?.kind==='reaver'?`스캐럽 ${snapshot.inside}/${snapshot.capacity} · 비행 ${snapshot.active}/1`:'';
@@ -162,7 +176,6 @@ function selectionUI(){
  }
  $('unitName').textContent=units.length===1?units[0].def.name:units.length?units.length+'기 선택됨' :'';showVitals(units);
  if(!units.length){$('order').textContent=box?'범위 선택 모드 활성화':''}
- const portrait=$('portrait'),url=units.length===1?units[0].def.portrait:null;portrait.hidden=!url;if(url&&portrait.getAttribute('src')!==url){portrait.src=url;portrait.play().catch(()=>{})}if(!url)portrait.pause();
  const types=new Map();for(const u of units)types.set(u.type,(types.get(u.type)||0)+1);$('chips').replaceChildren();for(const [type,n] of types){const b=document.createElement('button');b.innerHTML=`<img src="${icon(type)}" alt="">${n}`;b.title=data.units[type].name;b.onclick=()=>battle.select(units.filter(u=>u.type===type).map(u=>u.id));$('chips').append(b)}hudUI();productionUI()
 }
 function groupsUI(){if(!battle||battle.laneMode)return;$('ctrl').setAttribute('aria-pressed',ctrl);for(let i=0;i<10;i++){const b=$('group'+i),g=battle.groups[i];b.classList.toggle('occupied',!!g.length);b.classList.toggle('selected',!!g.length&&g.length===battle.selection.length&&g.every(id=>battle.selection.includes(id)));b.setAttribute('aria-label',(i===9?0:i+1)+'번 부대 '+g.length+'기')}}
@@ -204,7 +217,7 @@ function productionUI(){
  if(!battle)return;const unit=battle.selected.length===1?battle.selected[0]:battle.inspectedUnit,box=$('productionQueue');box.replaceChildren();
  if(battle.laneMode){
   if(unit?.construction){const task=unit.construction,progress=Math.min(100,Math.floor(task.time/task.total*100)),bar=document.createElement('div');bar.className='production-progress';bar.innerHTML=`<span>건설 ${progress}% · ${Math.max(0,Math.ceil(task.total-task.time))}초</span><i style="width:${progress}%"></i>`;box.append(bar)}
-  $('commandButton').textContent='건물 건설';$('productionButton').textContent='출격 현황';$('researchButton').textContent='연구';
+  $('commandButton').textContent='건물 건설';$('productionButton').textContent='출격 현황';
   if(battle.menuOpen&&!battle.targeting&&performance.now()-lastMenuRefresh>700){lastMenuRefresh=performance.now();menuUI()}
   return;
  }
@@ -224,8 +237,8 @@ function refreshProductionSeat(){
 }
 function switchProduction(){battle.closeMenu();battle.select([],false);refreshProductionSeat();selectionUI()}
 $('productionSeat').onclick=()=>{productionSeat=(productionSeat+1)%battle.teamSize;switchProduction()};
-$('confirmBuild').onclick=confirmBuild;$('spaceToggle').onclick=()=>setViewMode(viewMode==='field'?'production':'field');$('commandButton').onclick=()=>openMenu('build');$('productionButton').onclick=()=>openMenu('produce');$('researchButton').onclick=()=>openMenu('research');$('baseView').onclick=()=>setViewMode('field');$('frontView').onclick=()=>{setViewMode('field');camera.y=1024;camera.zoom=DEFAULT_FRONT_ZOOM;limitCamera()};$('closeCommands').onclick=()=>{placementPoint=null;battle.closeMenu()};$('cancel').onclick=()=>{placementPoint=null;battle.closeMenu()};addEventListener('popstate',()=>{historyMenu=false;if(battle?.menuOpen)battle.closeMenu();else if(!$('modal').hidden)closeModal()});
-$('box').onclick=()=>{box=!box;$('box').setAttribute('aria-pressed',box);toast(box?'지면을 드래그해 범위 선택':'길게 누른 뒤 드래그해 범위 선택')};$('map').onclick=()=>{map=!map;$('map').setAttribute('aria-pressed',map);$('mapWrap').hidden=!map};$('panelMode').onclick=()=>{const modes=['min','normal','expanded'];settings.panel=modes[(modes.indexOf(settings.panel)+1)%3];document.body.dataset.panel=settings.panel;save('settings',settings);resize()};$('selectAll').onclick=()=>battle.select(battle.allies.filter(u=>!u.loaded).map(u=>u.id));$('home').onclick=()=>{$('baseView').click()};$('plus').onclick=()=>zoom(camera.zoom*1.2);$('minus').onclick=()=>zoom(camera.zoom/1.2);
+$('confirmBuild').onclick=confirmBuild;$('spaceToggle').onclick=()=>setViewMode(viewMode==='field'?'production':'field');$('commandButton').onclick=()=>openMenu('build');$('productionButton').onclick=()=>openMenu('produce');$('baseView').onclick=()=>setViewMode('field');$('frontView').onclick=()=>{setViewMode('field');camera.y=1024;camera.zoom=DEFAULT_FRONT_ZOOM;limitCamera()};$('closeCommands').onclick=()=>{placementPoint=null;battle.closeMenu()};$('cancel').onclick=()=>{placementPoint=null;battle.closeMenu()};addEventListener('popstate',()=>{historyMenu=false;if(battle?.menuOpen)battle.closeMenu();else if(!$('modal').hidden)closeModal()});
+$('box').onclick=()=>{box=!box;$('box').setAttribute('aria-pressed',box);toast(box?'지면을 드래그해 범위 선택':'길게 누른 뒤 드래그해 범위 선택')};$('map').onclick=()=>{map=!map;$('map').setAttribute('aria-pressed',map);$('mapWrap').hidden=!map};$('selectAll').onclick=()=>battle.select(battle.allies.filter(u=>!u.loaded).map(u=>u.id));$('home').onclick=()=>{$('baseView').click()};$('plus').onclick=()=>zoom(camera.zoom*1.2);$('minus').onclick=()=>zoom(camera.zoom/1.2);
 const visible=u=>{const p=toScreen(u.x,u.y);return p.x>-40&&p.x<W+40&&p.y>40&&p.y<H-panelHeight()+40};
 function hit(p,own=false){return battle.units.filter(u=>u.alive&&!u.hidden&&!u.loaded&&!!u.productionOnly===(viewMode==='production')&&(viewMode!=='production'||inProductionView(u))&&(!own||u.team===0)&&(u.team===0||battle.canSee(0,u))&&(u.def.building?Math.abs(u.x-p.x)<battle.footprint(u.type)[0]/2&&Math.abs(u.y-p.y)<battle.footprint(u.type)[1]/2:dist(u,p)<Math.max(u.r,15/camera.zoom))).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
 function nodeHit(p){return battle.nodes.find(n=>n.amount>0&&dist(p,n)<n.r+12&&(battle.fog[Math.floor(n.y/32)*40+Math.floor(n.x/32)]))||null}
@@ -236,6 +249,18 @@ canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;e
 function pointerEnd(e,cancel=false){if(!pointers.has(e.pointerId))return;const p=position(e);pointers.delete(e.pointerId);if(pinch){if(!pointers.size){pinch=null;gesture=null;settings.zoom=camera.zoom;save('settings',settings)}return}if(!gesture)return;clearTimeout(gesture.timer);if(!cancel){if(gesture.kind==='pending')tap(p)}gesture=null}
 canvas.addEventListener('pointerup',e=>pointerEnd(e));canvas.addEventListener('pointercancel',e=>{pointerEnd(e,true);pointers.clear();pinch=null});canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(camera.zoom*(e.deltaY<0?1.12:1/1.12),e.clientX,e.clientY)},{passive:false});
 let miniDrag=false;const miniMove=e=>{const r=mini.getBoundingClientRect();camera.x=(e.clientX-r.left)/r.width*1280;camera.y=(e.clientY-r.top)/r.height*2048;limitCamera()};mini.onpointerdown=e=>{miniDrag=true;mini.setPointerCapture(e.pointerId);miniMove(e)};mini.onpointermove=e=>{if(miniDrag)miniMove(e)};mini.onpointerup=mini.onpointercancel=()=>miniDrag=false;
+const cloakFrameCache=new Map();let cloakFrameCacheBytes=0;
+function cloakFrame(image,frame,level,hidden){
+ if(level<=0)return null;const source=image.__ministarSource||'',key=`${source}:${frame[0]},${frame[1]},${frame[4]},${frame[5]}:${level}:${hidden?1:0}`,cached=cloakFrameCache.get(key);
+ if(cached){cloakFrameCache.delete(key);cloakFrameCache.set(key,cached);return cached.canvas}
+ const bytes=frame[4]*frame[5]*4;if(bytes>8*1024*1024)return null;
+ const canvas=document.createElement('canvas');canvas.width=frame[4];canvas.height=frame[5];const c=canvas.getContext('2d',{willReadFrequently:true});c.drawImage(image,frame[0],frame[1],frame[4],frame[5],0,0,frame[4],frame[5]);
+ const pixels=c.getImageData(0,0,canvas.width,canvas.height),data=pixels.data,baseAlpha=hidden?0:.42;
+ for(let i=0;i<data.length;i+=4){if(data[i+3]===0)continue;const strength=Math.floor((28*data[i]+77*data[i+1]+151*data[i+2]+4096)/8192);if(level===8||strength<=level)data[i+3]=Math.round(data[i+3]*baseAlpha)}
+ c.putImageData(pixels,0,0);cloakFrameCache.set(key,{canvas,bytes});cloakFrameCacheBytes+=bytes;
+ while(cloakFrameCache.size>64||cloakFrameCacheBytes>8*1024*1024){const first=cloakFrameCache.keys().next().value,entry=cloakFrameCache.get(first);cloakFrameCache.delete(first);cloakFrameCacheBytes-=entry.bytes}
+ return canvas;
+}
 function sprite(id,team,x,y,action='idle',time=0,direction=0,alpha=1,stack=new Set(),frameOverride=null,visual={}){
  const g=data.graphics[id];if(!g||stack.has(id)||stack.size>8)return false;stack.add(id);
  const track=trackFor(g,action,visual),p=frameOverride===null?(visual.poseOverride||pose(g,action,time,direction,visual)):{frame:frameOverride,flip:false};
@@ -250,18 +275,18 @@ function sprite(id,team,x,y,action='idle',time=0,direction=0,alpha=1,stack=new S
  };
  for(const event of events)if(event.under)drawChild(event);
  const image=getImage(teamImage(g,team));let drawn=false;
- if(image&&!p.hidden&&g.canvas?.[0]>0&&g.canvas?.[1]>0){const f=g.frames[p.frame];if(f&&f[4]&&f[5]){ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);if(p.flip)ctx.scale(-1,1);ctx.drawImage(image,f[0],f[1],f[4],f[5],(f[2]-g.canvas[0]/2)*.5,(f[3]-g.canvas[1]/2)*.5,f[4]*.5,f[5]*.5);ctx.restore();drawn=true}}
+ if(image&&!p.hidden&&g.canvas?.[0]>0&&g.canvas?.[1]>0){const f=g.frames[p.frame];if(f&&f[4]&&f[5]){ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);if(p.flip)ctx.scale(-1,1);const faded=Number.isInteger(visual.cloakLevel)?cloakFrame(image,f,visual.cloakLevel,!!visual.cloakHidden):null;if(faded)ctx.drawImage(faded,0,0,f[4],f[5],(f[2]-g.canvas[0]/2)*.5,(f[3]-g.canvas[1]/2)*.5,f[4]*.5,f[5]*.5);else ctx.drawImage(image,f[0],f[1],f[4],f[5],(f[2]-g.canvas[0]/2)*.5,(f[3]-g.canvas[1]/2)*.5,f[4]*.5,f[5]*.5);ctx.restore();drawn=true}}
  for(const event of events)if(!event.under)drawChild(event);
  stack.delete(id);return drawn;
 }
 function drawHealthBar(u){
- const g=data.graphics[u.def.image],{pixels,width,x,y}=healthBarLayout(u,g,camera.zoom);
- const hp=Math.floor(100*clamp(u.hp/(u.maxHp||u.def.hp),0,1)),shieldMax=u.def.shield||0,shield=shieldMax?Math.max(0,Math.floor(100*u.shield/shieldMax)):0,hasShield=shieldMax>0;
- const hpRows=hasShield?[18,0,0,1,1,2,18]:[18,0,1,2,18],bgRows=hasShield?[18,15,15,16,16,17,18]:[18,15,16,17,18],band=hp>=66?(hasShield?[18,0,0,1,1,2,18]:[18,0,1,2,18]):hp>=33?(hasShield?[18,3,3,4,4,5,18]:[18,3,4,5,18]):(hasShield?[18,6,6,7,7,8,18]:[18,6,7,8,18]),fillWidth=percent=>{let n=Math.floor(pixels*percent/100);if(n<3)n=3;else if(n%3){if(n%3>1)n+=3-n%3;else n-=n%3}return Math.min(pixels,n)};
- const colors={0:'#8fdb83',1:'#62bd49',2:'#37932a',3:'#f4d56e',4:'#dbac48',5:'#b7832d',6:'#ed8070',7:'#d94b36',8:'#a92a20',10:'#659fce',11:'#3373ac',15:'#343733',16:'#252f37',17:'#151b1d',18:'#080b0a'},hpFill=fillWidth(hp),shieldFill=fillWidth(shield),rowHeight=1/camera.zoom;
- for(let row=0;row<hpRows.length;row++){const yy=y+row*rowHeight;ctx.fillStyle=colors[band[row]];ctx.fillRect(x,yy,hpFill/camera.zoom,rowHeight);ctx.fillStyle=colors[bgRows[row]];ctx.fillRect(x+hpFill/camera.zoom,yy,(pixels-hpFill)/camera.zoom,rowHeight)}
- if(hasShield){const shieldRows=[18,10,11,18],shieldBg=[18,16,17,18];for(let row=0;row<shieldRows.length;row++){const yy=y+row*rowHeight;ctx.fillStyle=colors[shieldRows[row]];ctx.fillRect(x,yy,shieldFill/camera.zoom,rowHeight);ctx.fillStyle=colors[shieldBg[row]];ctx.fillRect(x+shieldFill/camera.zoom,yy,(pixels-shieldFill)/camera.zoom,rowHeight)}}
- ctx.fillStyle=colors[18];for(let px=0;px<pixels;px+=3)ctx.fillRect(x+px/camera.zoom,y,1/camera.zoom,hpRows.length/camera.zoom);
+ const g=data.graphics[u.def.image],{width,x,y}=healthBarLayout(u,g,camera.zoom);
+ const hpRatio=clamp(u.hp/(u.maxHp||u.def.hp),0,1),hp=hpRatio>0?Math.max(1,Math.floor(100*hpRatio)):0,shieldMax=u.def.shield||0,shieldRatio=shieldMax?clamp(u.shield/shieldMax,0,1):0,shield=shieldRatio>0?Math.max(1,Math.floor(100*shieldRatio)):0,hasShield=shieldMax>0;
+ const hpRows=hasShield?[18,0,0,1,1,2,18]:[18,0,1,2,18],bgRows=hasShield?[18,15,15,16,16,17,18]:[18,15,16,17,18],band=hp>=66?(hasShield?[18,0,0,1,1,2,18]:[18,0,1,2,18]):hp>=33?(hasShield?[18,3,3,4,4,5,18]:[18,3,4,5,18]):(hasShield?[18,6,6,7,7,8,18]:[18,6,7,8,18]);
+ const colors={0:'#8fdb83',1:'#62bd49',2:'#37932a',3:'#f4d56e',4:'#dbac48',5:'#b7832d',6:'#ed8070',7:'#d94b36',8:'#a92a20',10:'#659fce',11:'#3373ac',15:'#343733',16:'#252f37',17:'#151b1d',18:'#080b0a'},hpFill=healthBarFillWidth(hp,width),shieldFill=healthBarFillWidth(shield,width);
+ for(let row=0;row<hpRows.length;row++){const yy=y+row;ctx.fillStyle=colors[band[row]];ctx.fillRect(x,yy,hpFill,1);ctx.fillStyle=colors[bgRows[row]];ctx.fillRect(x+hpFill,yy,Math.max(0,width-hpFill),1)}
+ if(hasShield){const shieldRows=[18,10,11,18],shieldBg=[18,16,17,18];for(let row=0;row<shieldRows.length;row++){const yy=y+hpRows.length+row;ctx.fillStyle=colors[shieldRows[row]];ctx.fillRect(x,yy,shieldFill,1);ctx.fillStyle=colors[shieldBg[row]];ctx.fillRect(x+shieldFill,yy,Math.max(0,width-shieldFill),1)}}
+ ctx.fillStyle=colors[18];for(let px=0;px<width;px+=3)ctx.fillRect(x+px,y,Math.min(1,width-px),hpRows.length+(hasShield?4:0));
 }
 const warpCanvases=new WeakMap();
 function drawConstruction(u,alpha){
@@ -287,18 +312,21 @@ function drawConstruction(u,alpha){
 }
 function spellOverlayImage(name,size=0){const value=spellVisualData?.images?.[name];return Array.isArray(value)?value[clamp(size,0,value.length-1)]:value}
 function unit(u){
- if(!u.alive&&u.def.building||!!u.productionOnly!==(viewMode==='production')||viewMode==='production'&&!inProductionView(u)||u.hidden||u.loaded||u.refunded||u.team===1&&!battle.canSee(0,u)||!u.alive&&battle.time-u.deathTime>(u.deathDuration||1.8)||!visible(u)&&!u.def.building)return;
- const selected=battle.isHighlighted(u),alpha=!u.alive?1:battle.isEffectivelyCloaked(u)?.42:u.burrowed&&u.type!==103?.3:1,overlaySize=spellVisualData?.unitOverlaySizes?.[u.type]??0,hasMatrix=u.alive&&u.matrix>0;
+ const outsideSpace=!!u.productionOnly!==(viewMode==='production'),wrongCommander=viewMode==='production'&&!inProductionView(u),staleCorpse=!u.alive&&battle.time-u.deathTime>(u.deathDuration||1.8);
+ if(!u.alive&&u.def.building||outsideSpace||wrongCommander||u.hidden||u.loaded||u.refunded||staleCorpse||!visible(u)&&!u.def.building)return;
+ const normallyVisible=u.team===0||battle.canSee(0,u),cloakFade=!normallyVisible&&u.team===1&&u.cloakLevel<8&&u.cloakFadeTeams?.includes(0)&&battle.inVision(0,u),burrowFade=!normallyVisible&&u.team===1&&(u.type===103?u.lurkerState==='unburrowing':u.burrowState==='unburrowing')&&battle.inVision(0,u);
+ if(!normallyVisible&&!cloakFade&&!burrowFade)return;
+ const concealedBurrow=u.alive&&(u.type===103?u.lurkerState==='burrowed':u.burrowed&&u.burrowState!=='unburrowing'),selected=battle.isHighlighted(u),cloakLevel=u.alive&&u.cloakLevel>0?u.cloakLevel:0,alpha=!u.alive?1:1,overlaySize=spellVisualData?.unitOverlaySizes?.[u.type]??0,hasMatrix=u.alive&&u.matrix>0;
  if(selected&&u.alive){ctx.strokeStyle=u.team===0?'#79f880':'#f16e67';ctx.lineWidth=1.3/camera.zoom;ctx.beginPath();ctx.ellipse(u.x,u.y+u.r*.55,u.r+5,(u.r+5)*.48,0,0,Math.PI*2);ctx.stroke()}
- const g=data.graphics[u.def.image],lurkerBuried=u.type===103&&u.alive&&u.lurkerState==='burrowed',drawAction=u.type===124?'idle':lurkerBuried?'burrow':u.action,drawTime=lurkerBuried?(u.lurkerBurrowPoseTime||transitionSeconds(g,'burrow')):u.animTime,visual={seed:u.type===103&&u.lurkerAnimSeed!==undefined?u.lurkerAnimSeed:u.id,lifetime:u.visualTime??u.animTime,targetDistance:u.target?dist(u,u.target):Infinity,inheritedFrame:u.lastVisualFrame,skipSpawnIntro:!!u.skipSpawnIntro&&drawAction==='idle',suppressEvents:lurkerBuried,trackOverride:u.attackVisualTrack||null};
- if(g&&u.alive&&!lurkerBuried)for(const sh of g.shadows||[])sprite(sh,0,u.x+2,u.y+3,'idle',u.animTime,u.direction,.35);
+ const g=data.graphics[u.def.image],drawAction=concealedBurrow?'burrow':u.type===124?'idle':u.action,drawTime=concealedBurrow?(u.burrowPoseTime||u.lurkerBurrowPoseTime||transitionSeconds(g,'burrow')):u.animTime,visual={seed:u.type===103&&u.lurkerAnimSeed!==undefined?u.lurkerAnimSeed:u.id,lifetime:u.visualTime??u.animTime,targetDistance:u.target?dist(u,u.target):Infinity,inheritedFrame:u.lastVisualFrame,skipSpawnIntro:!!u.skipSpawnIntro&&drawAction==='idle',suppressEvents:concealedBurrow,trackOverride:u.attackVisualTrack||null,cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible};
+ if(g&&u.alive&&!concealedBurrow)for(const sh of g.shadows||[])sprite(sh,0,u.x+2,u.y+3,'idle',u.animTime,u.direction,.35,new Set(),null,{cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible});
  const matrixBack=spellOverlayImage('matrixBack',overlaySize),matrixFront=spellOverlayImage('matrixFront',overlaySize);
- if(hasMatrix&&matrixBack)sprite(matrixBack,u.team,u.x,u.y,'idle',battle.time,u.direction,alpha);
+ if(hasMatrix&&matrixBack)sprite(matrixBack,u.team,u.x,u.y,'idle',battle.time,u.direction,alpha,new Set(),null,visual);
  if(!drawConstruction(u,alpha)){const p=pose(g,drawAction,drawTime,u.direction,visual);u.lastVisualFrame=p.frame;visual.poseOverride=p;sprite(u.egg?(u.type===43?11:u.type===38?914:21):u.def.image,u.team,u.x,u.y,drawAction,drawTime,u.direction,alpha,new Set(),null,visual)}
- const sub=u.def.subunit!==null?data.units[u.def.subunit]:null,turretImage=u.turretImage??sub?.image;if(Number.isInteger(turretImage)&&u.alive)sprite(turretImage,u.team,u.x,u.y,u.turretAction||u.action,u.turretAnimTime||u.animTime,u.turretDirection??u.direction,alpha,new Set(),null,{seed:u.id^turretImage,targetDistance:u.target?dist(u,u.target):Infinity,trackOverride:u.turretVisualTrack||null});
- if(u.type===124&&u.alive&&!u.construction&&!Number.isInteger(u.turretImage))sprite(297,u.team,u.x,u.y,u.action,u.animTime,u.action==='idle'?Math.floor(u.animTime*16)%32:u.direction,alpha);
- if(hasMatrix&&matrixFront)sprite(matrixFront,u.team,u.x,u.y,'idle',battle.time,u.direction,alpha);
- if(u.alive){for(const [key,imageName]of [['lockdown','lockdown'],['stasis','stasisOverlay'],['ensnare','ensnareOverlay'],['irradiate','irradiate'],['plague','plagueOverlay'],['maelstrom','maelstromOverlay']])if(u.buffs[key]>0){const image=spellOverlayImage(imageName,overlaySize);if(image)sprite(image,u.team,u.x,u.y,'idle',battle.time,u.direction,alpha)}}
+ const sub=u.def.subunit!==null?data.units[u.def.subunit]:null,turretImage=u.turretImage??sub?.image;if(Number.isInteger(turretImage)&&u.alive)sprite(turretImage,u.team,u.x,u.y,u.turretAction||u.action,u.turretAnimTime||u.animTime,u.turretDirection??u.direction,alpha,new Set(),null,{seed:u.id^turretImage,targetDistance:u.target?dist(u,u.target):Infinity,trackOverride:u.turretVisualTrack||null,cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible});
+ if(u.type===124&&u.alive&&!u.construction&&!Number.isInteger(u.turretImage))sprite(297,u.team,u.x,u.y,u.action,u.animTime,u.action==='idle'?Math.floor(u.animTime*16)%32:u.direction,alpha,new Set(),null,visual);
+ if(hasMatrix&&matrixFront)sprite(matrixFront,u.team,u.x,u.y,'idle',battle.time,u.direction,alpha,new Set(),null,visual);
+ if(u.alive){for(const [key,imageName]of [['lockdown','lockdown'],['stasis','stasisOverlay'],['ensnare','ensnareOverlay'],['irradiate','irradiate'],['plague','plagueOverlay'],['maelstrom','maelstromOverlay']])if(u.buffs[key]>0){const image=spellOverlayImage(imageName,overlaySize);if(image)sprite(image,u.team,u.x,u.y,'idle',battle.time,u.direction,alpha,new Set(),null,visual)}}
  if(u.alive&&u.def.building&&u.def.race==='terran'&&!u.construction)drawBuildingFire(u);
  if(selected&&u.alive)drawHealthBar(u);
 }
@@ -330,7 +358,7 @@ function drawRelief(){
 }
 function drawProductionBoard(){
  ctx.fillStyle='#1c100a';ctx.fillRect(0,PRODUCTION_OFFSET,1280,PRODUCTION_HEIGHT);
- if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.17');
+ if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.18');
  ctx.save();if(productionTeam){ctx.translate(1280,0);ctx.scale(-1,1)}
  if(desertProduction)ctx.drawImage(desertProduction,PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
  ctx.restore();ctx.strokeStyle='#c49b61';ctx.lineWidth=2;ctx.strokeRect(productionTeam?1280-PRODUCTION_GROUND_X-PRODUCTION_GROUND_WIDTH:PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
@@ -439,15 +467,15 @@ async function boot(){if(bootInProgress)return;bootInProgress=true;const retry=$
  if(!await retireOfflineStorage())return;
  const cacheState=await resourceStore.init();if(!cacheState.manifest)console.warn('Resource manifest unavailable; continuing with online requests only');
  if(!uiEnhanced){enhanceSelects();uiEnhanced=true}
- const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.17');
+ const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.18');
  const [base,extra,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations,spellVisuals]=await Promise.all([
   fetchJson('assets/data.json','전투 데이터를 읽을 수 없습니다.'),
-  fetchJson('rts-data.json?v=0.16.17','생산 데이터를 읽을 수 없습니다.'),
-  fetchJson('construction-data.json?v=0.16.17','건설 그래픽을 읽을 수 없습니다.'),
-  fetchJson('turret-data.json?v=0.16.17','포탑 그래픽을 읽을 수 없습니다.'),
-  fetchJson('destruction-data.json?v=0.16.17','건물 파괴 그래픽을 읽을 수 없습니다.'),
-  fetchJson('original-animation-data.json?v=0.16.17','원본 애니메이션을 읽을 수 없습니다.'),
-  fetchJson('spell-visual-data.json?v=0.16.17','원본 주문 효과 데이터를 읽을 수 없습니다.')
+  fetchJson('rts-data.json?v=0.16.18','생산 데이터를 읽을 수 없습니다.'),
+  fetchJson('construction-data.json?v=0.16.18','건설 그래픽을 읽을 수 없습니다.'),
+  fetchJson('turret-data.json?v=0.16.18','포탑 그래픽을 읽을 수 없습니다.'),
+  fetchJson('destruction-data.json?v=0.16.18','건물 파괴 그래픽을 읽을 수 없습니다.'),
+  fetchJson('original-animation-data.json?v=0.16.18','원본 애니메이션을 읽을 수 없습니다.'),
+  fetchJson('spell-visual-data.json?v=0.16.18','원본 주문 효과 데이터를 읽을 수 없습니다.')
  ]);
  data=base;spellVisualData=spellVisuals;for(const [id,size]of Object.entries(spellVisualData.unitOverlaySizes||{}))if(data.units[id])data.units[id].spellOverlaySize=size;warmupGraphics=[constructionGraphics,turretGraphics,destructionGraphics];clearMediaSession();Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations);
  for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);

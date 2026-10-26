@@ -1,4 +1,4 @@
-import {COMBAT_SOURCE} from './broodwar-combat-data.js?v=0.16.17';
+import {COMBAT_SOURCE} from './broodwar-combat-data.js?v=0.16.18';
 
 const NO_WEAPON=130;
 const SPEED_UPGRADES={2:17,37:27,38:29,39:53,42:26,65:34,69:37,70:42,84:39};
@@ -56,7 +56,7 @@ export function resolveUnitDefinition(battle,unit,baseDef=unit?.baseDef||unit?.d
   def.acquisitionRange=Math.max(def.acquisitionRangeGround,def.acquisitionRangeAir);
   def.combatUpgrades=profile.initial;
   def.combatProfilePlayer=player;
-  def.invincible=!!rule.invincible;
+  def.invincible=mapOverride?.invincible??!!rule.invincible;
  }
  const result=Object.freeze(def);
  if(!mapOverride)profileCache(baseDef).set(key,result);

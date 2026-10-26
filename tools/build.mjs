@@ -99,6 +99,17 @@ const {buildAnimationControlData}=await import('./build-animation-control-data.m
 const actionData=buildAnimationControlData(root);
 console.log(`Added repeat-attack visuals to ${actionData.images} unit images.`);
 execFileSync('python3',[path.resolve(import.meta.dirname,'pack-original-animations.py')],{stdio:'inherit'});
+{
+ const source=path.join(root,'resources/selection-ui'),ui=JSON.parse(fs.readFileSync(path.join(source,'unit-ui-map.json'),'utf8'));
+ if(Object.keys(ui.units||{}).length!==228||Object.keys(ui.weapons||{}).length!==130)throw Error('Invalid original unit inspection UI map');
+ fs.writeFileSync(path.join(root,'dist/selection-ui-data.js'),'// Extracted from the Remastered unit UI map; see resources/selection-ui/unit-ui-map.json.\nexport const UNIT_UI='+JSON.stringify(ui)+';\n');
+ for(let layer=0;layer<4;layer++){
+  const name=`wirefram-layer-${layer}.webp`,input=path.join(source,name),output=path.join(root,'dist/assets/selection-ui',name);
+  if(!fs.existsSync(input))throw Error(`Missing original wireframe layer ${layer}`);
+  fs.mkdirSync(path.dirname(output),{recursive:true});fs.copyFileSync(input,output);
+ }
+ console.log('Restored the four original wireframe layers and unit UI map.');
+}
 const {buildResourceManifest}=await import('./build-resource-manifest.mjs');
 const packageVersion=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
 const resourceManifest=buildResourceManifest(path.join(root,'dist'),packageVersion);

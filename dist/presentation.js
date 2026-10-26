@@ -1,4 +1,4 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.17';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.18';
 
 export function healthBarPixels(nominal){
  let original=Math.max(19,Math.min(81,Math.floor(nominal)));
@@ -19,11 +19,21 @@ function buildingBodyBounds(graphic,unit){
  if(graphic)bodyBounds.set(graphic,bounds);return bounds;
 }
 export function healthBarLayout(unit,graphic,zoom){
- let pixels,center=0,bottom=unit.r;
- if(unit.def.building){const bounds=buildingBodyBounds(graphic,unit);pixels=Math.max(3,Math.round(bounds.width*.85*zoom));center=bounds.center;bottom=bounds.bottom}
- else pixels=healthBarPixels(graphic?.healthBarSize||unit.def.healthBarSize||unit.def.footprint?.[0]||unit.r*2);
- const width=pixels/zoom;return{pixels,width,x:unit.x+center-width/2,y:unit.y+bottom+5/zoom};
+ let width,center=0,bottom=unit.r;
+ if(unit.def.building){const bounds=buildingBodyBounds(graphic,unit);width=bounds.width*.85;center=bounds.center;bottom=bounds.bottom}
+ else width=healthBarPixels(graphic?.healthBarSize||unit.def.healthBarSize||unit.def.footprint?.[0]||unit.r*2);
+ return{pixels:width*zoom,width,x:unit.x+center-width/2,y:unit.y+bottom+5};
 }
+
+export function healthBarFillWidth(percent,width){
+ if(percent<=0||width<=0)return 0;
+ let filled=Math.floor(width*Math.min(100,percent)/100);
+ if(filled<3)filled=Math.min(width,3);
+ else if(filled%3){if(filled%3>1)filled+=3-filled%3;else filled-=filled%3}
+ return Math.min(width,filled);
+}
+
+export function formatSupply(used,cap){return `${Math.ceil(Math.max(0,used))}/${Math.ceil(Math.max(0,cap))}`}
 
 export function constructionVisual(unit,data){
  const task=unit.construction;

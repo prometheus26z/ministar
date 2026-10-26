@@ -1,14 +1,14 @@
-import {LaneAI} from './lane-ai.js?v=0.16.17';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.17';
-import {SATISFIES} from './tech.js?v=0.16.17';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.17';
-import {buildingDestruction} from './presentation.js?v=0.16.17';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.17';
-import {clamp,dist} from './core.js?v=0.16.17';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.17';
-import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.17';
-import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.17';
-import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.17';
+import {LaneAI} from './lane-ai.js?v=0.16.18';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.18';
+import {SATISFIES} from './tech.js?v=0.16.18';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.18';
+import {buildingDestruction} from './presentation.js?v=0.16.18';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.18';
+import {clamp,dist} from './core.js?v=0.16.18';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.18';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.18';
+import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.18';
+import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.18';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -130,8 +130,8 @@ export class Battle extends EconomyBattle{
 
  installSide(team){
   const layout=DESERT_STRIKE.map.mobileLayout,mainPosition=layout?.mains?.[team],position=layout?.outposts?.[team];if(!mainPosition||!position)throw Error(`Missing mobile objective layout for team ${team}`);
-  const main=this.create(173,team,mainPosition.x,mainPosition.y);main.isMain=true;main.def={...main.def,detector:true,sight:layout.objectiveDetectionRange};main.order='hold';main.hp=main.maxHp=30000;
-  const outpost=this.create(174,team,position.x,position.y);outpost.isOutpost=true;outpost.def={...outpost.def,detector:true,sight:layout.objectiveDetectionRange};outpost.order='hold';outpost.hp=outpost.maxHp=15000;
+  const main=this.create(173,team,mainPosition.x,mainPosition.y);main.isMain=true;main.mapDefOverride={...main.mapDefOverride,invincible:false,detector:true,sight:layout.objectiveDetectionRange};main.def=resolveUnitDefinition(this,main,main.baseDef,main.mapDefOverride);main.order='hold';main.hp=main.maxHp=30000;
+  const outpost=this.create(174,team,position.x,position.y);outpost.isOutpost=true;outpost.mapDefOverride={...outpost.mapDefOverride,detector:true,sight:layout.objectiveDetectionRange};outpost.def=resolveUnitDefinition(this,outpost,outpost.baseDef,outpost.mapDefOverride);outpost.order='hold';outpost.hp=outpost.maxHp=15000;
   return {main,outpost,team};
  }
  addGasNode(team,x,y,slot){this.nodes.push({id:`geyser-${this.ownerByTeam[team]}-${slot}`,team,commanderId:this.ownerByTeam[team],slot,x,y,r:36,kind:'gas',amount:5000,miner:null,occupiedBy:null})}
@@ -278,7 +278,7 @@ export class Battle extends EconomyBattle{
   return this.withCommander(commanderId,()=>{
    const u=this.create(type,team,point.x,point.y);u.order='attackmove';u.laneArmy=true;u.laneOffset=spread;u.waveId=request.waveId;u.commanderId=commanderId;
    const objective=this.laneObjective(team);this.setAdvanceGoal(u,objective);u.laneObjectiveId=objective.id;
-   const prop=DESERT_STRIKE.properties[type===103?2:3];if(prop){u.hp=u.maxHp*prop.hp/100;u.shield=u.def.shield*prop.shield/100;u.maxEnergy=u.def.energy||0;u.energy=u.maxEnergy*prop.energy/100;if((type===72||type===83)&&(prop.propertyValid&32))initializeHangarRuntime(this,u,prop.hangar);if(type!==103&&prop.specialValid&2)u.burrowed=!!(prop.status&2)}
+   const prop=DESERT_STRIKE.properties[type===103?2:3];if(prop){u.hp=u.maxHp*prop.hp/100;u.shield=u.def.shield*prop.shield/100;u.maxEnergy=u.def.energy||0;u.energy=u.maxEnergy*prop.energy/100;if((type===72||type===83)&&(prop.propertyValid&32))initializeHangarRuntime(this,u,prop.hangar);if(type!==103&&prop.specialValid&2){u.burrowed=!!(prop.status&2);u.burrowState=u.burrowed?'burrowed':'ground'}}
    if(type===103){u.lurkerState='ground';u.burrowed=false;u.action='idle';u.lurkerResumeOrder='attackmove'}
    if(type===63||type===68){u.skipSpawnIntro=true;u.visualTime=steadyStartSeconds(this.data.graphics[u.def.image],'idle',{seed:u.id})}
    if(team===0)this.produced++;return u;
@@ -377,7 +377,7 @@ export class Battle extends EconomyBattle{
 
  weapon(u,target){if(target.productionOnly||u.productionOnly||u.garrison)return null;return super.weapon(u,target);}
  animationDuration(u,action,fallback=.45){
-  const seconds=transitionSeconds(this.data.graphics[u.def.image],action,fallback,u.lurkerAnimSeed||0);
+  const seed=u.type===103?u.lurkerAnimSeed??0:u.burrowTransitionSeed??0,seconds=transitionSeconds(this.data.graphics[u.def.image],action,fallback,seed);
   return Math.max(1/24,seconds);
  }
  lurkerThreats(u,range=this.data.weapons[u.def.groundWeapon]?.range||0){
@@ -456,12 +456,12 @@ export class Battle extends EconomyBattle{
    for(let slot=bunker.garrison.length;slot<controls.length;slot++){if(controls[slot])this.clearActionControl(controls[slot],'load',true);controls[slot]=null}
   }
  }
- die(u,team){
+ die(u,team,killerId=null){
   if(!u.alive)return;const wasOutpost=u.isOutpost;const wasMain=u===this.main,wasCore=u===this.core;this.releaseGasSlot(u);
   for(const shooter of u.garrisonControls||[])if(shooter)this.clearActionControl(shooter,'death',true);
   if(u.def.building){const visual=buildingDestruction(u);this.wrecks.push({x:u.x,y:u.y,team:u.team,image:visual.rubble,variant:u.id%4,productionOnly:!!u.productionOnly,commanderId:u.commanderId});this.effects.push({x:u.x,y:u.y,image:visual.explosion,left:1.15,duration:1.15,team:u.team,kind:'building-death',productionOnly:!!u.productionOnly,commanderId:u.commanderId})}
   if(u.garrison?.length){for(let i=0;i<u.garrison.length;i++){const type=u.garrison[i],crew=this.create(type,u.team,u.x+(i-1.5)*18,u.y),objective=this.laneObjective(u.team);crew.commanderId=u.commanderId;crew.order='attackmove';crew.laneArmy=true;this.setGoal(crew,{x:objective.x,y:objective.y},'attackmove');crew.laneObjectiveId=objective.id}u.garrison=[]}
-  super.die(u,team);
+  super.die(u,team,killerId);
   const linked=this.units.find(t=>t.alive&&t.id===(u.deployedDefenseId||u.sourceProducer));if(linked){u.deployedDefenseId=null;u.sourceProducer=null;this.die(linked,team)}
   this.refreshSupply();this.emit('change');
   if(wasOutpost&&!u.defenseReleased){u.defenseReleased=true;const types={terran:[0,0,0,0,0,0,0,0,3,3,34,34],zerg:[37,37,37,37,37,37,37,37,38,38,38,38],protoss:[65,65,65,65,65,65,66,66]}[this.raceFor(u.team)],base=u.team?this.core:this.main;types.forEach((type,i)=>this.spawnUnit(type,u.team,i,types.length,base))}
