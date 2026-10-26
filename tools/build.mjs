@@ -91,3 +91,8 @@ console.log('Restored 6 race-specific music cues.');
 const {restoreOriginalAnimations}=await import('./restore-original-animations.mjs');
 restoreOriginalAnimations(root);
 execFileSync('python3',[path.resolve(import.meta.dirname,'import-warp-anchor.py')],{stdio:'inherit'});
+const {buildResourceManifest}=await import('./build-resource-manifest.mjs');
+const packageVersion=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
+const resourceManifest=buildResourceManifest(path.join(root,'dist'),packageVersion);
+fs.writeFileSync(path.join(root,'dist/resource-manifest.json'),JSON.stringify(resourceManifest,null,2)+'\n');
+console.log(`Generated ${Object.keys(resourceManifest.entries).length} verified resource entries (${resourceManifest.buildId}).`);
