@@ -1,5 +1,11 @@
 export const MOVEMENT_EPSILON=1e-4;
 
+export function isFullyBurrowed(unit){
+ if(!unit?.burrowed)return false;
+ if(unit.type===103)return unit.lurkerState==='burrowed';
+ return unit.burrowState!=='burrowing'&&unit.burrowState!=='unburrowing';
+}
+
 export function segmentAabbEntry(from,to,box){
  const dx=to.x-from.x,dy=to.y-from.y;let lo=0,hi=1;
  for(const [p,q]of [[-dx,from.x-box.left],[dx,box.right-from.x],[-dy,from.y-box.top],[dy,box.bottom-from.y]]){

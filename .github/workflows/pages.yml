@@ -64,6 +64,8 @@ jobs:
             /tmp/ministar-elapsed-time-mobile.png
             /tmp/ministar-health-bar-zoom-04.png
             /tmp/ministar-health-bar-zoom-14.png
+            /tmp/ministar-mana-bar.png
+            /tmp/ministar-addon-connections.png
             /tmp/ministar-cloak-level-*.png
             /tmp/ministar-cloak-video/*.webm
             /tmp/ministar-burrow-video/*.webm

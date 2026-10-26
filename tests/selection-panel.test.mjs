@@ -25,9 +25,14 @@ test('weapon icons follow resolved weapon IDs, collapse duplicate air weapons, a
  assert.equal(dragoonModel.weapons.length,1,'a Dragoon does not get a duplicate air icon');
 });
 
-test('energy is owner-only and Lurker weapon appears only after a complete burrow',()=>{
+test('all visible mana users expose runtime energy and Lurker weapon appears only after a complete burrow',()=>{
  const b=battle(),ghost=b.create(1,0,100,100),enemy=b.create(1,1,100,140);
- assert.ok(selectionPanelModel(b,ghost,data).energy);assert.equal(selectionPanelModel(b,enemy,data).energy,null);
+ assert.deepEqual(selectionPanelModel(b,ghost,data).energy,{current:50,max:250});assert.deepEqual(selectionPanelModel(b,enemy,data).energy,{current:50,max:250});
+ const ally=b.create(34,0,100,160);ally.commanderId=2;assert.deepEqual(selectionPanelModel(b,ally,data).energy,{current:50,max:250});
+ assert.equal(inspectionEnergyMaximum(b,{maxEnergy:0,def:{energy:200}}),0,'an explicit runtime zero remains zero');
+ assert.equal(inspectionEnergyMaximum(b,{maxEnergy:-5,def:{energy:200}}),0,'negative runtime maximum is clamped');
+ assert.equal(inspectionEnergyMaximum(b,{maxEnergy:NaN,def:{energy:200}}),0,'invalid runtime maximum does not create an invalid bar');
+ assert.equal(inspectionEnergyMaximum(b,{def:{energy:200}}),200,'units without a runtime field use base energy');
  const lurker=b.create(103,0,100,180);assert.equal(selectionPanelModel(b,lurker,data).weapons.length,0);
  lurker.burrowed=true;lurker.lurkerState='burrowed';assert.ok(selectionPanelModel(b,lurker,data).weapons.length>0);
 });
@@ -56,5 +61,5 @@ test('stat callouts keep base values separate from bonuses and preserve multi-hi
  assert.equal(selectionStatItems(null).length,0);
  const b=battle(),unit=b.create(1,0,100,100);unit.energy=0;
  assert.ok(inspectionEnergyMaximum(b,unit)>0,'zero current mana still has a visible maximum');
- unit.team=1;assert.equal(inspectionEnergyMaximum(b,unit),0,'enemy mana stays private');
+ unit.team=1;assert.equal(inspectionEnergyMaximum(b,unit),250,'visible units retain their runtime mana maximum');
 });

@@ -1,10 +1,10 @@
-import {UnitGrid} from './spatial.js?v=0.16.20';
-import {layeredActionSeconds,transitionSeconds} from './animation.js?v=0.16.20';
-import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellCastTargetValid,spellAffectedTargetValid,spellAreaContains,unitBoundsDistance,spellEdgeInRange} from './spell-rules.js?v=0.16.20';
-import {resolveUnitDefinition,resolveWeapon,acquisitionRange,attackHitCount,cooldownFrames,movementSpeed,movementProfile,scriptProgramForImage,healthDamageAfterArmor,shieldDamageAfterArmor,unitBoundsGap,inNoExpandRect as unitInNoExpandRect} from './combat-rules.js?v=0.16.20';
-import {ensureMotion,clearMovementControl,aimUnit,advanceUnitMovement,brakeUnitMovement} from './action-control.js?v=0.16.20';
-import {octileDistance,segmentAabbEntry,sweptCircleEntry,MOVEMENT_EPSILON} from './movement.js?v=0.16.20';
-export const VERSION='0.16.20';
+import {UnitGrid} from './spatial.js?v=0.16.21';
+import {layeredActionSeconds,transitionSeconds} from './animation.js?v=0.16.21';
+import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellCastTargetValid,spellAffectedTargetValid,spellAreaContains,unitBoundsDistance,spellEdgeInRange} from './spell-rules.js?v=0.16.21';
+import {resolveUnitDefinition,resolveWeapon,acquisitionRange,attackHitCount,cooldownFrames,movementSpeed,movementProfile,scriptProgramForImage,healthDamageAfterArmor,shieldDamageAfterArmor,unitBoundsGap,inNoExpandRect as unitInNoExpandRect} from './combat-rules.js?v=0.16.21';
+import {ensureMotion,clearMovementControl,aimUnit,advanceUnitMovement,brakeUnitMovement} from './action-control.js?v=0.16.21';
+import {octileDistance,segmentAabbEntry,sweptCircleEntry,MOVEMENT_EPSILON,isFullyBurrowed} from './movement.js?v=0.16.21';
+export const VERSION='0.16.21';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
@@ -74,6 +74,7 @@ export class Battle{
   const boxes=[...this.map.water,...this.map.rocks],mid={x:(from.x+to.x)/2,y:(from.y+to.y)/2},radius=length/2+u.r+(this.spatial?.maxExtent||64);
   for(const other of candidates||this.nearby(mid,radius)){
    if(other===u||!other.alive||other.loaded||other.productionOnly||other.fighter)continue;
+   if(isFullyBurrowed(other))continue;
    if(other.def.building){if(other.construction&&!other.construction.started)continue;const [w,h]=other.def.footprint||[64,64];boxes.push({x:other.x-w/2,y:other.y-h/2,w,h});continue}
    if(other.def.air||u.def.air)continue;
    const t=sweptCircleEntry(from,to,other,u.r+other.r);if(t!==null&&t<first)first=t;

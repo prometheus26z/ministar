@@ -14,9 +14,22 @@ window.__inspectionTest={
  createPanelScene(){
   const b=battle;b.paused=true;b.waveClock=1e9;b.botStep=()=>{};
   const dragoon=b.create(66,0,360,1640);dragoon.hp=73.2;dragoon.shield=51.7;dragoon.killCount=3;
+  const medic=b.create(34,0,700,1500);medic.energy=75;medic.maxEnergy=250;
   const enemy=b.create(0,1,890,1640);enemy.order='hold';
   const building=b.create(111,0,520,1770);building.order='hold';
-  return{dragoon:dragoon.id,enemy:enemy.id,building:building.id,portrait:dragoon.def.portrait};
+  return{dragoon:dragoon.id,medic:medic.id,enemy:enemy.id,building:building.id,portrait:dragoon.def.portrait};
+ },
+ startManaBarSpy(id){
+  const unit=this.getUnit(id),bar=healthBarLayout(unit,data.graphics[unit.def.image],camera.zoom),energyY=bar.y+(unit.def.shield>0?11:5)+1,original=ctx.fillRect;
+  ctx.__manaSpyHits=0;this.manaSpyOriginal=original;
+  ctx.fillRect=function(x,y,w,h){if(this.fillStyle==='#c3a0dc'&&Math.abs(y-energyY)<.001&&w>0)this.__manaSpyHits++;return original.call(this,x,y,w,h)};
+ },
+ stopManaBarSpy(){const count=ctx.__manaSpyHits||0;if(this.manaSpyOriginal)ctx.fillRect=this.manaSpyOriginal;this.manaSpyOriginal=null;return count},
+ createAddonScene(){
+  const b=battle;b.paused=true;b.waveClock=1e9;b.botStep=()=>{};
+  const pairs=[[106,107,256,528],[106,108,1024,528],[114,115,256,1008],[116,117,1024,1008],[116,118,256,1488],[113,120,1024,1488]],result=[];
+  for(const [parentType,addonType,x,y]of pairs){const parent=b.create(parentType,0,x,y);parent.order='hold';const point={x:x+b.footprint(parentType)[0]/2+b.footprint(addonType)[0]/2,y:y+b.footprint(parentType)[1]/2-b.footprint(addonType)[1]/2},addon=b.create(addonType,0,point.x,point.y);addon.parent=parent.id;addon.order='hold';result.push({parent:parent.id,addon:addon.id,point})}
+  camera={x:640,y:1000,zoom:.3};limitCamera();return result;
  },
  createVisibilityScene(kind){
   const b=battle;b.paused=true;b.waveClock=1e9;b.botStep=()=>{};
@@ -70,6 +83,12 @@ async function testInspection(browser){
   assert.ok(await page.locator('#statIcons .stat-icon').count()>=2,'armor and weapon icons appear in the source panel slots');
   assert.equal(await page.locator('#portrait').getAttribute('src'),ids.portrait);
   assert.equal(await page.locator('#portrait').isVisible(),true);
+  assert.equal(await page.locator('#mission #settings').count(),0,'the mission bar has no settings gear');
+  assert.equal(await page.locator('#panel #settings').count(),1,'the panel has one Menu button');
+  await page.locator('#settings').tap();
+  await page.locator('#modal').waitFor({state:'visible'});
+  await page.locator('#closeModal').tap();
+  await page.locator('#modal').waitFor({state:'hidden'});
   const stat=page.locator('#statIcons button').first();
   await stat.tap();
   await page.locator('#statTooltip').waitFor({state:'visible'});
@@ -98,15 +117,26 @@ async function testInspection(browser){
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='');
   assert.equal(await page.locator('#portrait').getAttribute('src'),null,'clearing inspection releases the previous portrait');
   assert.equal(await page.locator('#statIcons button').count(),0);
+  const emptyFrame=await page.locator('.portrait-frame').boundingBox();
+  assert.ok(emptyFrame?.width>0&&emptyFrame.width===emptyFrame.height,'portrait frame remains square without an active portrait');
 
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
-  for(const viewport of [{width:360,height:844},{width:412,height:844}]){
+  await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.medic);
+  await page.waitForFunction(()=>document.querySelector('#energy').textContent==='마나 75/250');
+  await page.evaluate(id=>window.__inspectionTest.startManaBarSpy(id),ids.medic);
+  await page.waitForTimeout(200);
+  assert.ok(await page.evaluate(()=>window.__inspectionTest.stopManaBarSpy())>0,'the real renderer draws the mana row below HP');
+  await page.evaluate(id=>window.__inspectionTest.centerOn(id,.6),ids.medic);await page.waitForTimeout(80);
+  await page.locator('#field').screenshot({path:'/tmp/ministar-mana-bar.png'});
+  for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:844,height:390}]){
    await page.setViewportSize(viewport);
-   const layout=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:document.querySelector('#inspectionWrap').getBoundingClientRect().toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON()}));
+   const layout=await page.evaluate(()=>{const frame=document.querySelector('.portrait-frame').getBoundingClientRect(),actions=document.querySelector('.panel-main').getBoundingClientRect(),menu=document.querySelector('#settings').getBoundingClientRect();return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:document.querySelector('#inspectionWrap').getBoundingClientRect().toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON(),frame:{top:frame.top,bottom:frame.bottom,height:frame.height},actions:{top:actions.top,bottom:actions.bottom,height:actions.height},menu:{bottom:menu.bottom}}});
    assert.ok(layout.document<=viewport.width,JSON.stringify(layout));
    assert.ok(layout.wrap.left>=0&&layout.wrap.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.footer.left>=0&&layout.footer.right<=viewport.width+1,JSON.stringify(layout));
+   assert.ok(Math.abs(layout.frame.top-layout.actions.top)<=1&&Math.abs(layout.frame.bottom-layout.actions.bottom)<=1,JSON.stringify(layout));
+   assert.ok(layout.menu.bottom<=layout.frame.top+1,JSON.stringify(layout));
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(id=>window.__inspectionTest.centerOn(id,.4),ids.dragoon);await page.waitForTimeout(80);
@@ -121,6 +151,18 @@ async function testInspection(browser){
   assert.equal(consoleLayout.scroll,0,'focusing details must not scroll and clip the unit name');
   assert.ok(consoleLayout.nameTop>=consoleLayout.top&&consoleLayout.hpRight<=consoleLayout.iconsLeft&&consoleLayout.iconsBottom<=consoleLayout.bottom,JSON.stringify(consoleLayout));
   await page.screenshot({path:'/tmp/ministar-inspection-panel-mobile.png',fullPage:true});
+  assert.deepEqual(errors,[]);
+ }finally{await context.close()}
+}
+
+async function testAddonConnections(browser){
+ const{context,page,errors}=await openBattle(browser);
+ try{
+  const pairs=await page.evaluate(()=>window.__inspectionTest.createAddonScene());
+  assert.equal(pairs.length,6);
+  for(const pair of pairs){const unit=await page.evaluate(id=>window.__inspectionTest.getUnit(id),pair.addon);assert.ok(unit);assert.equal(unit.x,pair.point.x);assert.equal(unit.y,pair.point.y)}
+  await page.waitForTimeout(400);
+  await page.locator('#field').screenshot({path:'/tmp/ministar-addon-connections.png'});
   assert.deepEqual(errors,[]);
  }finally{await context.close()}
 }
@@ -186,6 +228,6 @@ let server;
 (async()=>{
  server=createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const browser=await chromium.launch({headless:true,...(process.env.MINISTAR_CHROMIUM_PATH?{executablePath:process.env.MINISTAR_CHROMIUM_PATH}:{})});
- try{await testInspection(browser);await testCloakVideo(browser);await testBurrowVideo(browser);console.log('Mobile inspection, source selection console, zoomed health bars, cloak transitions and Burrow rendering passed.')}
+ try{await testInspection(browser);await testAddonConnections(browser);await testCloakVideo(browser);await testBurrowVideo(browser);console.log('Mobile inspection, mana bars, add-on connections, Menu alignment, cloak transitions and Burrow rendering passed.')}
  finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
 })().catch(async error=>{console.error(error);await new Promise(resolve=>server?.close(resolve));process.exitCode=1});

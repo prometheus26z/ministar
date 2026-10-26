@@ -1,5 +1,5 @@
-import {UNIT_UI} from './selection-ui-data.js?v=0.16.20';
-import {attackHitCount} from './combat-rules.js?v=0.16.20';
+import {UNIT_UI} from './selection-ui-data.js?v=0.16.21';
+import {attackHitCount} from './combat-rules.js?v=0.16.21';
 
 const floorNonNegative=value=>Math.floor(Math.max(0,Number(value)||0));
 const ceilNonNegative=value=>Math.ceil(Math.max(0,Number(value)||0));
@@ -18,9 +18,8 @@ function displayNumber(value){
 
 export function inspectionEnergyMaximum(battle,unit){
  if(!unit)return 0;
- const owned=unit.team===0&&(!battle?.laneMode||unit.commanderId===0);
- const maximum=Number(unit.maxEnergy??unit.def?.energy)||0;
- return owned&&maximum>0?maximum:0;
+ const maximum=Number(unit.maxEnergy??unit.def?.energy??0);
+ return Number.isFinite(maximum)?Math.max(0,maximum):0;
 }
 
 export function selectionPanelModel(battle,unit,data,unitUi=UNIT_UI){
