@@ -249,4 +249,4 @@ body:not([data-panel=expanded]) #portrait{display:block}
 #panel .vitals{display:none!important}
 body[data-panel=min] #panel .unit-info,body[data-panel=min] #panel .panel-tools{display:block}
 @media(max-width:350px){#panel{padding-inline:5px}#panel .panel-main{gap:4px!important}#commandButton,#productionButton{font-size:9px;padding-inline:3px}}
-@media(max-height:520px){:root{--panel:174px}#inspectionScaled{height:92px}#panel .unit-info,#portrait{min-height:92px}#panel .panel-main{min-height:43px}#commandButton,#productionButton{min-height:40px}#panel .lane-views{margin-top:3px;padding-top:3px}}
+@media(max-height:520px){:root{--panel:188px}#inspectionScaled{height:92px}#panel .unit-info,#portrait{min-height:92px}#panel .panel-main{min-height:43px}#commandButton,#productionButton{min-height:40px}#panel .lane-views{margin-top:3px;padding-top:3px}}
