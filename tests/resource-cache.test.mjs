@@ -61,7 +61,7 @@ test('changed content fetches only its new hash and keeps unchanged assets reusa
 test('application version changes reuse identical hashes within the same scope',async()=>{
  const bytes=Buffer.from('same resource'),files=new Map([['assets/a.webp',bytes]]),storage=memoryStorage(),h=harness({entries:{'assets/a.webp':entry(bytes)},files,cacheStorage:storage});
  let store=h.makeStore('0.16.13');await store.init();await store.response('assets/a.webp');
- h.setManifest(manifest({'assets/a.webp':entry(bytes)},'0.16.14'));store=h.makeStore('0.16.14');await store.init();assert.equal(await(await store.response('assets/a.webp')).text(),'same resource');
+ h.setManifest(manifest({'assets/a.webp':entry(bytes)},'0.16.16'));store=h.makeStore('0.16.16');await store.init();assert.equal(await(await store.response('assets/a.webp')).text(),'same resource');
  assert.equal(h.counts.get('assets/a.webp'),1);
 });
 
@@ -99,7 +99,7 @@ test('hash mismatch, HTML fallback, and partial responses are rejected and never
 });
 
 test('manifest version mismatch stops before resource fetch',async()=>{
- const bytes=Buffer.from('ok'),h=harness({entries:{'assets/a.webp':entry(bytes)},files:new Map([['assets/a.webp',bytes]]),appVersion:'0.16.14'});
+ const bytes=Buffer.from('ok'),h=harness({entries:{'assets/a.webp':entry(bytes)},files:new Map([['assets/a.webp',bytes]]),appVersion:'0.16.16'});
  const store=h.makeStore('0.16.13');await assert.rejects(store.init(),ResourceVersionError);assert.equal(h.counts.size,0);
 });
 

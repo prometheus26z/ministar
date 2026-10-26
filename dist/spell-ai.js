@@ -1,10 +1,10 @@
-import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellEdgeInRange} from './spell-rules.js?v=0.16.15';
+import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellAreaContains,spellAffectedTargetValid,spellEdgeInRange} from './spell-rules.js?v=0.16.16';
 
 const value=u=>Math.max(25,(u.def.cost?.[0]||0)+1.5*(u.def.cost?.[1]||0));
 const valid=u=>u?.alive&&!u.loaded&&!u.hidden&&!u.productionOnly&&!u.buffs?.stasis;
-const areaContains=(unit,area)=>area.halfWidth!==undefined&&area.halfHeight!==undefined?
+const areaContains=(battle,key,unit,area)=>area.halfWidth!==undefined&&area.halfHeight!==undefined?
  Math.abs(unit.x-area.x)<=area.halfWidth+unit.r&&Math.abs(unit.y-area.y)<=area.halfHeight+unit.r:
- pointInSpellArea(unit,area,area.r);
+ ['storm','plague'].includes(key)?spellAreaContains(battle,key,unit,area):pointInSpellArea(unit,area,area.r);
 
 function points(battle,caster,units,radius,range){
  const out=new Map();
@@ -20,21 +20,21 @@ function points(battle,caster,units,radius,range){
 function cluster(battle,caster,key,point,radius){
  let score=0,count=0;
  for(const u of battle.nearby(point,radius+96)){
-  if(u===caster||!valid(u)||!areaContains(u,{x:point.x,y:point.y,r:radius}))continue;
+  if(u===caster||!valid(u)||!areaContains(battle,key,u,{x:point.x,y:point.y,r:radius}))continue;
   if(key==='swarm'){
    if(u.def.air||u.def.building)continue;
    if(u.team===caster.team){
     const threat=battle.nearbyAny(u,battle.spatialRange(200,true),e=>valid(e)&&e.team!==caster.team&&battle.unitThreatens(e,u)&&battle.weapon(e,u)?.range>40);
-    if(threat&&!battle.areas.some(a=>a.kind==='swarm'&&areaContains(u,a))){score+=value(u);count++}
+    if(threat&&!battle.areas.some(a=>a.kind==='swarm'&&areaContains(battle,'swarm',u,a))){score+=value(u);count++}
    }else score-=value(u)*1.25;
    continue;
   }
   if(['maelstrom','stasis'].includes(key)&&(u.def.building||u.buffs.stasis>0||key==='stasis'&&u.burrowed))continue;
   if(key==='maelstrom'&&(!u.def.organic||u.buffs.maelstrom>0))continue;
   if(key==='ensnare'&&(u.def.building||u.burrowed||u.buffs.ensnare>0))continue;
-  if(key==='plague'&&(u.buffs.plague>0||u.def.building))continue;
+  if(key==='plague'&&(u.buffs.plague>0||!spellAffectedTargetValid('plague',u,caster)))continue;
   if(key==='emp'&&!(u.shield>0||u.energy>0))continue;
-  if(key==='storm'&&battle.areas.some(a=>a.kind==='storm'&&areaContains(u,a)))continue;
+  if(key==='storm'&&(!spellAffectedTargetValid('storm',u,caster)||battle.areas.some(a=>a.kind==='storm'&&areaContains(battle,'storm',u,a))))continue;
   if(key==='web'&&(u.def.air||u.def.groundWeapon===null||!u.def.groundWeapon))continue;
   if(u.team===caster.team)score-=value(u)*.85;
   else{score+=key==='emp'?Math.min(u.shield||0,200)+(u.energy||0):value(u);count++}

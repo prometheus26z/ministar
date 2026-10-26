@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COMBAT_SOURCE,resolveWeapon} from '../dist/combat-rules.js?v=0.16.15';
-import {HANGAR_RULES} from '../dist/hangar.js?v=0.16.15';
+import {COMBAT_SOURCE,resolveWeapon} from '../dist/combat-rules.js?v=0.16.16';
+import {HANGAR_RULES} from '../dist/hangar.js?v=0.16.16';
 import {DESERT_STRIKE} from '../dist/desert-strike-data.js';
 import {emptyLaneBattle} from './combat-test-data.mjs';
 

@@ -87,8 +87,23 @@ test('Science Vessel auto-casts EMP when it can drain meaningful enemy shields',
 });
 
 test('Irradiate deals at most 250 damage over its duration and never damages mechanical units',()=>{
- const b=fresh(),vessel=b.create(9,0,600,700),organic=b.create(0,1,650,700),mech=b.create(3,1,660,700);vessel.energy=200;
- assert.equal(b.cast(vessel,'irradiate',null,organic),true);assert.equal(vessel.energy,125);b.tickUnit(organic,25);assert.equal(organic.hp,0);assert.equal(mech.hp,mech.maxHp);
+ const b=fresh(),vessel=b.create(9,0,600,700),organic=b.create(0,1,650,700),mech=b.create(3,1,900,700);vessel.energy=200;organic.hp=organic.maxHp=1000;
+ assert.equal(b.cast(vessel,'irradiate',null,organic),true);assert.equal(vessel.energy,125);b.tickUnit(organic,25);assert.equal(organic.hp,1000-75*853/256);assert.equal(mech.hp,mech.maxHp);
+});
+
+test('manual Irradiate accepts allies, self and mechanical units while only organic targets take damage',()=>{
+ const b=fresh(),vessel=b.create(9,0,600,700),ally=b.create(0,0,900,700),mech=b.create(3,0,800,700);vessel.energy=200;mech.hp=mech.maxHp=500;
+ assert.equal(b.cast(vessel,'irradiate',null,ally),true);assert.ok(ally.buffs.irradiate>24);
+ assert.equal(b.cast(vessel,'irradiate',null,mech),true);assert.ok(mech.buffs.irradiate>24);b.tickUnit(mech,25);assert.equal(mech.hp,500);
+ vessel.energy=200;assert.equal(b.cast(vessel,'irradiate',null,vessel),true,'the caster is a valid nonbuilding unit target');
+ const building=b.create(106,0,650,700);vessel.energy=200;assert.equal(b.cast(vessel,'irradiate',null,building),false);assert.equal(vessel.energy,200);
+});
+
+test('an irradiated unit loaded later damages only its connected organic transport',()=>{
+ const b=fresh(),vessel=b.create(9,0,600,700),marine=b.create(0,0,700,700),overlord=b.create(42,0,700,700);vessel.energy=200;overlord.def={...overlord.def,regeneratesHp:false};
+ assert.equal(b.cast(vessel,'irradiate',null,marine),true);marine.loaded=overlord.id;overlord.passengers=[marine.id];const marineHp=marine.hp,transportHp=overlord.hp;
+ assert.equal(b.cast(vessel,'irradiate',null,marine),false,'a new cast on a loaded unit is invalid');
+ b.tickUnit(marine,8/24);assert.equal(marine.hp,marineHp);assert.equal(overlord.hp,transportHp-853/256);
 });
 
 test('Science Vessel auto-casts Irradiate on an organic enemy and spends 75 energy',()=>{
@@ -114,16 +129,30 @@ test('lane debuffs reveal cloak without revealing burrowed units',()=>{
  }
 });
 
+test('Plague covers the original square bounds, including buildings and shielded mechanical allies',()=>{
+ const b=fresh(),defiler=b.create(46,0,600,700),building=b.create(131,1,704,764),corner=b.create(0,0,700,760),dragoon=b.create(66,0,660,700),burrowed=b.create(37,1,640,700),outside=b.create(0,1,720,780);
+ defiler.energy=200;dragoon.hp=dragoon.maxHp=100;dragoon.shield=50;dragoon.matrix=250;burrowed.burrowed=true;
+ assert.equal(b.cast(defiler,'plague',{x:640,y:700}),true);assert.ok(building.buffs.plague>24);assert.ok(corner.buffs.plague>24);assert.ok(dragoon.buffs.plague>24);assert.equal(burrowed.buffs.plague,undefined);assert.equal(outside.buffs.plague,undefined);
+ const hp=dragoon.hp,shield=dragoon.shield,matrix=dragoon.matrix;b.tickUnit(dragoon,8/24);assert.equal(dragoon.hp,hp-1010/256);assert.equal(dragoon.shield,shield+56/256);assert.equal(dragoon.matrix,matrix);
+});
+
 test('hallucinated casters cannot spend energy or apply real spell effects',()=>{
  const b=fresh(),caster=b.create(63,0,600,700),target=b.create(45,1,650,700);
  caster.hallucination=true;caster.energy=200;target.energy=150;
  b.autoCast(caster);assert.equal(target.energy,150);assert.equal(caster.energy,200);
 });
 
-test('a stationary target receives exactly eight Storm pulses across its full lifetime',()=>{
+test('HP, energy and shields regenerate from their source rates at 24 frames per second',()=>{
+ const b=fresh(),ling=b.create(37,0,600,700),marine=b.create(0,0,700,700),templar=b.create(67,0,800,700),zealot=b.create(65,0,900,700);
+ ling.hp=10;marine.hp=10;templar.energy=100;zealot.shield=0;
+ b.tickUnit(ling,10);b.tickUnit(marine,10);b.tickUnit(templar,10);b.tickUnit(zealot,10);
+ assert.equal(ling.hp,13.75);assert.equal(marine.hp,10);assert.equal(templar.energy,107.5);assert.equal(zealot.shield,6.5625);
+});
+
+test('Storm keeps eight source pulses, per-target eight-frame immunity and the 65-frame lifetime',()=>{
  const b=fresh(),caster=b.create(67,0,400,700),target=b.create(0,1,600,700);
  target.hp=target.maxHp=1000;target.order='hold';caster.energy=75;
  b.researched.add('storm');assert.equal(b.cast(caster,'storm',{x:600,y:700}),true);
- for(let i=0;i<75;i++)b.step(1/30);
- assert.equal(target.hp,888);assert.equal(b.areas.length,0);
+ for(let i=0;i<65;i++)b.step(1/24);
+ assert.equal(target.hp,944,'four pulses land after the eight-frame target immunity suppresses intervening seven-frame pulses');assert.equal(b.areas.length,0);
 });

@@ -123,7 +123,8 @@ test('Medic selects separate wounded patients and rejects invalid or disabled ta
 
 test('zero-energy Medic releases a patient and resumes its existing march',()=>{
  const b=combat(),medic=b.create(34,0,200,200),patient=b.create(0,0,220,200);patient.hp-=20;medic.energy=0;medic.order='attackmove';b.setGoal(medic,{x:400,y:200},'attackmove');
- const x=medic.x;b.tickUnit(medic,.1);
+ const x=medic.x;b.tickUnit(medic,.1);assert.equal(medic.x,x,'a large initial turn does not move the Medic sideways');
+ for(let frame=0;frame<8;frame++)b.tickUnit(medic,1/24);
  assert.ok(!medic.healTarget);assert.ok(medic.x>x);assert.equal(patient.hp,patient.maxHp-20);
 });
 
@@ -179,7 +180,8 @@ test('a loaded or disabled Medic does not reserve the wounded patient from anoth
 test('explicit movement and hold orders limit Medic pursuit',()=>{
  const b=combat();b.map.rocks=[];
  const medic=b.create(34,0,200,700),patient=b.create(0,0,350,700);patient.hp-=20;
- b.setGoal(medic,{x:900,y:700},'move');b.tickUnit(medic,.1);
+ b.setGoal(medic,{x:900,y:700},'move');b.tickUnit(medic,.1);assert.equal(medic.x,200,'the unit turns before it starts walking');
+ for(let frame=0;frame<8;frame++)b.tickUnit(medic,1/24);
  assert.equal(medic.healTarget,undefined);assert.ok(medic.x>200);
  b.select([medic.id],false);b.openMenu();assert.ok(b.execute('hold'));const x=medic.x;b.tickUnit(medic,.1);assert.equal(medic.x,x);assert.ok(!medic.healTarget);
  patient.x=medic.x+30;b.tickUnit(medic,.1);assert.ok(patient.hp>patient.maxHp-20);assert.equal(medic.x,x);

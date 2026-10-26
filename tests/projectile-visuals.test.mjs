@@ -10,15 +10,18 @@ const extra=JSON.parse(fs.readFileSync(new URL('../dist/rts-data.json',import.me
 Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics,JSON.parse(fs.readFileSync(new URL('../dist/original-animation-data.json',import.meta.url))));
 function combat(){const b=new CombatBattle(data,{race:'terran'});b.phase='battle';b.core={alive:true};b.map.heightAt=()=>0;return b}
 function lane(){const b=new LaneBattle(data,{race:'zerg',enemyRace:'terran',difficulty:'easy'});b.begin();b.units=[];b.map.rocks=[];b.botStep=()=>{};b.waveClock=99999;return b}
+function face(unit,target){const direction=(Math.round(Math.atan2(target.x-unit.x,unit.y-target.y)*16/Math.PI)+32)%32;unit.direction=direction;unit.motion.heading256=unit.motion.velocityDirection256=direction*8;unit.turretDirection256=direction*8}
 function lurkerAtEdge(b,edge,state='ground'){
  const lurker=b.create(103,0,400,800),enemy=b.create(0,1,600,800);lurker.laneArmy=true;lurker.lurkerState=state;lurker.burrowed=state==='burrowed';
  enemy.x=lurker.x+lurker.r+enemy.r+edge;enemy.order='move';return{lurker,enemy};
 }
 
-test('fast Dragoon projectile remains visible through its first rendered frame without delaying damage',()=>{
- const b=combat(),attacker=b.create(66,0,500,700),target=b.create(0,1,620,700);target.order='move';const weapon=b.weapon(attacker,target),hp=target.hp;b.attack(attacker,target,weapon);
- assert.equal(b.projectiles.length,1);assert.equal(b.projectileVisuals.length,1);assert.equal(b.projectiles[0].visualId,b.projectileVisuals[0].shotId);assert.equal(target.hp,hp);
- for(let i=0;i<3;i++)b.simulateStep(1/30);
+test('Dragoon fires on its source animation tick and keeps the projectile visible through impact',()=>{
+ const b=combat(),attacker=b.create(66,0,500,700),target=b.create(0,1,620,700);target.order='move';target.hp=target.maxHp=1000;face(attacker,target);const weapon=b.weapon(attacker,target),hp=target.hp;b.attack(attacker,target,weapon);
+ assert.equal(b.projectiles.length,0);assert.equal(b.projectileVisuals.length,0);assert.equal(target.hp,hp,'the attack start frame has no hit');
+ for(let i=0;i<7;i++)b.step(1/24);assert.equal(b.projectiles.length,0,'the source animation waits eight ticks before firing');
+ b.step(1/24);assert.equal(b.projectiles.length,1);assert.equal(b.projectileVisuals.length,1);assert.equal(b.projectiles[0].visualId,b.projectileVisuals[0].shotId);assert.equal(target.hp,hp);
+ for(let i=0;i<8&&b.projectiles.length;i++)b.step(1/24);
  assert.equal(b.projectiles.length,0,'the simulation projectile is removed at its normal arrival time');
  const damage=weapon.damage*(target.def.size===1?.5:target.def.size===2?.75:1);assert.equal(target.hp,hp-damage,'damage is applied once at impact with the original size multiplier');
  assert.equal(b.projectileVisuals.length,1,'the visual record survives until a renderer consumes it');
@@ -32,30 +35,31 @@ test('Yamato spell shots use the same visual lifecycle and retain their normal i
  assert.equal(b.projectileVisuals[0].image,536);assert.equal(b.projectileVisuals[0].weaponId,null);b.update(.3);assert.equal(b.projectiles.length,0);assert.equal(target.hp,0);assert.equal(b.projectileVisuals.length,1);
 });
 
-test('a long render interval cannot discard a short projectile before its first draw',()=>{
- const b=combat(),attacker=b.create(66,0,500,700),target=b.create(0,1,620,700);target.order='move';b.attack(attacker,target,b.weapon(attacker,target));
- b.update(.15);assert.equal(b.projectiles.length,0);assert.equal(b.projectileVisuals.length,1);assert.equal(b.projectileVisuals[0].firstRendered,false);
+test('a long render interval cannot discard a source-timed projectile before its first draw',()=>{
+ const b=combat(),attacker=b.create(66,0,500,700),target=b.create(0,1,620,700);target.order='move';face(attacker,target);b.attack(attacker,target,b.weapon(attacker,target));
+ b.update(8/24);assert.equal(b.projectiles.length,1);assert.equal(b.projectileVisuals.length,1);assert.equal(b.projectileVisuals[0].firstRendered,false);
 });
 
 test('long flights outlive the minimum visual lifetime and still resolve damage once',()=>{
- const b=combat(),attacker=b.create(66,0,400,700),target=b.create(0,1,800,700);target.order='move';const weapon=b.weapon(attacker,target),hp=target.hp;b.attack(attacker,target,weapon);
- const visual=b.projectileVisuals[0],sizeFactor=weapon.type===1?[1,.5,.75,1][target.def.size]||1:weapon.type===2?[1,1,.5,.25][target.def.size]||1:1,expectedDamage=Math.max(.5,weapon.damage*(weapon.factor||1)*sizeFactor-target.def.armor);assert.equal(visual.weaponId,weapon.id);assert.equal(visual.sourceId,attacker.id);assert.equal(visual.targetId,target.id);
- b.markProjectileVisualsRendered();b.update(.15);assert.equal(b.projectiles.length,1);assert.equal(b.projectileVisuals.length,1);assert.equal(target.hp,hp);
- b.update(.15);assert.equal(b.projectiles.length,0);assert.equal(target.hp,hp-expectedDamage);assert.equal(b.projectileVisuals.length,1,'arrival leaves the specified visual fade');
- b.update(.08);assert.equal(b.projectileVisuals.length,0);assert.equal(target.hp,hp-expectedDamage,'visual cleanup cannot deal damage again');
+ const b=combat(),attacker=b.create(12,0,400,700),target=b.create(0,1,700,700);target.order='move';target.hp=target.maxHp=1000;attacker.energy=200;const hp=target.hp;
+ assert.equal(b.cast(attacker,'yamato',null,target),true);const visual=b.projectileVisuals[0];assert.equal(visual.weaponId,null);assert.equal(visual.sourceId,attacker.id);assert.equal(visual.targetId,target.id);
+ b.markProjectileVisualsRendered();b.update(.375);assert.equal(b.projectiles.length,1);assert.equal(b.projectileVisuals.length,1);assert.equal(target.hp,hp);
+ b.update(.375);assert.equal(b.projectiles.length,0);assert.equal(target.hp,hp-260);assert.equal(b.projectileVisuals.length,1,'arrival leaves the specified visual fade');
+ b.update(.13);assert.equal(b.projectileVisuals.length,0);assert.equal(target.hp,hp-260,'visual cleanup cannot deal damage again');
 });
 
-test('Hydralisk sting adds only a visual trail and contact flash over the original immediate hit',()=>{
- const b=combat(),attacker=b.create(38,0,500,700),target=b.create(0,1,620,700);target.order='move';const weapon=b.weapon(attacker,target),hp=target.hp;b.attack(attacker,target,weapon);
- assert.equal(b.projectiles.length,0);assert.ok(target.hp<hp,'the original hitscan damage is immediate');
+test('Hydralisk sting applies hitscan damage on its source animation event and adds visual flashes',()=>{
+ const b=combat(),attacker=b.create(38,0,500,700),target=b.create(0,1,620,700);target.order='move';target.hp=target.maxHp=1000;face(attacker,target);const weapon=b.weapon(attacker,target),hp=target.hp;b.attack(attacker,target,weapon);
+ assert.equal(target.hp,hp,'damage waits until the Hydralisk attack event');for(let i=0;i<4;i++)b.step(1/24);assert.equal(target.hp,hp);b.step(1/24);
+ assert.equal(b.projectiles.length,0);assert.ok(target.hp<hp,'the hitscan damage occurs at the source animation event');
  assert.deepEqual(b.projectileVisuals.map(v=>v.kind),['hitscan','contact']);
  assert.equal(b.projectileVisuals[0].duration,.1);assert.equal(b.projectileVisuals[1].image,504);
  const afterAttack=target.hp;b.update(.15);assert.equal(target.hp,afterAttack,'visual expiry never applies another hit');
 });
 
-test('Hydralisk keeps the resolved miss point and original immediate hit timing',()=>{
- const b=combat(),attacker=b.create(38,0,500,700),target=b.create(0,1,620,700);target.order='move';const weapon=b.weapon(attacker,target),hp=target.hp;b.uphillMiss=()=>true;b.missPoint=()=>({x:560,y:715});
- b.attack(attacker,target,weapon);assert.equal(target.hp,hp);assert.equal(b.projectileVisuals[0].missed,true);assert.deepEqual([b.projectileVisuals[0].endX,b.projectileVisuals[0].endY],[560,715]);
+test('Hydralisk keeps the resolved miss point at its source animation event',()=>{
+ const b=combat(),attacker=b.create(38,0,500,700),target=b.create(0,1,620,700);target.order='move';target.hp=target.maxHp=1000;face(attacker,target);const weapon=b.weapon(attacker,target),hp=target.hp;b.uphillMiss=()=>true;b.missPoint=()=>({x:560,y:715});
+ b.attack(attacker,target,weapon);assert.equal(target.hp,hp);for(let i=0;i<5;i++)b.step(1/24);assert.equal(target.hp,hp);b.step(1/24);assert.equal(b.projectileVisuals[0].missed,true);assert.deepEqual([b.projectileVisuals[0].endX,b.projectileVisuals[0].endY],[560,715]);
 });
 
 test('visual-only effects are bounded to 512 records',()=>{
@@ -63,10 +67,10 @@ test('visual-only effects are bounded to 512 records',()=>{
  assert.equal(b.projectileVisuals.length,512);
 });
 
-test('Lurker approaches inside weapon range before burrowing at 176 pixels',()=>{
+test('Lurker turns at source speed before approaching inside weapon range',()=>{
  const b=lane(),{lurker}=lurkerAtEdge(b,180),start=lurker.x;
- assert.equal(b.edgeDistance(lurker,b.units[1]),180);assert.equal(b.updateLaneLurker(lurker,1/30),true);
- assert.equal(lurker.lurkerState,'ground');assert.ok(lurker.x>start,'the Lurker advances toward the target');
+ assert.equal(b.edgeDistance(lurker,b.units[1]),180);for(let i=0;i<3;i++)assert.equal(b.updateLaneLurker(lurker,1/24),true);
+ assert.equal(lurker.lurkerState,'burrowing');assert.ok(lurker.x>start,'the Lurker turns, advances, then enters its source burrow transition at 176 pixels');
 });
 
 test('Lurker burrow entry includes the 176-pixel boundary while maintenance keeps full range',()=>{
