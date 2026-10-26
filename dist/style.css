@@ -223,7 +223,7 @@ body[data-inspect=no] #panel .unit-info::before{display:none}
 #panel .unit-info #unitStatus{top:29px;color:#899990}
 #panel .unit-info #killCount{top:42px;color:#aab18c}
 #panel #hp,#panel #energy{position:absolute;left:10px;width:244px;font:9px/12px ui-monospace,Consolas,monospace;color:#aee48b;letter-spacing:0;white-space:nowrap}
-#panel #hp{top:64px;width:94px;white-space:pre-line}
+#panel #hp{top:64px;width:88px;white-space:pre-line}
 #panel #energy{top:90px;color:#c3a5db}
 #panel #shields{display:none}
 #statDetails{position:absolute;left:102px;top:55px;width:153px;height:40px;min-height:40px;padding:0 3px;display:flex;align-items:center;justify-content:center;gap:3px;background:transparent;border:0;border-radius:0;box-shadow:none}
