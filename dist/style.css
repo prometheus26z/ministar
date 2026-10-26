@@ -382,3 +382,60 @@ body[data-panel="normal"],body[data-panel="expanded"],body[data-panel="min"]{--p
  #consoleMain{height:146px;min-height:146px}
  #panel .lane-views{height:24px;min-height:24px}
 }
+
+/* Remastered console: one horizontal band on mobile, with the portrait inside inspection. */
+#consoleMain{grid-template-columns:136px minmax(0,1fr) 156px;grid-template-rows:1fr;grid-template-areas:"map inspection commands"}
+#panel #inspectionWrap{height:126px;width:100%;overflow:hidden}
+#panel #inspectionScaled{width:calc(100% - 64px)}
+#panel #portraitArea{position:absolute;top:20px;right:2px;grid-area:auto;z-index:1}
+#commandGrid .command-slot{padding:0;justify-content:center;background:none}
+#commandGrid .command-art{display:block;flex:none;width:36px;height:34px;background:url('assets/original-ui/cmdicons.png') 0 0/468px 748px no-repeat;image-rendering:pixelated}
+#commandGrid .command-slot:not(:disabled):active{background:none;filter:brightness(1.35)}
+#commandGrid .command-slot .command-name{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#commandGrid .building-card{padding:0}
+#commandGrid .building-card>.command-cost{display:none}
+#commandGrid .command-slot-empty{background:none;opacity:1}
+
+@media(max-width:599px){
+ :root{--panel:192px}
+ body[data-panel="normal"],body[data-panel="expanded"],body[data-panel="min"]{--panel:192px}
+ #panel{min-height:192px;padding:4px 3px max(4px,env(safe-area-inset-bottom));gap:3px}
+ #consoleMain{width:100%;height:156px;min-height:156px;grid-template-columns:minmax(92px,28%) minmax(0,1fr) minmax(116px,37%);grid-template-rows:minmax(0,1fr);grid-template-areas:"map inspection commands";gap:2px;padding:2px;background-image:none}
+ #consoleMapWrap{width:min(100%,116px);height:auto;aspect-ratio:1;align-self:center;justify-self:center;padding:6px}
+ #consoleMinimap{width:100%;height:100%}
+ #panel #inspectionWrap{align-self:center;width:100%;height:146px;margin:0;border:5px solid transparent;border-image:var(--inspection-frame) 22 24 20 24 fill / 5px stretch;background:#020506}
+ #panel #inspectionScaled{width:100%;height:100%}
+ #panel #wireframe{left:3px;top:4px;width:39px;height:39px}
+ #panel .unit-info strong{left:44px;right:3px;top:4px;font-size:10px;line-height:12px}
+ #panel .unit-info #order,#panel .unit-info #unitStatus,#panel .unit-info #killCount{left:44px;right:3px;font-size:8px;line-height:10px}
+ #panel .unit-info #order{top:19px}
+ #panel .unit-info #unitStatus{top:31px}
+ #panel .unit-info #killCount{top:43px}
+ #panel #inspectionNumbers{left:4px;bottom:7px;width:66px;font-size:7px;line-height:10px}
+ #panel #inspectionNumbers span{min-height:10px}
+ #panel #statDetails{left:4px;right:2px;bottom:45px}
+ #panel #statIcons{gap:2px;max-height:22px;flex-wrap:nowrap}
+ #panel .unit-info #productionQueue{left:4px;top:67px;max-width:calc(100% - 8px);font-size:7px}
+ #panel #portraitArea{top:69px;right:3px;width:39px;grid-template-rows:16px 36px;gap:2px}
+ #panel #settings{height:16px;min-height:16px;font-size:7px}
+ #panel .portrait-frame{width:39px;height:36px;padding:2px}
+ #inlineCommands{width:100%;height:148px;grid-template-rows:17px minmax(0,1fr);gap:2px;padding:0 1px}
+ #commandTabs .command-tab{min-height:17px;height:17px;line-height:15px;font-size:7px}
+ #commandGrid{gap:1px}
+ #commandGrid .command-slot{min-height:0;overflow:hidden}
+ #commandGrid .command-art{transform:scale(.98)}
+ #panel .lane-views{height:24px;min-height:24px}
+}
+@media(max-width:350px){
+ #consoleMain{grid-template-columns:minmax(88px,28%) minmax(0,1fr) minmax(112px,37%);column-gap:1px;padding:1px}
+ #consoleMapWrap{padding:5px}
+ #panel #wireframe{width:32px;height:32px}
+ #panel .unit-info strong,#panel .unit-info #order,#panel .unit-info #unitStatus,#panel .unit-info #killCount{left:36px}
+ #commandGrid .command-art{transform:scale(.92)}
+}
+@media(max-height:520px) and (max-width:599px){
+ :root{--panel:190px}
+ body[data-panel="normal"],body[data-panel="expanded"],body[data-panel="min"]{--panel:190px}
+ #panel{min-height:190px}
+ #consoleMain{height:154px;min-height:154px}
+}

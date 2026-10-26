@@ -1,10 +1,10 @@
-import {UnitGrid} from './spatial.js?v=0.16.23';
-import {layeredActionSeconds,transitionSeconds} from './animation.js?v=0.16.23';
-import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellCastTargetValid,spellAffectedTargetValid,spellAreaContains,unitBoundsDistance,spellEdgeInRange} from './spell-rules.js?v=0.16.23';
-import {resolveUnitDefinition,resolveWeapon,acquisitionRange,attackHitCount,cooldownFrames,movementSpeed,movementProfile,scriptProgramForImage,healthDamageAfterArmor,shieldDamageAfterArmor,unitBoundsGap,inNoExpandRect as unitInNoExpandRect} from './combat-rules.js?v=0.16.23';
-import {ensureMotion,clearMovementControl,aimUnit,advanceUnitMovement,brakeUnitMovement} from './action-control.js?v=0.16.23';
-import {octileDistance,segmentAabbEntry,sweptCircleEntry,MOVEMENT_EPSILON,isFullyBurrowed} from './movement.js?v=0.16.23';
-export const VERSION='0.16.23';
+import {UnitGrid} from './spatial.js?v=0.16.24';
+import {layeredActionSeconds,transitionSeconds} from './animation.js?v=0.16.24';
+import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellCastTargetValid,spellAffectedTargetValid,spellAreaContains,unitBoundsDistance,spellEdgeInRange} from './spell-rules.js?v=0.16.24';
+import {resolveUnitDefinition,resolveWeapon,acquisitionRange,attackHitCount,cooldownFrames,movementSpeed,movementProfile,scriptProgramForImage,healthDamageAfterArmor,shieldDamageAfterArmor,unitBoundsGap,inNoExpandRect as unitInNoExpandRect} from './combat-rules.js?v=0.16.24';
+import {ensureMotion,clearMovementControl,aimUnit,advanceUnitMovement,brakeUnitMovement} from './action-control.js?v=0.16.24';
+import {octileDistance,segmentAabbEntry,sweptCircleEntry,MOVEMENT_EPSILON,isFullyBurrowed} from './movement.js?v=0.16.24';
+export const VERSION='0.16.24';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.

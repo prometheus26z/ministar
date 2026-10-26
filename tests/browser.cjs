@@ -185,6 +185,8 @@ assert.equal(productionToggle.x,390-productionToggle.width);
 assert.equal(await page.locator('#command-page-basic').getAttribute('aria-selected'),'true');
 assert.equal(await page.locator('#commandTabs button').count(),2);
 assert.equal(await page.locator('#commandGrid .command-slot').count(),9);
+assert.equal(await page.locator('#commandGrid .command-art').count(),9);
+assert.equal(await page.locator('#commandGrid .command-slot').last().getAttribute('aria-label'),'건설 명령 취소');
 assert.equal(await page.locator('#consoleMinimap').isVisible(),true);
 assert.equal(await page.locator('#slow').isVisible(),false);
 // All five original geyser centers resolve to their own touch target.
@@ -259,7 +261,7 @@ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('ministar.s
 await page.locator('#qualityTrigger').click();await page.locator('#modal h2').click();assert.equal(await page.getByRole('listbox').count(),0);
 await page.locator('#closeModal').click();
 await page.locator('#baseView').click();
-for(const viewport of [{width:320,height:568},{width:390,height:844},{width:844,height:390}]){await page.setViewportSize(viewport);const layout=await page.locator('#panel').evaluate(el=>({height:el.getBoundingClientRect().height,overflow:el.scrollWidth>el.clientWidth,gridRight:document.querySelector('#commandGrid').getBoundingClientRect().right,mapRight:document.querySelector('#consoleMinimap').getBoundingClientRect().right}));assert.equal(layout.overflow,false);assert.ok(layout.height<=(viewport.width<600?260:184),`${viewport.width}x${viewport.height}: panel height ${layout.height}`);assert.ok(layout.gridRight<=viewport.width&&layout.mapRight<=viewport.width);assert.equal(await page.locator('#consoleMinimap').isVisible(),true);}
+for(const viewport of [{width:320,height:568},{width:390,height:844},{width:844,height:390}]){await page.setViewportSize(viewport);const layout=await page.locator('#panel').evaluate(el=>{const box=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return{x:r.x,y:r.y,right:r.right,bottom:r.bottom,centerY:r.y+r.height/2}};return{height:el.getBoundingClientRect().height,overflow:el.scrollWidth>el.clientWidth,map:box('#consoleMapWrap'),inspection:box('#inspectionWrap'),commands:box('#inlineCommands'),gridRight:document.querySelector('#commandGrid').getBoundingClientRect().right}});assert.equal(layout.overflow,false);assert.ok(layout.height<=(viewport.width<600?260:184),`${viewport.width}x${viewport.height}: panel height ${layout.height}`);assert.ok(layout.gridRight<=viewport.width&&layout.map.right<=viewport.width);assert.ok(layout.map.right<=layout.inspection.x+2&&layout.inspection.right<=layout.commands.x+2,JSON.stringify({viewport,layout}));assert.ok(Math.abs(layout.map.centerY-layout.inspection.centerY)<20&&Math.abs(layout.commands.centerY-layout.inspection.centerY)<20,JSON.stringify({viewport,layout}));assert.equal(await page.locator('#consoleMinimap').isVisible(),true);}
 await page.setViewportSize({width:390,height:844});await page.locator('#baseView').click();await page.screenshot({path:'/tmp/ministar-hud.png',fullPage:true});
 await page.evaluate(()=>{const b=window.__visualTest.battle;b.die(b.outpostDefenses[0][0],1)});
 await page.waitForFunction(()=>[...window.__spriteDraws].some(url=>url.includes('assets/sprites/215_'))&&[...window.__spriteDraws].some(url=>url.includes('destruction-assets/217-')));
