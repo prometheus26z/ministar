@@ -73,7 +73,7 @@ async function testInspection(browser){
  try{
   const ids=await page.evaluate(()=>window.__inspectionTest.createPanelScene());
   assert.equal(await page.evaluate(()=>document.getElementById('researchButton')),null,'the unused research button is absent');
-  assert.equal(await page.locator('#panel .panel-main button').count(),2,'the lane command row has only build and sortie controls');
+  assert.equal(await page.locator('#commandTabs button').count(),0,'building tabs are shown only in the player production space');assert.equal(await page.locator('#commandGrid .command-slot:not(:disabled)').count(),0,'field inspection has no build commands');
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
   await page.waitForFunction(()=>window.__inspectionTest.wireframeCacheSize>0);
@@ -105,7 +105,7 @@ async function testInspection(browser){
   const enemyPoint=await page.evaluate(id=>window.__inspectionTest.centerOn(id,1.2),ids.enemy);
   await page.locator('#field').tap({position:enemyPoint});
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='마린');
-  assert.equal(await page.locator('#commandButton').isDisabled(),true,'inspecting an enemy grants no build command');
+  assert.equal(await page.locator('#commandTabs button').count(),0,'inspecting an enemy grants no build command');assert.equal(await page.locator('#commandGrid .command-slot:not(:disabled)').count(),0);
   assert.equal(await page.locator('#portrait').getAttribute('src'),'assets/portraits/0.webm');
 
   const buildingPoint=await page.evaluate(id=>window.__inspectionTest.centerOn(id,1.2),ids.building);
@@ -118,7 +118,7 @@ async function testInspection(browser){
   assert.equal(await page.locator('#portrait').getAttribute('src'),null,'clearing inspection releases the previous portrait');
   assert.equal(await page.locator('#statIcons button').count(),0);
   const emptyFrame=await page.locator('.portrait-frame').boundingBox();
-  assert.ok(emptyFrame?.width>0&&emptyFrame.width===emptyFrame.height,'portrait frame remains square without an active portrait');
+  assert.ok(emptyFrame?.width>0&&Math.abs(emptyFrame.width/emptyFrame.height-60/56)<.1,'portrait frame keeps the original console frame proportions without an active portrait');
 
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
@@ -132,12 +132,13 @@ async function testInspection(browser){
   await page.locator('#field').screenshot({path:'/tmp/ministar-mana-bar.png'});
   for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:844,height:390}]){
    await page.setViewportSize(viewport);
-   const layout=await page.evaluate(()=>{const frame=document.querySelector('.portrait-frame').getBoundingClientRect(),actions=document.querySelector('.panel-main').getBoundingClientRect(),menu=document.querySelector('#settings').getBoundingClientRect();return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:document.querySelector('#inspectionWrap').getBoundingClientRect().toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON(),frame:{top:frame.top,bottom:frame.bottom,height:frame.height},actions:{top:actions.top,bottom:actions.bottom,height:actions.height},menu:{bottom:menu.bottom}}});
+   const layout=await page.evaluate(()=>{const frame=document.querySelector('.portrait-frame').getBoundingClientRect(),portrait=document.querySelector('#portraitArea').getBoundingClientRect(),menu=document.querySelector('#settings').getBoundingClientRect(),grid=document.querySelector('#commandGrid').getBoundingClientRect(),mini=document.querySelector('#consoleMinimap').getBoundingClientRect();return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:document.querySelector('#inspectionWrap').getBoundingClientRect().toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON(),frame:{top:frame.top,bottom:frame.bottom,height:frame.height},portrait:{top:portrait.top,bottom:portrait.bottom},menu:{bottom:menu.bottom},grid:{left:grid.left,right:grid.right},mini:{left:mini.left,right:mini.right}}});
    assert.ok(layout.document<=viewport.width,JSON.stringify(layout));
    assert.ok(layout.wrap.left>=0&&layout.wrap.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.footer.left>=0&&layout.footer.right<=viewport.width+1,JSON.stringify(layout));
-   assert.ok(Math.abs(layout.frame.top-layout.actions.top)<=1&&Math.abs(layout.frame.bottom-layout.actions.bottom)<=1,JSON.stringify(layout));
+   assert.ok(layout.frame.top>=layout.portrait.top&&layout.frame.bottom<=layout.portrait.bottom+1,JSON.stringify(layout));
    assert.ok(layout.menu.bottom<=layout.frame.top+1,JSON.stringify(layout));
+   assert.ok(layout.grid.left>=0&&layout.grid.right<=viewport.width+1&&layout.mini.left>=0&&layout.mini.right<=viewport.width+1,JSON.stringify(layout));
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(id=>window.__inspectionTest.centerOn(id,.4),ids.dragoon);await page.waitForTimeout(80);

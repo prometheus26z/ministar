@@ -1,0 +1,11 @@
+{
+  "format": "MSTAR001+gzip+base64",
+  "sha256": "a1f431d4bb75f88c279e7a6b92a948ee208c11e8cd184e2b4893e2b770096de3",
+  "files": 50,
+  "bytes": 489459,
+  "parts": [
+    "original-console-assets-0000.b64",
+    "original-console-assets-0001.b64"
+  ],
+  "sourceManifest": "resources/original-console-source.json"
+}
