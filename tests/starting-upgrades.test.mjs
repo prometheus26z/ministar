@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Battle as CombatBattle} from '../dist/core.js';
-import {COMBAT_SOURCE,resolveUnitDefinition,resolveWeapon,attackHitCount,cooldownFrames,movementSpeed,sourcePlayerForUnit,upgradeLevel} from '../dist/combat-rules.js?v=0.16.14';
+import {COMBAT_SOURCE,resolveUnitDefinition,resolveWeapon,attackHitCount,cooldownFrames,movementSpeed,sourcePlayerForUnit,upgradeLevel} from '../dist/combat-rules.js?v=0.16.15';
 import {combatData,laneBattle} from './combat-test-data.mjs';
 
 test('both lane combat profiles use the map starting weapon, armor, shield, and range upgrades',()=>{

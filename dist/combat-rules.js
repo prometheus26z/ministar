@@ -1,4 +1,4 @@
-import {COMBAT_SOURCE} from './broodwar-combat-data.js?v=0.16.14';
+import {COMBAT_SOURCE} from './broodwar-combat-data.js?v=0.16.15';
 
 const NO_WEAPON=130;
 const SPEED_UPGRADES={2:17,37:27,38:29,39:53,42:26,65:34,69:37,70:42,84:39};
@@ -95,7 +95,8 @@ export function resolveWeapon(data,battle,unit,targetAir=false){
  const bonus=mapCombat&&Number.isFinite(weaponRule?.mapBonus)?weaponRule.mapBonus:0;
  const damage=Math.max(0,rawDamage+bonus*damageLevel);
  const range=base.range+rangeBonus(unit,weaponId,player);
- return Object.freeze({...base,damage,range,sourceWeaponId:weaponId,damageUpgrade,damageLevel,mapDamage:rawDamage,mapBonus:bonus,combatProfilePlayer:player});
+ const splash=weaponRule?[weaponRule.wpnSplashRangeInner,weaponRule.wpnSplashRangeMid,weaponRule.wpnSplashRangeOuter]:base.splash;
+ return Object.freeze({...base,damage,range,splash,explosionType:weaponRule?.explosionType||base.explosionType||'Normal',sourceWeaponId:weaponId,damageUpgrade,damageLevel,mapDamage:rawDamage,mapBonus:bonus,combatProfilePlayer:player});
 }
 
 export function acquisitionRange(battle,unit,targetAir=null,definition=unit?.def,baseDef=unit?.baseDef){
@@ -122,7 +123,9 @@ export function attackHitCount(unit,weapon,targetAir=false){
 
 export function cooldownFrames(battle,unit,weapon,{jitter=0}={}){
  const weaponId=weapon?.sourceWeaponId??weapon?.id,source=COMBAT_SOURCE.weapons[weaponId];
- const base=Math.max(1,Math.round(source?.wpnDamageCooldowns??(weapon?.cooldown||0)*24));
+ let base=Math.max(1,Math.round(source?.wpnDamageCooldowns??(weapon?.cooldown||0)*24));
+ const acidSporeCount=Math.min(9,Math.max(0,Math.trunc(unit?.acidSporeTimers?.length??unit?.acidSporeCount??0)));
+ if(acidSporeCount)base+=Math.max(Math.floor(base/8),3)*acidSporeCount;
  const player=sourcePlayerForUnit(battle,unit),upgrades=Number.isInteger(player)?COMBAT_SOURCE.players[player]?.initial||[]:[];
  const speedUpgrade=ATTACK_SPEED_UPGRADES[unitId(unit)],speed=Number.isInteger(speedUpgrade)&&(upgrades[speedUpgrade]||0)>0;
  const modifier=Number(unit?.buffs?.stim>0)+Number(speed)-Number(unit?.buffs?.ensnare>0);
@@ -145,11 +148,12 @@ function sizeMultiplier(target,type){
  return 1;
 }
 
-export function healthDamageAfterArmor(target,damage,type=3,ignoreArmor=false){
+export function healthDamageAfterArmor(target,damage,type=3,ignoreArmor=false,{minimum=.5}={}){
  if(!(damage>0))return 0;
  if(ignoreArmor||type===4)return damage;
  const afterArmor=damage-Math.max(0,target?.def?.armor||0);
- return Math.max(.5,afterArmor*sizeMultiplier(target,type));
+ const scaled=afterArmor*sizeMultiplier(target,type);
+ return minimum>0?Math.max(minimum,scaled):Math.max(0,scaled);
 }
 
 export function shieldDamageAfterArmor(target,damage,ignoreArmor=false){
@@ -163,6 +167,16 @@ export function unitBoundsGap(point,unit,data){
  const dims=COMBAT_SOURCE.units[unitId(unit)]?.dimensions;
  const left=dims?.left??unit.r??0,right=dims?.right??left,up=dims?.up??unit.r??0,down=dims?.down??up;
  return Math.hypot(Math.max(0,point.x-unit.x-left,unit.x-point.x-right),Math.max(0,point.y-unit.y-up,unit.y-point.y-down));
+}
+
+// Mirrors OpenBW's noexpand unit-finder rectangle query using DAT bounds.
+export function inNoExpandRect(point,unit,rect,data){
+ let left,right,up,down;
+ if(unit?.def?.building){const [w,h]=unit.def.footprint||data?.units?.[unit.type]?.footprint||[64,64];left=right=w/2;up=down=h/2}
+ else{const dims=COMBAT_SOURCE.units[unitId(unit)]?.dimensions;left=dims?.left??unit.r??0;right=dims?.right??left;up=dims?.up??unit.r??0;down=dims?.down??up}
+ const x0=unit.x-left,x1=unit.x+right,y0=unit.y-up,y1=unit.y+down;
+ const xEdgeInside=rect.left<=x0&&x0<rect.right||rect.left<=x1&&x1<rect.right;
+ return xEdgeInside&&x0<rect.right&&y0<rect.bottom&&y1>=rect.top;
 }
 
 export {COMBAT_SOURCE};

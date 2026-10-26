@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {HANGAR_RULES} from '../dist/hangar.js?v=0.16.14';
+import {HANGAR_RULES} from '../dist/hangar.js?v=0.16.15';
 import {emptyLaneBattle} from './combat-test-data.mjs';
 
 test('Carrier attacks through individually launched Interceptors at the 256px control range',()=>{
