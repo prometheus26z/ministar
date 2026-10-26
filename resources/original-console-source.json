@@ -1,0 +1,318 @@
+{
+  "build": "1.23.10.13515",
+  "cdn": "https://us.cdn.blizzard.com/tpr/sc1live/",
+  "rootMd5": "b96213f265684e16db5a8552eba1be09",
+  "encodingMd5": "6f0a25d319069d1b09bc4034820e5ae0",
+  "files": [
+    {
+      "path": "SD/game/consoles/terran/console.DDS",
+      "md5": "2620a673c8b99b02cd2f46d60e992a57",
+      "bytes": 481408,
+      "encodedKey": "69639f75fd46a133979f77e87dcdc81f",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 123627316,
+      "encodedSize": 26663,
+      "sha256": "7cc431417dcef207fc1977a3cf715dd25eb59e6367b804d06a60ad08a728af9c"
+    },
+    {
+      "path": "SD/game/consoles/terran/conover.DDS",
+      "md5": "e63c5f27bc9040c8df46f088c797cd38",
+      "bytes": 3488,
+      "encodedKey": "e73380dd20cdc62e4caf320059866a14",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 123701947,
+      "encodedSize": 678,
+      "sha256": "56a61c7eba756003e8dc80c954d9839f50ea30f58f3cfab36a7f24708fe7a428"
+    },
+    {
+      "path": "SD/game/consoles/terran/dlg.dds.grp",
+      "md5": "32a99fff6ea0c99872a77b4386a71501",
+      "bytes": 47512,
+      "encodedKey": "d55c92592dfb8691c0dac8dab247bcbc",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 123776235,
+      "encodedSize": 9996,
+      "sha256": "4b142a4db97dfa40051f3efd0c82744a70d3a3c6795f1beef70bb11af847aa42"
+    },
+    {
+      "path": "SD/game/consoles/terran/cmdbtns.dds.grp",
+      "md5": "a24fb46382c33736274236186de97b25",
+      "bytes": 47276,
+      "encodedKey": "99b06e4c52a6a5c5919e6edd57013f0e",
+      "archive": "3e9c1ec9abab9d0435c167611c34cd46",
+      "offset": 208742380,
+      "encodedSize": 3171,
+      "sha256": "660bc5e930fbe3a00d1bc7881abc83021eb8f1d4559ea4a6b84f535427ef3d29"
+    },
+    {
+      "path": "game/consoles/terran/console_left.DDS",
+      "md5": "afbdc9b68133a37a703d89b4f2164e02",
+      "bytes": 690328,
+      "encodedKey": "4d64538837d6dcfbcee0f49dfddbb191",
+      "archive": "7c1cc7172da4fc01a4efe8572cce2302",
+      "offset": 76356055,
+      "encodedSize": 305565,
+      "sha256": "89e59a3dfc0d663a82857701fc357faa467cfbbc9134eb1caa0933bf7bbf90db"
+    },
+    {
+      "path": "game/consoles/terran/console_center.DDS",
+      "md5": "731e640a579a5df6833ee86ed5a62446",
+      "bytes": 296064,
+      "encodedKey": "4079c3dc6787ccbfb296cd077d831e1f",
+      "archive": "7c1cc7172da4fc01a4efe8572cce2302",
+      "offset": 73763644,
+      "encodedSize": 28358,
+      "sha256": "620ef77684529513e98060565fe89278b139bb23a1d0171148aa0ffe1d7fa676"
+    },
+    {
+      "path": "game/consoles/terran/console_right.DDS",
+      "md5": "ab38ace3299d86abb5d841b674691136",
+      "bytes": 800928,
+      "encodedKey": "c2ff8eff1d7c75987335ec0637531b24",
+      "archive": "7c1cc7172da4fc01a4efe8572cce2302",
+      "offset": 77040400,
+      "encodedSize": 418080,
+      "sha256": "778b9c66fc9faf9153515f56b92822cf98b75e95a620b5e5187d28cfd08ab539"
+    },
+    {
+      "path": "game/consoles/terran/conover.DDS",
+      "md5": "5b4881991d74788c3ef35fcf0b694d02",
+      "bytes": 65664,
+      "encodedKey": "e2a18094b2c500d1c654d8b97671ad1e",
+      "archive": "7c1cc7172da4fc01a4efe8572cce2302",
+      "offset": 75571131,
+      "encodedSize": 8705,
+      "sha256": "3401d427fc63928785cd79f87296e2f4d2ddbe6aa18b2538587711599a681168"
+    },
+    {
+      "path": "game/consoles/terran/dlg.dds.grp",
+      "md5": "cd655363225c3c7d53c3546995eb3637",
+      "bytes": 488264,
+      "encodedKey": "433faf7b0e312e6b7186f9bd765ffe55",
+      "archive": "7c1cc7172da4fc01a4efe8572cce2302",
+      "offset": 77586877,
+      "encodedSize": 121910,
+      "sha256": "50395a8a549fed951626b8e19ef1e87baa1388dfa9cfa799005c5028fc44a7db"
+    },
+    {
+      "path": "SD/game/consoles/zerg/console.DDS",
+      "md5": "3c2bb08f6f59a9de9c9858003a1cc6a6",
+      "bytes": 491648,
+      "encodedKey": "90812f1de4a547e3676ef9f9d966f66e",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 123582283,
+      "encodedSize": 42072,
+      "sha256": "344781ef3fec157248c75cb14100490b2be624f8cad09bb5bd1def5a88273882"
+    },
+    {
+      "path": "SD/game/consoles/zerg/conover.DDS",
+      "md5": "8ea851ded0c742916c637d23d4901bc7",
+      "bytes": 3488,
+      "encodedKey": "0bedccd27de5e1a0a06d5d04cf2a9cbc",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 123755758,
+      "encodedSize": 727,
+      "sha256": "1ef9e740426db85a40d6a2d2b902caaef1d65f4184abfd23ad646dd16df5801b"
+    },
+    {
+      "path": "SD/game/consoles/zerg/dlg.dds.grp",
+      "md5": "7a609aa948ed95bb0a573d7509f1f4f1",
+      "bytes": 47768,
+      "encodedKey": "b235c7298d1ea04ffbe9b985dcd9fa23",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 123786231,
+      "encodedSize": 10754,
+      "sha256": "e555bfed95d960f77f92ccc611fa5df02a36c50c1321cdc46cbd5920322aeae6"
+    },
+    {
+      "path": "SD/game/consoles/zerg/cmdbtns.dds.grp",
+      "md5": "a24fb46382c33736274236186de97b25",
+      "bytes": 47276,
+      "encodedKey": "99b06e4c52a6a5c5919e6edd57013f0e",
+      "archive": "3e9c1ec9abab9d0435c167611c34cd46",
+      "offset": 208742380,
+      "encodedSize": 3171,
+      "sha256": "660bc5e930fbe3a00d1bc7881abc83021eb8f1d4559ea4a6b84f535427ef3d29"
+    },
+    {
+      "path": "game/consoles/zerg/console_left.DDS",
+      "md5": "ca36d4655d3b43fd54b2413b0157c9aa",
+      "bytes": 781824,
+      "encodedKey": "4bd3d549f0c72e21e6ed225caa0b2022",
+      "archive": "04a34bb440a805e9084e78f6239db363",
+      "offset": 135270226,
+      "encodedSize": 359468,
+      "sha256": "d1b9a2f6907ec0f47c285ed40bd72e0643cfb76ede2fd72a9a21f8fedcdd0283"
+    },
+    {
+      "path": "game/consoles/zerg/console_center.DDS",
+      "md5": "9eb3d9ee1860c806a2859325e403c2b9",
+      "bytes": 296064,
+      "encodedKey": "ab146dcfd28090cdee2c4351a3176bad",
+      "archive": "7c1cc7172da4fc01a4efe8572cce2302",
+      "offset": 74270204,
+      "encodedSize": 77226,
+      "sha256": "3973dab10faa161dc82de54fc427dcbd86de7c6a209db2fa5354cbac6dc4d092"
+    },
+    {
+      "path": "game/consoles/zerg/console_right.DDS",
+      "md5": "b41b523ea405b77461dca10a994d00af",
+      "bytes": 772928,
+      "encodedKey": "0cabd2facac21548645c8a4bc549ba93",
+      "archive": "04a34bb440a805e9084e78f6239db363",
+      "offset": 134791937,
+      "encodedSize": 478289,
+      "sha256": "92829f005c82c020bc4a97579f788c44709739e5212637f59a3d03e22e086bc0"
+    },
+    {
+      "path": "game/consoles/zerg/conover.DDS",
+      "md5": "82ce7fd2f35baf798c7f6834b7c917e5",
+      "bytes": 65664,
+      "encodedKey": "bbe3ea24cf4dd059fb8f7409c3b5f91c",
+      "archive": "b3552cb059340068e616ac84f4c554db",
+      "offset": 122973036,
+      "encodedSize": 9239,
+      "sha256": "572f28e10e530250f1256adaffece2ae5033b843b5528e101ac7ab0e9539f008"
+    },
+    {
+      "path": "game/consoles/zerg/dlg.dds.grp",
+      "md5": "a23bcdc30fdbfa2d72de34de80dcbe77",
+      "bytes": 488264,
+      "encodedKey": "3d2afca8d2c988b05ba1ddf4f88a2224",
+      "archive": "b3552cb059340068e616ac84f4c554db",
+      "offset": 123016411,
+      "encodedSize": 131146,
+      "sha256": "248a8f5a8f65cb84f77f77aba697ab4515417f97e124b83223ca7b2a79369189"
+    },
+    {
+      "path": "SD/game/consoles/protoss/console.DDS",
+      "md5": "e61c65445e0314d4725328ef92de9692",
+      "bytes": 460928,
+      "encodedKey": "610b34c62724577dc57c129f08d1297a",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 123710038,
+      "encodedSize": 28328,
+      "sha256": "b97d86b06d9c2e9e1172cb8c1007ebd7f2f2eac157456226abe94be6f0b4ab00"
+    },
+    {
+      "path": "SD/game/consoles/protoss/conover.DDS",
+      "md5": "745e85b8fe1da44b552f178c5f74548f",
+      "bytes": 3488,
+      "encodedKey": "fc8dd4e0d1b6c3dc434eb2babeba1686",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 123744494,
+      "encodedSize": 441,
+      "sha256": "aa72a3de543a1993be3afcfc21461ffb06a933484d0a6388563c692726ba4d18"
+    },
+    {
+      "path": "SD/game/consoles/protoss/dlg.dds.grp",
+      "md5": "d0f78fbcf19707ca7a9f8971e92952fc",
+      "bytes": 47512,
+      "encodedKey": "57611f254a6f4406b33edd2b14b26a2f",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 123766021,
+      "encodedSize": 10214,
+      "sha256": "028b0b66faaa73b5f60bfbd7d90070917247d3308dc365e8b1e0835488c25e66"
+    },
+    {
+      "path": "SD/game/consoles/protoss/cmdbtns.dds.grp",
+      "md5": "7b7a446f1d96c04bfb2f4e8876e08b23",
+      "bytes": 47276,
+      "encodedKey": "d2e2427fc6108d96ea7832f5d96384fb",
+      "archive": "3e9c1ec9abab9d0435c167611c34cd46",
+      "offset": 208738774,
+      "encodedSize": 3606,
+      "sha256": "d49a586d7b422d17ddea045cfe7decd627cdbba68844febdb9c17a6a92aad92d"
+    },
+    {
+      "path": "game/consoles/protoss/console_left.DDS",
+      "md5": "3c144e04431d8a3b4f2e6b35b08bd3fb",
+      "bytes": 710656,
+      "encodedKey": "e58de581405b40f4775df32316a2f996",
+      "archive": "04a34bb440a805e9084e78f6239db363",
+      "offset": 121663141,
+      "encodedSize": 249928,
+      "sha256": "2940be951be9c8041d989f1b5663d22676409d7fff49f75ffa9a23be2d89edf7"
+    },
+    {
+      "path": "game/consoles/protoss/console_center.DDS",
+      "md5": "c842c0f92f378cb0fae5a0d014a610c4",
+      "bytes": 300160,
+      "encodedKey": "6745ccc85191dc15899afce336470cdf",
+      "archive": "04a34bb440a805e9084e78f6239db363",
+      "offset": 129837761,
+      "encodedSize": 103204,
+      "sha256": "753f85b68a49b84df1ccbc5a20fe9419c103d8a93f1d58f8bf0295cf513feff3"
+    },
+    {
+      "path": "game/consoles/protoss/console_right.DDS",
+      "md5": "56d6cee14bfc3c86174389c8e643dab6",
+      "bytes": 812288,
+      "encodedKey": "e7726a6e6eda46439514714f848c83da",
+      "archive": "04a34bb440a805e9084e78f6239db363",
+      "offset": 122024599,
+      "encodedSize": 247527,
+      "sha256": "e0c7540e4a6abb5bb445f1a3c9b2b0b1264f9c757627ad960f701eff6765fdf1"
+    },
+    {
+      "path": "game/consoles/protoss/conover.DDS",
+      "md5": "3d7cb899b4179290ca54a80d6a149b3d",
+      "bytes": 65664,
+      "encodedKey": "d6374d6a871cbb90cad733be7b66da15",
+      "archive": "04a34bb440a805e9084e78f6239db363",
+      "offset": 123137517,
+      "encodedSize": 16435,
+      "sha256": "d31e2bd6fdd309b381d564bc803dbff53cdcd11df660209f121912cbab510edb"
+    },
+    {
+      "path": "game/consoles/protoss/dlg.dds.grp",
+      "md5": "2c5e4dc147b3cb49c1590cb763388a8d",
+      "bytes": 488264,
+      "encodedKey": "59932920752266dc58db3c776d4a3040",
+      "archive": "04a34bb440a805e9084e78f6239db363",
+      "offset": 123252607,
+      "encodedSize": 75553,
+      "sha256": "922f5ec521699d9ec07ac5951d21f43f0a3b2117a8a0e2151dcc1c1bda205420"
+    },
+    {
+      "path": "TileSet/Desert.grp",
+      "md5": "91c5d50fa06cd5d179a1a4b8a2147169",
+      "bytes": 22209,
+      "encodedKey": "8ab3cf08cca348344c73fa6cf33efcc3",
+      "archive": "37471f65161d7fe86731deec88ac7bdc",
+      "offset": 129924443,
+      "encodedSize": 9509,
+      "sha256": "eeb1fac9dac8953a161dcffd58a5847340e2c9bf9b160faa20c36f53786c0b08"
+    },
+    {
+      "path": "TileSet/Desert.wpe",
+      "md5": "9845aad0108a7a124e5b9b37f697e795",
+      "bytes": 1024,
+      "encodedKey": "bd9cb16f316b319f9dfbd7dea6adcf06",
+      "archive": "37471f65161d7fe86731deec88ac7bdc",
+      "offset": 129987116,
+      "encodedSize": 780,
+      "sha256": "9b59eb5e2678f1d2352be9c6afa020f3cf154decd7759a4c09c235ef32858bb2"
+    },
+    {
+      "path": "TileSet/Desert.dds.grp",
+      "md5": "0cf3b6c0e8b8cf954f0bbc053739813b",
+      "bytes": 265028,
+      "encodedKey": "834e93377a13ac89e8f22677a3e181e4",
+      "archive": "37471f65161d7fe86731deec88ac7bdc",
+      "offset": 129784353,
+      "encodedSize": 127922,
+      "sha256": "e42e43f0937deb6bfa69896160a39bf382e1e8f97ed1b67f91616d57f592e4d9"
+    },
+    {
+      "path": "SD/TileSet/Desert.dds.grp",
+      "md5": "9aad77d49de9c526989af38551d2589e",
+      "bytes": 21316,
+      "encodedKey": "f79b6ace00f71bbc4dd16ccd76f84403",
+      "archive": "f9b1affa7dd4d53db43d42885d683fc3",
+      "offset": 142425964,
+      "encodedSize": 6579,
+      "sha256": "8eb0f88abae3e56e82f05feaa6f04ce09a0c56d41cd054f6448a1deb900eb010"
+    }
+  ]
+}

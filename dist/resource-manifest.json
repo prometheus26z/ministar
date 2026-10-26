@@ -5216,6 +5216,252 @@
       "mime": "image/png",
       "kind": "image"
     },
+    "assets/original-terrain/desert-edge-hd.webp": {
+      "sha256": "11162ff5e6192e98a284fd9d196dd5b332d980db580fca68be7a7edd225d9a0a",
+      "bytes": 229746,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-terrain/desert-edge-sd.webp": {
+      "sha256": "16538e7faf36eb6c6007ed309e0a02e850e6f2e8c96ab7b432ae7e6e49fb289b",
+      "bytes": 12464,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/cmdbtns.webp": {
+      "sha256": "461c1a991628408313e8d9579593fe4ff10282730abc9df3b3df847f5b3389b3",
+      "bytes": 4676,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/command-normal.webp": {
+      "sha256": "cfb0468bc3c7fccf8626d6f7673f7a0537d85a2d6085aab2e329e66e6555f986",
+      "bytes": 886,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/command-pressed.webp": {
+      "sha256": "0d165b30787a1808175f66a2af62755520c5be97566ecfdf0a1abab626b1cda0",
+      "bytes": 1142,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/conover.webp": {
+      "sha256": "6fd0e2a4d6a57d5e03ed1d2b5ada2aa560d29acdd61a47372e98a56f78c3d78e",
+      "bytes": 478,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/console-normalized.webp": {
+      "sha256": "95d84fc5a05737a340857e2b802f4d842a45ce373f4e8c5f2439a0be32ba66d2",
+      "bytes": 15448,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/console.webp": {
+      "sha256": "df4d20f224679971abb73799114366f2fd21a4ad53e6b672de8f5a19b58d5bb9",
+      "bytes": 15464,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/dlg.webp": {
+      "sha256": "75f20e058e97f96009730d40f0bf3f1c660a91ac2816858e4e918b4e5fcb6489",
+      "bytes": 16898,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/frame-inspection.webp": {
+      "sha256": "3e9bfa60093d7244b9eba425ccc3a8899196d7f1c6bbeac0510682ea7d249045",
+      "bytes": 3212,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/frame-minimap.webp": {
+      "sha256": "cace8e5c9932c942343d263e2ad19f2f56d72c3515026a5fded7a8d48bb5a32e",
+      "bytes": 3364,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/menu-disabled.webp": {
+      "sha256": "73fa9e5108b66138bac60a28bb779835eb0f058eff2e7b905617646795c6637c",
+      "bytes": 740,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/menu-normal.webp": {
+      "sha256": "73fa9e5108b66138bac60a28bb779835eb0f058eff2e7b905617646795c6637c",
+      "bytes": 740,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/menu-pressed.webp": {
+      "sha256": "4125e23035b240f3737d33e794fae7f4ec0fbb933b223838c176b39c6103dc2c",
+      "bytes": 1162,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/protoss/stat-frame.webp": {
+      "sha256": "6cd891244b82f523e96cf97656db8ed1fd998cbcaca2317ab82b9d49319e8bff",
+      "bytes": 216,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/cmdbtns.webp": {
+      "sha256": "e46c119c34e63550bdc459a436607472f011fbbe9b8ff1415fafc3c9ea60e44f",
+      "bytes": 3484,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/command-normal.webp": {
+      "sha256": "614dfa1312acd84f085d32555ba1c5b875193e40a499f90acd14331d157852e5",
+      "bytes": 388,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/command-pressed.webp": {
+      "sha256": "1f296ebb851a0615c6af40ea04925bc405fe3be8157b25005895c83076c96743",
+      "bytes": 404,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/conover.webp": {
+      "sha256": "df6969d64acf514b9e39d3b721bcb3dcf317a4d70750a6e3cd2b31eba34e6c38",
+      "bytes": 798,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/console-normalized.webp": {
+      "sha256": "f38667cef1125f18b7fb32eb77b2689b22514257b5c1d8d1a994b6f105f845d6",
+      "bytes": 15152,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/console.webp": {
+      "sha256": "12a28b2f62a5bfd01327feac8661966b26c69185f286b09e73d6187464258550",
+      "bytes": 15156,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/dlg.webp": {
+      "sha256": "5a92648583faa85d1bfb7a5a97671322b2319733e20fcde803e5db39fbb485e2",
+      "bytes": 17254,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/frame-inspection.webp": {
+      "sha256": "4efdd53f22984bb202b6dde2c6c3250537829610cd0a8930e294a12429b5701f",
+      "bytes": 2984,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/frame-minimap.webp": {
+      "sha256": "7ccfb47f375f9322587a3759c8c3e6313081de29173750768445789a4db2c6ff",
+      "bytes": 1976,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/menu-disabled.webp": {
+      "sha256": "dc540bf87ae58803316ed937048cfdaced0a73af781fec99829ff4af36da25ad",
+      "bytes": 996,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/menu-normal.webp": {
+      "sha256": "dc540bf87ae58803316ed937048cfdaced0a73af781fec99829ff4af36da25ad",
+      "bytes": 996,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/menu-pressed.webp": {
+      "sha256": "b56c4059afc5ad30f40ea34a56c43c9cd44944c2a0351127034a604df3528f27",
+      "bytes": 1028,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/terran/stat-frame.webp": {
+      "sha256": "6cd891244b82f523e96cf97656db8ed1fd998cbcaca2317ab82b9d49319e8bff",
+      "bytes": 216,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/cmdbtns.webp": {
+      "sha256": "e46c119c34e63550bdc459a436607472f011fbbe9b8ff1415fafc3c9ea60e44f",
+      "bytes": 3484,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/command-normal.webp": {
+      "sha256": "614dfa1312acd84f085d32555ba1c5b875193e40a499f90acd14331d157852e5",
+      "bytes": 388,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/command-pressed.webp": {
+      "sha256": "1f296ebb851a0615c6af40ea04925bc405fe3be8157b25005895c83076c96743",
+      "bytes": 404,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/conover.webp": {
+      "sha256": "f487f7f0c9ffcfdd790ac4c1c574247b52d4ae3cc6aa33ab41691bb9451ae52b",
+      "bytes": 918,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/console-normalized.webp": {
+      "sha256": "3b0cb2f79e8e0588859e3809af7540f2ea7af9df599481e5a3e9b913794adc07",
+      "bytes": 24368,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/console.webp": {
+      "sha256": "3b0cb2f79e8e0588859e3809af7540f2ea7af9df599481e5a3e9b913794adc07",
+      "bytes": 24368,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/dlg.webp": {
+      "sha256": "cabc1f9de2eaaa93d28a8dc095cff21721888e12f344ba1158951726b2343603",
+      "bytes": 19058,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/frame-inspection.webp": {
+      "sha256": "89610b9da5bff987122fdd75945993e34a202e48d2556fc01cdbb604995dadd1",
+      "bytes": 6172,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/frame-minimap.webp": {
+      "sha256": "9a0d87cb1cff188700c4fb3257627604286802f57ed074d496dce596905f2531",
+      "bytes": 3018,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/menu-disabled.webp": {
+      "sha256": "127e8d5299de8234313fe97bb3a699b47dfc8265fcd529f6c73b73fe9b3ebd15",
+      "bytes": 1004,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/menu-normal.webp": {
+      "sha256": "127e8d5299de8234313fe97bb3a699b47dfc8265fcd529f6c73b73fe9b3ebd15",
+      "bytes": 1004,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/menu-pressed.webp": {
+      "sha256": "751727be9480cf8bf90a8c72399edbf6d80cb6dc04c99edfba4d7e0c361618e9",
+      "bytes": 924,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/original-ui/zerg/stat-frame.webp": {
+      "sha256": "6cd891244b82f523e96cf97656db8ed1fd998cbcaca2317ab82b9d49319e8bff",
+      "bytes": 216,
+      "mime": "image/webp",
+      "kind": "image"
+    },
     "assets/selection-ui/wirefram-layer-0.webp": {
       "sha256": "1a76014c64fc0f4dadecc196fe6521687060a78e34924212b8834e6699296de4",
       "bytes": 257102,
@@ -8349,5 +8595,5 @@
       "kind": "metadata"
     }
   },
-  "buildId": "9a697dbb9ab5ce273ec95ce39821ce1d60f503eef7ccea979c6e052941614e59"
+  "buildId": "a7b77147d2da8e0b5275586157fcb6a878d3189256f98a12be1a0bde061d1b97"
 }
