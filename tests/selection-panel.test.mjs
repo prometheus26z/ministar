@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {selectionPanelModel,inspectionDetailRows} from '../dist/selection-panel.js';
+import {selectionPanelModel,inspectionDetailRows,selectionStatItems,inspectionEnergyMaximum} from '../dist/selection-panel.js';
 import {UNIT_UI} from '../dist/selection-ui-data.js';
 import {formatSupply} from '../dist/presentation.js';
 import {Battle} from '../dist/autobattle.js';
@@ -47,4 +47,14 @@ test('a lethal weapon hit credits the live source unit once for its inspection k
 test('ground inspection damage uses ground hit count even when the unit also has an air weapon',()=>{
  const b=battle(),unit=b.create(0,0,100,100);unit.def={...unit.def,groundHits:2,airHits:1};
  const model=selectionPanelModel(b,unit,data);assert.equal(model.weapons[0].kind,'ground');assert.equal(model.weapons[0].hits,2);
+});
+
+
+test('stat callouts keep base values separate from bonuses and preserve multi-hit weapons',()=>{
+ const items=selectionStatItems({armor:{icon:1,level:2,base:1,bonus:2},shield:{icon:2,level:1,armorBase:0,armorBonus:1},weapons:[{kind:'ground',sourceId:64,icon:3,level:3,baseDamage:8,bonus:3,hits:2}]});
+ assert.deepEqual(items.map(item=>item.valueText),['1 +2','0 +1','(8 +3) ×2']);
+ assert.equal(selectionStatItems(null).length,0);
+ const b=battle(),unit=b.create(1,0,100,100);unit.energy=0;
+ assert.ok(inspectionEnergyMaximum(b,unit)>0,'zero current mana still has a visible maximum');
+ unit.team=1;assert.equal(inspectionEnergyMaximum(b,unit),0,'enemy mana stays private');
 });

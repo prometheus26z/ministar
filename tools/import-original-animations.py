@@ -69,6 +69,34 @@ for key,actions in {'921':{'attack':2,'airAttack':3,'walk':11,'burrow':25,'unbur
   if track and action=='unburrow' and '4' in track.get('signalTicks',{}):track['transitionSignal']=4
   tracks[action]=track
  graphics[key]={**original,'tracks':tracks,'sourceImage':int(key),'iscriptId':iscript.image_script(int(key))}
+# Recover persistent unit shadows from the original Init opcode stream. These
+# links disappear when extracted HD2 graphics replace their base records.
+for key,base_graphic in sorted({**base,**graphics}.items(),key=lambda pair:int(pair[0])):
+ image_id=int(key)
+ if image_id>=999:continue
+ try:init=iscript.trace(image_id,0,stop_on_conditional=True)
+ except (ValueError,KeyError):init=None
+ layers={}
+ for event in (init or {}).get('overlayEvents',[]):
+  shadow_id=int(event['image'])
+  if 0<=shadow_id<999 and iscript.images[999*8+shadow_id]==10:
+   try:shadow_init=iscript.trace(shadow_id,0,stop_on_conditional=True)
+   except (ValueError,KeyError):shadow_init=None
+   layers[shadow_id]={'image':shadow_id,'x':event.get('x',0),'y':event.get('y',0),'tick':event.get('tick',0),'followParent':bool((shadow_init or {}).get('followParent'))}
+ if not layers:continue
+ parent=graphics.get(key)
+ if parent is None:parent={**base_graphic};graphics[key]=parent
+ combined={int(layer['image']):layer for layer in parent.get('shadowLayers',[]) if isinstance(layer,dict) and isinstance(layer.get('image'),int)}
+ combined.update(layers);parent['shadowLayers']=[combined[shadow_id] for shadow_id in sorted(combined)]
+ parent['shadows']=sorted(set(parent.get('shadows',[]))|set(combined))
+ for shadow_id,layer in layers.items():
+  shadow_key=str(shadow_id);shadow_graphic=graphics.get(shadow_key)
+  if shadow_graphic is None and shadow_key in base:shadow_graphic={**base[shadow_key]};graphics[shadow_key]=shadow_graphic
+  if shadow_graphic is None:continue
+  shadow_graphic['drawFunction']=10
+  try:shadow_init=iscript.trace(shadow_id,0,stop_on_conditional=True)
+  except (ValueError,KeyError):shadow_init=None
+  shadow_graphic.setdefault('tracks',{})['idle']={**(shadow_graphic.get('tracks',{}).get('idle') or {}),'followParent':bool((shadow_init or {}).get('followParent'))}
 # Neutral/effect layers and image aliases often share the same original texture.
 # Store identical sprite sheets once, without changing any frame metadata.
 textures={};used=set()

@@ -1,4 +1,4 @@
-import {COMBAT_SOURCE,movementProfile,scriptProgramForImage} from './combat-rules.js?v=0.16.18';
+import {COMBAT_SOURCE,movementProfile,scriptProgramForImage} from './combat-rules.js?v=0.16.19';
 
 const EPS=1e-9;
 const signedDelta=(from,to)=>((to-from+384)%256)-128;

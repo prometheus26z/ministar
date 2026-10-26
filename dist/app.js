@@ -1,16 +1,16 @@
-import {constructionVisual,healthBarLayout,healthBarFillWidth,waveDescription,formatSupply} from './presentation.js?v=0.16.18';
-import {selectionPanelModel,inspectionDetailRows} from './selection-panel.js?v=0.16.18';
-import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.18';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.18';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.18';
-import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.18';
-import {researchAt} from './tech.js?v=0.16.18';
-import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.18';
-import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.18';
-import {psiFieldTiles} from './build-placement.js?v=0.16.18';
-import {resolveWeapon,attackHitCount} from './combat-rules.js?v=0.16.18';
-import {createResourceStore,ResourceVersionError} from './resource-cache.js?v=0.16.18';
-import {createResourcePlanner} from './resource-planner.js?v=0.16.18';
+import {constructionVisual,healthBarLayout,healthBarFillWidth,waveDescription,formatSupply} from './presentation.js?v=0.16.19';
+import {selectionPanelModel,inspectionEnergyMaximum,selectionStatItems} from './selection-panel.js?v=0.16.19';
+import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.19';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.19';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.19';
+import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.19';
+import {researchAt} from './tech.js?v=0.16.19';
+import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.19';
+import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.19';
+import {psiFieldTiles} from './build-placement.js?v=0.16.19';
+import {resolveWeapon,attackHitCount} from './combat-rules.js?v=0.16.19';
+import {createResourceStore,ResourceVersionError} from './resource-cache.js?v=0.16.19';
+import {createResourcePlanner} from './resource-planner.js?v=0.16.19';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),mc=mini.getContext('2d');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';
@@ -36,10 +36,10 @@ function getImage(url){if(!url||failedImages.get(url)?.retryAt>Date.now())return
 async function warmImageUrls(urls,concurrency=6){const resources=[...new Set([...urls].filter(Boolean))];let next=0;await Promise.all(Array.from({length:Math.min(concurrency,resources.length)},async()=>{while(next<resources.length){const url=resources[next++];await loadImage(url)}}))}
 function graphicUrls(graphic){if(!graphic)return[];return[...new Set([0,1].map(team=>teamImage(graphic,team)).filter(Boolean))]}
 function criticalSceneImageUrls(){const urls=new Set();for(const id of new Set([...Object.values(BASE),156,160,173,174,344,347])){const unit=data.units[id],graphic=data.graphics[unit?.image];for(const url of graphicUrls(graphic))urls.add(url)}return urls}
-function dependencyImageUrls(imageIds){const urls=new Set(),visited=new Set(),queue=[...imageIds].filter(Number.isInteger).map(id=>({id,depth:0}));while(queue.length&&visited.size<2048){const {id,depth}=queue.shift();if(depth>8||visited.has(id))continue;visited.add(id);const graphic=data.graphics[id];if(!graphic)continue;for(const url of graphicUrls(graphic))urls.add(url);for(const track of Object.values(graphic.tracks||{})){const events=track?.overlayEvents||(track?.overlays||[]).map(image=>({image}));for(const event of events)if(Number.isInteger(event?.image))queue.push({id:event.image,depth:depth+1})}for(const overlay of graphic.persistentOverlays||[])if(Number.isInteger(overlay?.image))queue.push({id:overlay.image,depth:depth+1})}return urls}
+function dependencyImageUrls(imageIds){const urls=new Set(),visited=new Set(),queue=[...imageIds].filter(Number.isInteger).map(id=>({id,depth:0}));while(queue.length&&visited.size<2048){const {id,depth}=queue.shift();if(depth>8||visited.has(id))continue;visited.add(id);const graphic=data.graphics[id];if(!graphic)continue;for(const url of graphicUrls(graphic))urls.add(url);for(const track of Object.values(graphic.tracks||{})){const events=track?.overlayEvents||(track?.overlays||[]).map(image=>({image}));for(const event of events)if(Number.isInteger(event?.image))queue.push({id:event.image,depth:depth+1})}for(const overlay of graphic.persistentOverlays||[])if(Number.isInteger(overlay?.image))queue.push({id:overlay.image,depth:depth+1});for(const shadow of graphic.shadowLayers||[])if(Number.isInteger(shadow.image))queue.push({id:shadow.image,depth:depth+1})}return urls}
 function selectedRaceImageUrls(selectedRace,constructionGraphics,turretGraphics,destructionGraphics){const types=new Set(data.races[selectedRace]||[]),images=[...types].map(type=>data.units[type]?.image).filter(Number.isInteger),urls=dependencyImageUrls(images);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const [type,graphic]of Object.entries(graphics))if(types.has(Number(type)))for(const url of graphicUrls(graphic))urls.add(url);for(const id of Object.values(BASE))for(const url of graphicUrls(data.graphics[data.units[id]?.image]))urls.add(url);return urls}
 function optionalImageUrls(constructionGraphics,turretGraphics,destructionGraphics){
- const optional=new Set(['ds-assets/production.webp?v=0.16.18']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
+ const optional=new Set(['ds-assets/production.webp?v=0.16.19']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
  for(const url of graphicUrls(data.graphics[215]))optional.add(url);
  for(const id of [210,211])for(const url of graphicUrls(data.graphics[id]))optional.add(url);
  const images=new Set([523,504,524,503,536,337,364,383,387,951,998]);for(const value of Object.values(spellVisualData?.images||{}))for(const id of Array.isArray(value)?value:[value])if(Number.isInteger(id))images.add(id);for(const weapon of Object.values(data.weapons||{}))if(weapon?.damage&&Number.isInteger(weapon.image))images.add(weapon.image);
@@ -74,11 +74,10 @@ const cy=()=>63+(H-panelHeight()-63)/2;
 const toWorld=(x,y)=>({x:camera.x+(x-W/2)/camera.zoom,y:camera.y+(y-cy())/camera.zoom});
 const toScreen=(x,y)=>({x:W/2+(x-camera.x)*camera.zoom,y:cy()+(y-camera.y)*camera.zoom});
 function limitCamera(){if(!battle)return;const hw=W/2/camera.zoom,hh=(H-panelHeight()-63)/2/camera.zoom,offset=viewMode==='production'?PRODUCTION_OFFSET:0;camera.x=clamp(camera.x,Math.min(640,hw),Math.max(640,1280-hw));camera.y=clamp(camera.y,offset+Math.min(1024,hh),offset+Math.max(1024,2048-hh))}
-function updateInspectionScale(){const wrap=$('inspectionWrap'),scaled=$('inspectionScaled');if(!wrap||!scaled)return;const scale=Math.min(1,Math.max(.55,(innerWidth-12)/358));wrap.style.width=`${358*scale}px`;wrap.style.height=`${112*scale}px`;scaled.style.transform=`scale(${scale})`}
-function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,settings.quality==='low'?1.2:2);canvas.width=W*DPR;canvas.height=H*DPR;updateInspectionScale();limitCamera()}addEventListener('resize',resize);resize();
+function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,settings.quality==='low'?1.2:2);canvas.width=W*DPR;canvas.height=H*DPR;limitCamera()}addEventListener('resize',resize);resize();
 function focus(units=battle.selected){if(!units.length)return;camera.x=units.reduce((n,u)=>n+u.x,0)/units.length;camera.y=units.reduce((n,u)=>n+u.y,0)/units.length;limitCamera()}
 function zoom(z,x=W/2,y=cy()){const p=toWorld(x,y);camera.zoom=clamp(z,.25,2.8);const q=toWorld(x,y);camera.x+=p.x-q.x;camera.y+=p.y-q.y;limitCamera();settings.zoom=camera.zoom;save('settings',settings)}
-function setViewMode(mode){if(!battle||battle.phase!=='battle')return;if(battle.menuOpen)battle.closeMenu();viewMode=mode;$('productionSeat').hidden=mode!=='production'||battle.teamSize===1;refreshProductionSeat();document.body.dataset.space=mode;const button=$('spaceToggle');button.textContent=mode==='production'?'전장':'생산';button.setAttribute('aria-label',mode==='production'?'전장으로 돌아가기':'생산 공간으로 이동');map=false;$('mapWrap').hidden=true;$('map').setAttribute('aria-pressed','false');$('map').disabled=mode!=='field';battle.select([],false);camera={x:640,y:(mode==='production'?PRODUCTION_OFFSET:0)+(mode==='production'?PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT/2:1700),zoom:mode==='production'?defaultProductionZoom(W):DEFAULT_FIELD_ZOOM};limitCamera();selectionUI()}
+function setViewMode(mode){if(!battle||battle.phase!=='battle')return;closeStatTooltip();if(battle.menuOpen)battle.closeMenu();viewMode=mode;$('productionSeat').hidden=mode!=='production'||battle.teamSize===1;refreshProductionSeat();document.body.dataset.space=mode;const button=$('spaceToggle');button.textContent=mode==='production'?'전장':'생산';button.setAttribute('aria-label',mode==='production'?'전장으로 돌아가기':'생산 공간으로 이동');map=false;$('mapWrap').hidden=true;$('map').setAttribute('aria-pressed','false');$('map').disabled=mode!=='field';battle.select([],false);camera={x:640,y:(mode==='production'?PRODUCTION_OFFSET:0)+(mode==='production'?PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT/2:1700),zoom:mode==='production'?defaultProductionZoom(W):DEFAULT_FIELD_ZOOM};limitCamera();selectionUI()}
 function newBattle(){resourcePlanner.cancel();stopMusic(true);stopTransientSounds();if(battle?.menuOpen)battle.closeMenu();battle=new Battle(data,{race,difficulty:$('difficulty').value,teamSize:Number($('teamSize').value)});battle.on(event);viewMode='field';productionSeat=0;document.body.dataset.space='field';backgroundPauseRequired=false;pausedBeforeBackground=false;$('backgroundPause').hidden=true;ctrl=box=map=false;camera={x:640,y:1700,zoom:DEFAULT_FIELD_ZOOM};phaseUI();selectionUI();groupsUI();queueMicrotask(scheduleOptionalWarmup)}
 // Coalesce simulation notifications before touching the DOM. A large volley
 // can kill dozens of units in one frame; refresh the selection panel once.
@@ -146,19 +145,47 @@ function updatePortrait(unit){
  portrait.hidden=!url;if(url){portrait.muted=true;portrait.loop=true;portrait.playsInline=true;const changed=portrait.getAttribute('src')!==url;if(changed){portrait.pause();portrait.src=url}if(changed||portrait.paused)portrait.play().catch(()=>{})}
  else{portrait.pause();portrait.removeAttribute('src');portrait.load()}
 }
-let lastInspection=null;
+let lastInspection=null,activeStatTooltip=null;
+function positionStatTooltip(button){
+ const tooltip=$('statTooltip');if(!button||tooltip.hidden)return;
+ const bounds=button.getBoundingClientRect(),viewport=window.visualViewport,margin=6,leftEdge=viewport?.offsetLeft||0,topEdge=viewport?.offsetTop||0,rightEdge=leftEdge+(viewport?.width||innerWidth),bottomEdge=topEdge+(viewport?.height||innerHeight);
+ tooltip.style.left=Math.max(leftEdge+margin,Math.min(bounds.left+(bounds.width-tooltip.offsetWidth)/2,rightEdge-tooltip.offsetWidth-margin))+'px';
+ tooltip.style.top=Math.max(topEdge+margin,Math.min(bounds.top-tooltip.offsetHeight-5,bottomEdge-tooltip.offsetHeight-margin))+'px';
+}
+function closeStatTooltip(){
+ if(!activeStatTooltip)return;
+ for(const button of $('statIcons').querySelectorAll('button.stat-icon'))if(button.dataset.statKey===activeStatTooltip.key)button.removeAttribute('aria-describedby');
+ activeStatTooltip=null;$('statTooltip').hidden=true;$('statTooltip').textContent='';
+}
+function toggleStatTooltip(button,item){
+ if(activeStatTooltip?.unitId===lastInspection?.id&&activeStatTooltip.key===item.key){closeStatTooltip();return}
+ closeStatTooltip();const tooltip=$('statTooltip');activeStatTooltip={unitId:lastInspection.id,key:item.key,valueText:item.valueText};tooltip.textContent=item.valueText;tooltip.hidden=false;button.setAttribute('aria-describedby','statTooltip');positionStatTooltip(button);
+}
+function renderStatIcons(items,unitId){
+ const icons=$('statIcons'),signature=unitId===null?'':unitId+':'+items.map(item=>item.key+':'+item.icon).join('|');
+ if(icons.dataset.signature!==signature){
+  if(activeStatTooltip)closeStatTooltip();icons.replaceChildren();icons.dataset.signature=signature;
+  for(const item of items){const button=document.createElement('button');button.type='button';button.className='stat-icon';button.dataset.statKey=item.key;button.setAttribute('aria-label',item.accessibleLabel);const image=document.createElement('img');image.src=icon(item.icon);image.alt='';button.append(image);if(item.level){const level=document.createElement('b');level.textContent=item.level;level.setAttribute('aria-hidden','true');button.append(level)}icons.append(button)}
+ }
+ for(const item of items){const button=[...icons.children].find(node=>node.dataset.statKey===item.key);if(!button)continue;button.setAttribute('aria-label',item.accessibleLabel);const badge=button.querySelector('b');if(item.level){if(badge)badge.textContent=item.level;else{const level=document.createElement('b');level.textContent=item.level;level.setAttribute('aria-hidden','true');button.append(level)}}else badge?.remove();if(activeStatTooltip?.key===item.key&&activeStatTooltip.unitId===unitId){if(activeStatTooltip.valueText!==item.valueText){activeStatTooltip.valueText=item.valueText;$('statTooltip').textContent=item.valueText;positionStatTooltip(button)}button.setAttribute('aria-describedby','statTooltip')}}
+}
+const statIcons=$('statIcons');
+statIcons.addEventListener('click',event=>{const button=event.target.closest('button.stat-icon');if(!button||!lastInspection)return;const item=selectionStatItems(lastInspection).find(value=>value.key===button.dataset.statKey);if(item)toggleStatTooltip(button,item)});
+document.addEventListener('pointerdown',event=>{if(!activeStatTooltip)return;if(event.target.closest?.('#statIcons .stat-icon'))return;closeStatTooltip()},true);
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&activeStatTooltip){event.preventDefault();closeStatTooltip()}},true);
+const repositionStatTooltip=()=>{if(!activeStatTooltip)return;const button=[...$('statIcons').children].find(node=>node.dataset.statKey===activeStatTooltip.key);positionStatTooltip(button)};
+addEventListener('resize',repositionStatTooltip);window.visualViewport?.addEventListener('resize',repositionStatTooltip);
 function showVitals(units){
  const unit=units.length===1?units[0]:null,model=selectionPanelModel(battle,unit,data);lastInspection=model;document.body.dataset.inspect=units.length?'yes':'no';
- const iconRows=[];if(model?.armor)iconRows.push({kind:'방어',...model.armor});if(model?.shield?.icon)iconRows.push({kind:'실드',icon:model.shield.icon,level:model.shield.level});for(const weapon of model?.weapons||[])iconRows.push({kind:weapon.kind==='air'?'공중 무기':'지상 무기',icon:weapon.icon,level:weapon.level});
- const icons=$('statIcons');icons.replaceChildren();for(const row of iconRows){const item=document.createElement('span');item.className='stat-icon';item.title=`${row.kind}${row.level?` +${row.level}`:''}`;const image=document.createElement('img');image.src=icon(row.icon);image.alt='';item.append(image);if(row.level){const level=document.createElement('b');level.textContent=row.level;item.append(level)}icons.append(item)}
- $('statDetails').disabled=!model||!inspectionDetailRows(model).length;
- $('hp').textContent=model?`${model.shield?`실드 ${model.shield.current}/${model.shield.max}\n`:''}HP ${model.hp.current}/${model.hp.max}`:'';$('shields').textContent='';
- $('energy').textContent=model?.energy?`에너지 ${model.energy.current}/${model.energy.max}`:model?.lifespan!==null&&model?.lifespan!==undefined?`수명 ${model.lifespan}초`:'';
+ if(activeStatTooltip&&(!model||activeStatTooltip.unitId!==model.id))closeStatTooltip();
+ renderStatIcons(selectionStatItems(model),model?.id??null);
+ $('shields').textContent=model?.shield?`실드 ${model.shield.current}/${model.shield.max}`:'';
+ $('hp').textContent=model?`HP ${model.hp.current}/${model.hp.max}`:'';
+ $('energy').textContent=model?.energy?`마나 ${model.energy.current}/${model.energy.max}`:'';
  $('killCount').textContent=model?.killCount!==null&&model?.killCount!==undefined?`처치 ${model.killCount}`:'';$('killCount').hidden=model?.killCount===null||model?.killCount===undefined;
- $('unitStatus').textContent=(model?.status||[]).join(' · ');
+ $('unitStatus').textContent=[...(model?.status||[]),model?.lifespan!==null&&model?.lifespan!==undefined?`수명 ${model.lifespan}초`:'' ].filter(Boolean).join(' · ');
  paintWireframe(unit,model);updatePortrait(unit);
 }
-$('statDetails').onclick=()=>{if(!lastInspection)return;const rows=inspectionDetailRows(lastInspection);modal('inspection',`<div class="eyebrow">UNIT STATUS</div><h2>${lastInspection.name}</h2><div class="stats">${rows.map(row=>`<div><span>${row.label}</span><b>${row.value}</b></div>`).join('')}</div>`)};
 function updateLaneHangarStatus(unit){
  const el=$('order'),acid=unit?.acidSporeTimers?.length?`애시드 스포어 ${unit.acidSporeTimers.length}`:'',snapshot=unit?.type===72||unit?.type===83?battle.hangarSnapshot(unit):null;
  const status=snapshot?.kind==='carrier'?`인터셉터 ${snapshot.total}/${snapshot.capacity} · 비행 ${snapshot.active}`:snapshot?.kind==='reaver'?`스캐럽 ${snapshot.inside}/${snapshot.capacity} · 비행 ${snapshot.active}/1`:'';
@@ -180,7 +207,7 @@ function selectionUI(){
 }
 function groupsUI(){if(!battle||battle.laneMode)return;$('ctrl').setAttribute('aria-pressed',ctrl);for(let i=0;i<10;i++){const b=$('group'+i),g=battle.groups[i];b.classList.toggle('occupied',!!g.length);b.classList.toggle('selected',!!g.length&&g.length===battle.selection.length&&g.every(id=>battle.selection.includes(id)));b.setAttribute('aria-label',(i===9?0:i+1)+'번 부대 '+g.length+'기')}}
 $('ctrl').onclick=()=>{ctrl=!ctrl;groupsUI()};
-function openMenu(mode='build'){if(mode==='build'&&(viewMode!=='production'||productionTeam===1||productionSeat!==0)){toast('생산 공간에서 건물을 배치하세요.');return}if(mode==='research'&&viewMode!=='production'){toast('생산 공간에서 확인하세요.');return}if(battle.menuOpen){if(battle.menuMode!==mode){battle.menuMode=mode;menuUI()}else battle.closeMenu();return}if(battle.openMenu(mode)){history.pushState({command:true},'');historyMenu=true}}
+function openMenu(mode='build'){closeStatTooltip();if(mode==='build'&&(viewMode!=='production'||productionTeam===1||productionSeat!==0)){toast('생산 공간에서 건물을 배치하세요.');return}if(mode==='research'&&viewMode!=='production'){toast('생산 공간에서 확인하세요.');return}if(battle.menuOpen){if(battle.menuMode!==mode){battle.menuMode=mode;menuUI()}else battle.closeMenu();return}if(battle.openMenu(mode)){history.pushState({command:true},'');historyMenu=true}}
 function actionCard(name,id,cost,reason,click,detail='',kind=''){
  const button=document.createElement('button'),building=kind==='building';button.className='command-card'+(building?' building-card':'');const price=cost?building?`<span class="command-cost"><img src="${iconResource(0)}" alt=""><span>${cost[0]}</span></span>`:`<small>◆ ${cost[0]}${battle.laneMode?' 미네랄':' · ● '+cost[1]}</small>`:'';button.innerHTML=`${price}<img class="command-building-icon" src="${icon(id)}" alt=""><b>${name}</b>${detail?`<small class="command-output">${detail}</small>`:''}${reason?`<small class="command-reason">${reason}</small>`:''}`;button.disabled=!!reason;button.title=reason||name;button.setAttribute('aria-label',building?`${name}, 미네랄 ${cost[0]}${reason?', '+reason:''}`:name);button.onclick=click;$('commandGrid').append(button);return button;
 }
@@ -281,12 +308,12 @@ function sprite(id,team,x,y,action='idle',time=0,direction=0,alpha=1,stack=new S
 }
 function drawHealthBar(u){
  const g=data.graphics[u.def.image],{width,x,y}=healthBarLayout(u,g,camera.zoom);
- const hpRatio=clamp(u.hp/(u.maxHp||u.def.hp),0,1),hp=hpRatio>0?Math.max(1,Math.floor(100*hpRatio)):0,shieldMax=u.def.shield||0,shieldRatio=shieldMax?clamp(u.shield/shieldMax,0,1):0,shield=shieldRatio>0?Math.max(1,Math.floor(100*shieldRatio)):0,hasShield=shieldMax>0;
+ const hpRatio=clamp(u.hp/(u.maxHp||u.def.hp),0,1),hp=hpRatio>0?Math.max(1,Math.floor(100*hpRatio)):0,shieldMax=u.def.shield||0,shieldRatio=shieldMax?clamp(u.shield/shieldMax,0,1):0,shield=shieldRatio>0?Math.max(1,Math.floor(100*shieldRatio)):0,hasShield=shieldMax>0,energyMax=inspectionEnergyMaximum(battle,u),energy=energyMax>0?clamp((u.energy||0)/energyMax,0,1)*100:0;
  const hpRows=hasShield?[18,0,0,1,1,2,18]:[18,0,1,2,18],bgRows=hasShield?[18,15,15,16,16,17,18]:[18,15,16,17,18],band=hp>=66?(hasShield?[18,0,0,1,1,2,18]:[18,0,1,2,18]):hp>=33?(hasShield?[18,3,3,4,4,5,18]:[18,3,4,5,18]):(hasShield?[18,6,6,7,7,8,18]:[18,6,7,8,18]);
- const colors={0:'#8fdb83',1:'#62bd49',2:'#37932a',3:'#f4d56e',4:'#dbac48',5:'#b7832d',6:'#ed8070',7:'#d94b36',8:'#a92a20',10:'#659fce',11:'#3373ac',15:'#343733',16:'#252f37',17:'#151b1d',18:'#080b0a'},hpFill=healthBarFillWidth(hp,width),shieldFill=healthBarFillWidth(shield,width);
- for(let row=0;row<hpRows.length;row++){const yy=y+row;ctx.fillStyle=colors[band[row]];ctx.fillRect(x,yy,hpFill,1);ctx.fillStyle=colors[bgRows[row]];ctx.fillRect(x+hpFill,yy,Math.max(0,width-hpFill),1)}
- if(hasShield){const shieldRows=[18,10,11,18],shieldBg=[18,16,17,18];for(let row=0;row<shieldRows.length;row++){const yy=y+hpRows.length+row;ctx.fillStyle=colors[shieldRows[row]];ctx.fillRect(x,yy,shieldFill,1);ctx.fillStyle=colors[shieldBg[row]];ctx.fillRect(x+shieldFill,yy,Math.max(0,width-shieldFill),1)}}
- ctx.fillStyle=colors[18];for(let px=0;px<width;px+=3)ctx.fillRect(x+px,y,Math.min(1,width-px),hpRows.length+(hasShield?4:0));
+ const colors={0:'#8fdb83',1:'#62bd49',2:'#37932a',3:'#f4d56e',4:'#dbac48',5:'#b7832d',6:'#ed8070',7:'#d94b36',8:'#a92a20',10:'#659fce',11:'#3373ac',12:'#c3a0dc',13:'#795493',15:'#343733',16:'#252f37',17:'#151b1d',18:'#080b0a'};
+ const rows=[];if(hasShield)rows.push({fill:shield,colors:[18,10,11,18],background:[18,16,17,18]});rows.push({fill:hp,colors:band,background:bgRows});if(energyMax>0)rows.push({fill:energy,colors:[18,12,12,18],background:[18,16,16,18]});
+ let offset=0;for(const row of rows){const filled=healthBarFillWidth(row.fill,width);for(let index=0;index<row.colors.length;index++){const yy=y+offset+index;ctx.fillStyle=colors[row.colors[index]];ctx.fillRect(x,yy,filled,1);ctx.fillStyle=colors[row.background[index]];ctx.fillRect(x+filled,yy,Math.max(0,width-filled),1)}offset+=row.colors.length}
+ ctx.fillStyle=colors[18];for(let px=0;px<width;px+=3)ctx.fillRect(x+px,y,Math.min(1,width-px),offset);
 }
 const warpCanvases=new WeakMap();
 function drawConstruction(u,alpha){
@@ -319,10 +346,16 @@ function unit(u){
  const concealedBurrow=u.alive&&(u.type===103?u.lurkerState==='burrowed':u.burrowed&&u.burrowState!=='unburrowing'),selected=battle.isHighlighted(u),cloakLevel=u.alive&&u.cloakLevel>0?u.cloakLevel:0,alpha=!u.alive?1:1,overlaySize=spellVisualData?.unitOverlaySizes?.[u.type]??0,hasMatrix=u.alive&&u.matrix>0;
  if(selected&&u.alive){ctx.strokeStyle=u.team===0?'#79f880':'#f16e67';ctx.lineWidth=1.3/camera.zoom;ctx.beginPath();ctx.ellipse(u.x,u.y+u.r*.55,u.r+5,(u.r+5)*.48,0,0,Math.PI*2);ctx.stroke()}
  const g=data.graphics[u.def.image],drawAction=concealedBurrow?'burrow':u.type===124?'idle':u.action,drawTime=concealedBurrow?(u.burrowPoseTime||u.lurkerBurrowPoseTime||transitionSeconds(g,'burrow')):u.animTime,visual={seed:u.type===103&&u.lurkerAnimSeed!==undefined?u.lurkerAnimSeed:u.id,lifetime:u.visualTime??u.animTime,targetDistance:u.target?dist(u,u.target):Infinity,inheritedFrame:u.lastVisualFrame,skipSpawnIntro:!!u.skipSpawnIntro&&drawAction==='idle',suppressEvents:concealedBurrow,trackOverride:u.attackVisualTrack||null,cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible};
- if(g&&u.alive&&!concealedBurrow)for(const sh of g.shadows||[])sprite(sh,0,u.x+2,u.y+3,'idle',u.animTime,u.direction,.35,new Set(),null,{cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible});
  const matrixBack=spellOverlayImage('matrixBack',overlaySize),matrixFront=spellOverlayImage('matrixFront',overlaySize);
+ const bodyPose=g&&!u.construction&&!u.egg?pose(g,drawAction,drawTime,u.direction,visual):null;
+ if(bodyPose&&u.alive&&!concealedBurrow)for(const layer of g.shadowLayers||[]){
+  const shadow=data.graphics[layer.image],follows=layer.followParent??shadow?.tracks?.idle?.followParent;
+  if(!shadow?.frames?.length||follows&&bodyPose.frame>=shadow.frames.length)continue;
+  const shadowVisual={...visual,suppressEvents:true,poseOverride:follows?{frame:bodyPose.frame,flip:bodyPose.flip,hidden:bodyPose.hidden}:null};
+  sprite(layer.image,0,u.x+(layer.x||0),u.y+(layer.y||0),'idle',u.animTime,u.direction,.35,new Set(),null,shadowVisual);
+ }
  if(hasMatrix&&matrixBack)sprite(matrixBack,u.team,u.x,u.y,'idle',battle.time,u.direction,alpha,new Set(),null,visual);
- if(!drawConstruction(u,alpha)){const p=pose(g,drawAction,drawTime,u.direction,visual);u.lastVisualFrame=p.frame;visual.poseOverride=p;sprite(u.egg?(u.type===43?11:u.type===38?914:21):u.def.image,u.team,u.x,u.y,drawAction,drawTime,u.direction,alpha,new Set(),null,visual)}
+ if(!drawConstruction(u,alpha)){const p=bodyPose||pose(g,drawAction,drawTime,u.direction,visual);u.lastVisualFrame=p.frame;visual.poseOverride=p;sprite(u.egg?(u.type===43?11:u.type===38?914:21):u.def.image,u.team,u.x,u.y,drawAction,drawTime,u.direction,alpha,new Set(),null,visual)}
  const sub=u.def.subunit!==null?data.units[u.def.subunit]:null,turretImage=u.turretImage??sub?.image;if(Number.isInteger(turretImage)&&u.alive)sprite(turretImage,u.team,u.x,u.y,u.turretAction||u.action,u.turretAnimTime||u.animTime,u.turretDirection??u.direction,alpha,new Set(),null,{seed:u.id^turretImage,targetDistance:u.target?dist(u,u.target):Infinity,trackOverride:u.turretVisualTrack||null,cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible});
  if(u.type===124&&u.alive&&!u.construction&&!Number.isInteger(u.turretImage))sprite(297,u.team,u.x,u.y,u.action,u.animTime,u.action==='idle'?Math.floor(u.animTime*16)%32:u.direction,alpha,new Set(),null,visual);
  if(hasMatrix&&matrixFront)sprite(matrixFront,u.team,u.x,u.y,'idle',battle.time,u.direction,alpha,new Set(),null,visual);
@@ -358,7 +391,7 @@ function drawRelief(){
 }
 function drawProductionBoard(){
  ctx.fillStyle='#1c100a';ctx.fillRect(0,PRODUCTION_OFFSET,1280,PRODUCTION_HEIGHT);
- if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.18');
+ if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.19');
  ctx.save();if(productionTeam){ctx.translate(1280,0);ctx.scale(-1,1)}
  if(desertProduction)ctx.drawImage(desertProduction,PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
  ctx.restore();ctx.strokeStyle='#c49b61';ctx.lineWidth=2;ctx.strokeRect(productionTeam?1280-PRODUCTION_GROUND_X-PRODUCTION_GROUND_WIDTH:PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
@@ -438,7 +471,7 @@ function drawBattleEffects(){
 }
 function renderFrame(now){const realDt=last?Math.min(.15,(now-last)/1000):1/60;last=now;const dt=document.hidden||backgroundPauseRequired?0:realDt;battle.update(dt);hudTime+=realDt;if(hudTime>.15){hudTime=0;hudUI();refreshVitals();productionUI();if(map)minimap()}ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#10191c';ctx.fillRect(0,0,W,H);limitCamera();ctx.save();ctx.translate(W/2,cy());ctx.scale(camera.zoom,camera.zoom);ctx.translate(-camera.x,-camera.y);if(viewMode==='production'){drawProductionBoard();drawEconomy();drawWrecks();for(const u of battle.units.filter(u=>u.productionOnly&&inProductionView(u)))unit(u);battle.markProjectileVisualsRendered();drawBattleEffects();ctx.restore();requestAnimationFrame(render);return}const a=toWorld(0,0),b=toWorld(W,H),x0=Math.max(0,Math.floor(a.x/32)),x1=Math.min(40,Math.ceil(b.x/32)),y0=Math.max(0,Math.floor(a.y/32)),y1=Math.min(64,Math.ceil(b.y/32));drawRelief();drawEconomy();drawWrecks();const visibleUnits=battle.units.filter(u=>!u.hidden&&!u.loaded&&!u.productionOnly&&(u.def.building||visible(u))).sort((a,b)=>Number(a.def.air)-Number(b.def.air)||a.y-b.y);for(const u of visibleUnits.filter(u=>!u.def.air))unit(u);for(const area of battle.areas){const image=area.image??({storm:525,swarm:337,web:951}[area.kind]);if(Number.isInteger(image))sprite(image,area.team||0,area.x,area.y,'idle',area.duration-area.left,0,Math.min(1,area.left*6))}for(const u of visibleUnits.filter(u=>u.def.air))unit(u);drawProjectileVisuals();drawBattleEffects();if(battle.phase!=='title'&&!battle.laneMode)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(!battle.fog[y*40+x]){ctx.fillStyle=battle.explored[y*40+x]?'#030c10a9':'#030a10e8';ctx.fillRect(x*32,y*32,32.5,32.5)}if(battle.core?.alive){ctx.save();ctx.translate(battle.core.x,battle.core.y-85);ctx.rotate(Math.PI/4);ctx.fillStyle='#e2c587';ctx.fillRect(-5,-5,10,10);ctx.restore()}if(gesture?.kind==='box'){const s=gesture.world,e=toWorld(gesture.current.x,gesture.current.y);ctx.fillStyle='#83e7921c';ctx.strokeStyle='#9ef69a';ctx.lineWidth=1/camera.zoom;ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y)}ctx.restore();if(battle.paused&&battle.phase==='battle'&&$('modal').hidden){ctx.fillStyle='#07151aa9';ctx.fillRect(0,0,W,H);ctx.fillStyle='#deddbb';ctx.font='bold 20px system-ui';ctx.textAlign='center';ctx.fillText('일시 정지',W/2,cy())}requestAnimationFrame(render)}
 function render(now){const started=performance.now();renderFrame(now);resourcePlanner.recordFrameCost(performance.now()-started);markFirstSceneReady()}
-function modal(kind,html){closeDropdown();if(battle?.menuOpen)battle.closeMenu();pausedBefore=battle?.paused||false;if(battle?.phase==='battle')battle.paused=true;syncAudioPause();modalKind=kind;$('modalContent').innerHTML=html;enhanceSelects($('modalContent'));$('modal').hidden=false}
+function modal(kind,html){closeStatTooltip();closeDropdown();if(battle?.menuOpen)battle.closeMenu();pausedBefore=battle?.paused||false;if(battle?.phase==='battle')battle.paused=true;syncAudioPause();modalKind=kind;$('modalContent').innerHTML=html;enhanceSelects($('modalContent'));$('modal').hidden=false}
 function closeModal(){closeDropdown();if(modalKind==='result')return;$('modal').hidden=true;if(battle?.phase==='battle')battle.paused=pausedBefore;modalKind='';syncAudioPause()}$('closeModal').onclick=closeModal;
 function help(){modal('help',`<div class="eyebrow">FIELD MANUAL</div><h2>자동 전선 작전</h2><ul><li><b>건물 건설</b>: 하단 버튼을 누르고 테크 조건에 맞는 건물을 선택한 뒤 아군 생산 구역에 배치합니다.</li><li><b>출격 현황</b>: 완성된 건물에 따라 다음 웨이브에 나갈 병력을 확인합니다. 건물은 고정 병력을 자동으로 보냅니다.</li><li><b>기술</b>: 원본 맵에서 연구 완료된 기술은 시작부터 사용하며, 유닛이 전투 중 자동으로 사용합니다.</li><li><b>전장 보기</b>: 넓은 중앙 언덕 입구를 지나 전초기지를 먼저 공격하고, 전초기지가 무너지면 상대 본진으로 진격합니다.</li><li><b>고지 전투</b>: 언덕 아래 지상 원거리 공격은 위쪽 적에게 빗나갈 수 있습니다. 근접·공중 공격은 고지 회피 판정을 받지 않습니다.</li><li><b>카메라</b>: 지도 스와이프로 이동하고 두 손가락으로 확대·축소합니다. 하단 버튼으로 본진과 전선을 빠르게 볼 수 있습니다.</li><li><b>자원</b>: 미네랄 300으로 시작하고 약 1.34초마다 수입을 받습니다. 가스 시설 0~5개 수입은 10·12·15·18·22·26입니다. 가스 시설은 테란·프로토스 600, 저그 500 미네랄이며, 두 번째부터 투자 단계에 따라 수입이 잠시 중단됩니다. 출격과 자원 수입은 독립적으로 진행됩니다.</li></ul><p>전투와 출격은 자동으로 진행됩니다. 생산 공간에서 건물을 배치하고 테크를 올리세요. 앱을 백그라운드로 보내면 전투가 멈추며, 돌아와서 전장 재개를 눌러 이어갑니다.</p><button class="primary" id="helpDone">확인</button>`);$('helpDone').onclick=closeModal}$('help').onclick=help;
 function settingsModal(){modal('settings',`<div class="eyebrow">COMMAND CENTER</div><h2>설정</h2>${[['배경음악','bgm'],['효과음','sfx'],['유닛 음성','voice']].map(([label,key])=>`<label>${label}<input id="vol-${key}" type="range" min="0" max="1" step=".01" value="${settings[key]}"></label>`).join('')}<label>렌더링<select id="quality"><option value="auto" ${settings.quality==='auto'?'selected':''}>자동 · 선명하게</option><option value="low" ${settings.quality==='low'?'selected':''}>절전 · 낮은 해상도</option></select></label><div class="row"><button id="pause">${pausedBefore?'전투 재개':'일시 정지 유지'}</button><button id="manual">조작 방법</button><button id="leave">작전 나가기</button></div><p>미니스타 ${VERSION} · 리마스터 ${data.sourceBuild}<br>설정과 전투 기록은 기기에 저장됩니다.</p>`);for(const key of ['bgm','sfx','voice'])$('vol-'+key).oninput=e=>{settings[key]=Number(e.target.value);save('settings',settings);setAudioVolume(key,settings[key])};$('quality').onchange=e=>{settings.quality=e.target.value;save('settings',settings);resize()};$('pause').onclick=()=>{pausedBefore=!pausedBefore;closeModal()};$('manual').onclick=()=>{const p=pausedBefore;help();pausedBefore=p};$('leave').onclick=()=>{modalKind='';$('modal').hidden=true;stopMusic();stopTransientSounds();audioContext?.suspend().catch(()=>{});newBattle()}}$('settings').onclick=settingsModal;
@@ -467,15 +500,15 @@ async function boot(){if(bootInProgress)return;bootInProgress=true;const retry=$
  if(!await retireOfflineStorage())return;
  const cacheState=await resourceStore.init();if(!cacheState.manifest)console.warn('Resource manifest unavailable; continuing with online requests only');
  if(!uiEnhanced){enhanceSelects();uiEnhanced=true}
- const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.18');
+ const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.19');
  const [base,extra,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations,spellVisuals]=await Promise.all([
   fetchJson('assets/data.json','전투 데이터를 읽을 수 없습니다.'),
-  fetchJson('rts-data.json?v=0.16.18','생산 데이터를 읽을 수 없습니다.'),
-  fetchJson('construction-data.json?v=0.16.18','건설 그래픽을 읽을 수 없습니다.'),
-  fetchJson('turret-data.json?v=0.16.18','포탑 그래픽을 읽을 수 없습니다.'),
-  fetchJson('destruction-data.json?v=0.16.18','건물 파괴 그래픽을 읽을 수 없습니다.'),
-  fetchJson('original-animation-data.json?v=0.16.18','원본 애니메이션을 읽을 수 없습니다.'),
-  fetchJson('spell-visual-data.json?v=0.16.18','원본 주문 효과 데이터를 읽을 수 없습니다.')
+  fetchJson('rts-data.json?v=0.16.19','생산 데이터를 읽을 수 없습니다.'),
+  fetchJson('construction-data.json?v=0.16.19','건설 그래픽을 읽을 수 없습니다.'),
+  fetchJson('turret-data.json?v=0.16.19','포탑 그래픽을 읽을 수 없습니다.'),
+  fetchJson('destruction-data.json?v=0.16.19','건물 파괴 그래픽을 읽을 수 없습니다.'),
+  fetchJson('original-animation-data.json?v=0.16.19','원본 애니메이션을 읽을 수 없습니다.'),
+  fetchJson('spell-visual-data.json?v=0.16.19','원본 주문 효과 데이터를 읽을 수 없습니다.')
  ]);
  data=base;spellVisualData=spellVisuals;for(const [id,size]of Object.entries(spellVisualData.unitOverlaySizes||{}))if(data.units[id])data.units[id].spellOverlaySize=size;warmupGraphics=[constructionGraphics,turretGraphics,destructionGraphics];clearMediaSession();Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations);
  for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);
