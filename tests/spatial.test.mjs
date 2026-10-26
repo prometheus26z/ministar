@@ -36,6 +36,34 @@ test('grid queries include boundary centers and preserve array order after cell 
  assert.equal(grid.maxExtent,80);assert.equal(grid.byId.get(2),b);
 });
 
+test('local collision queries return the exact nearby superset without a full-army fallback',()=>{
+ const units=Array.from({length:240},(_,id)=>({id,x:(id%24-12)*31,y:(Math.floor(id/24)-5)*27,r:9,alive:true,def:{sight:64,footprint:id%37===0?[224,128]:[18,18]}}));
+ const grid=new UnitGrid(units,32);
+ for(const point of [{x:0,y:0},{x:-190,y:65},{x:320,y:-81}])for(const radius of [0,12,48,128,320]){
+  const expected=units.filter(u=>Math.abs(u.x-point.x)<=radius&&Math.abs(u.y-point.y)<=radius);
+  assert.deepEqual(new Set(grid.queryLocal(point,radius)),new Set(expected),JSON.stringify({point,radius}));
+ }
+});
+
+test('one local collision candidate set matches the legacy query in every movement direction',()=>{
+ const battle=new Battle(data,{race:'terran',enemyRace:'terran'});battle.map.rocks=[];battle.map.water=[];
+ const mover=battle.create(65,0,640,900);let seed=71;
+ const random=()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
+ for(let i=0;i<180;i++){
+  const type=i%19===0?174:[0,37,65][i%3],team=i%2;
+  battle.create(type,team,590+random()*100,850+random()*100);
+ }
+ battle.spatial=new UnitGrid(battle.units);
+ const from={x:mover.x,y:mover.y},travel=48,radius=travel+mover.r+battle.spatial.maxExtent;
+ const candidates=battle.spatial.queryLocal(from,radius);
+ for(let direction=0;direction<16;direction++){
+  const angle=direction*Math.PI/8,to={x:from.x+Math.cos(angle)*travel,y:from.y+Math.sin(angle)*travel};
+  const legacy=battle.movementLimit(mover,from,to),optimized=battle.movementLimit(mover,from,to,candidates);
+  assert.equal(optimized,legacy,`movement direction ${direction}`);
+ }
+ battle.spatial=null;
+});
+
 test('any-match queries preserve the legacy broad-phase fallback and handle both bucketed coordinate axes',()=>{
  const make=(id,x,y,alive=true)=>({id,x,y,r:10,alive,def:{sight:320,footprint:[64,64]}});
  const units=[make(0,-257,-129),make(1,-128,-128),make(2,0,0),make(3,128,128),make(4,257,257)];

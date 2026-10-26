@@ -88,6 +88,19 @@ test('an excluded target entering range is acquired without recent damage',()=>{
  assert.equal(b.acquireTarget(defender),source,'weapon range overrides the temporary pursuit exclusion without aggro');
 });
 
+test('new target acquisition reuses its attack approach during the same unit tick',()=>{
+ const b=lane();b.map.rocks=[];b.units=[b.enemyOutpost];b.canSee=()=>true;
+ const attacker=b.create(65,0,b.enemyOutpost.x,b.enemyOutpost.y+150);attacker.order='attackmove';
+ let calls=0,route=null;const approachPath=b.approachPath.bind(b);
+ b.approachPath=(...args)=>{calls++;route=approachPath(...args);return route};
+ b.tickUnit(attacker,1/24);
+ assert.equal(attacker.target,b.enemyOutpost);
+ assert.equal(calls,1,'the winning acquisition route is reused instead of recalculated for pursuit');
+ assert.equal(attacker.attackPathTarget,b.enemyOutpost.id);
+ assert.ok(attacker.attackPath.length);
+ assert.notStrictEqual(attacker.attackPath,route.path,'the mutable pursuit queue does not alias the captured route');
+});
+
 test('a blocked pursuit retries another approach and resumes when movement becomes possible',()=>{
  const b=combat();b.map.rocks=[];b.canSee=()=>true;
  const attacker=b.create(0,0,400,700),target=b.create(0,1,600,700);attacker.order='attackmove';attacker.target=target;target.order='hold';

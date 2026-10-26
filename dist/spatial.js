@@ -29,6 +29,15 @@ export class UnitGrid{
   // Preserve array order, including equal-score target and healing choices.
   return found.sort((a,b)=>this.order.get(a)-this.order.get(b));
  }
+ // Collision broad phase only: callers that reduce results with a commutative
+ // minimum do not need array ordering or the dense-query fallback scan.
+ queryLocal(point,radius){
+  const found=[],size=this.cell;
+  for(let y=Math.floor((point.y-radius)/size);y<=Math.floor((point.y+radius)/size);y++)for(let x=Math.floor((point.x-radius)/size);x<=Math.floor((point.x+radius)/size);x++){
+   for(const u of this.bucket(x,y)||[])if(Math.abs(u.x-point.x)<=radius&&Math.abs(u.y-point.y)<=radius)found.push(u);
+  }
+  return found;
+ }
  queryAny(point,radius,predicate,fallback=null){
   const size=this.cell;let candidates=0;
   for(let y=Math.floor((point.y-radius)/size);y<=Math.floor((point.y+radius)/size);y++)for(let x=Math.floor((point.x-radius)/size);x<=Math.floor((point.x+radius)/size);x++){
