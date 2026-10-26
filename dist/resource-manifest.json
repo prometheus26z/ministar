@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "appVersion": "0.16.17",
+  "appVersion": "0.16.18",
   "entries": {
     "assets/audio/1000.ogg": {
       "sha256": "62f4a427c632f163e43f5f271a48951e4d9927abef37ca6276ac90f0974813df",
@@ -5216,6 +5216,30 @@
       "mime": "image/png",
       "kind": "image"
     },
+    "assets/selection-ui/wirefram-layer-0.webp": {
+      "sha256": "1a76014c64fc0f4dadecc196fe6521687060a78e34924212b8834e6699296de4",
+      "bytes": 257102,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/selection-ui/wirefram-layer-1.webp": {
+      "sha256": "c4f40a112b9c6460d6bbb0faa518056a732306b91f58dec0a7c184092aa56857",
+      "bytes": 372130,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/selection-ui/wirefram-layer-2.webp": {
+      "sha256": "3eb527a8aa4f99b5f8912550ef5b6d13ffaec71beb9ac4894af4de26eda0564c",
+      "bytes": 537598,
+      "mime": "image/webp",
+      "kind": "image"
+    },
+    "assets/selection-ui/wirefram-layer-3.webp": {
+      "sha256": "52c72f06eaae5627db8205bb87ab58a1ded17f46141358f5fc75467d8984d2a2",
+      "bytes": 512922,
+      "mime": "image/webp",
+      "kind": "image"
+    },
     "assets/sprites/0_blue.webp": {
       "sha256": "05d28080ed21753568c6f86688f8301e87603819af3d17f26c0f7f70d7fc2040",
       "bytes": 134070,
@@ -8325,5 +8349,5 @@
       "kind": "metadata"
     }
   },
-  "buildId": "a724da7a46022b7615b859ece414d934a6fc374e7045319aed085ecbcd5bea3f"
+  "buildId": "94c4e14bd87f3fbaee0497f6a2e301e38e94f6567a83e1387323d50691954517"
 }

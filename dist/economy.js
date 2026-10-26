@@ -1,8 +1,8 @@
-import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.17';
-import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.16.17';
-import {inPsionicMatrixRange,footprintTiles} from './build-placement.js?v=0.16.17';
-import {CreepField} from './creep.js?v=0.16.17';
-import {DESERT_STRIKE,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_OFFSET} from './lane-rules.js?v=0.16.17';
+import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.18';
+import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.16.18';
+import {inPsionicMatrixRange,footprintTiles} from './build-placement.js?v=0.16.18';
+import {CreepField} from './creep.js?v=0.16.18';
+import {DESERT_STRIKE,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_OFFSET} from './lane-rules.js?v=0.16.18';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export class Battle extends CombatBattle{
  constructor(data,options){super(data,options);this.money=50;this.gas=0;this.maxSupply=0;this.timeLimit=Infinity;this.nodes=[];this.researched=new Set();this.orderSerial=1;this.economyClock=0;this.lastError='';this.produced=0;this.creepFields=new Map();this.creepClock=0;
@@ -94,7 +94,7 @@ export class Battle extends CombatBattle{
  return false}
  tickUnit(u,dt){if(u.team===0&&this.tickEconomy(u,dt))return;if(u.type===35)return;if(u.def.building&&!this.powered(u))return;super.tickUnit(u,dt)}
   step(dt){this.refreshSupply();super.step(dt);this.tickCreep(dt);this.economyClock+=dt;if(this.economyClock>.25){this.economyClock=0;this.emit('production')}}
-  die(u,team){this.releaseMining(u);this.removeCreepSource(u);if(u.construction){const w=this.units.find(a=>a.id===u.construction.builder);if(w?.alive&&w.building===u.id){w.order='stop';w.building=null}}super.die(u,team);this.refreshSupply();this.emit('change')}
+  die(u,team,killerId=null){this.releaseMining(u);this.removeCreepSource(u);if(u.construction){const w=this.units.find(a=>a.id===u.construction.builder);if(w?.alive&&w.building===u.id){w.order='stop';w.building=null}}super.die(u,team,killerId);this.refreshSupply();this.emit('change')}
 }
 
 
