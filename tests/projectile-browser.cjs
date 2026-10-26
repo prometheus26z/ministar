@@ -12,8 +12,8 @@ const {createServer}=require('../server.cjs');
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,recordVideo:{dir:videoDir,size:{width:390,height:844}}});
   try{
    const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
-   page.route('**/assets/sprites/523_blue.webp',async route=>{await new Promise(resolve=>setTimeout(resolve,5500));await route.abort()});
-   page.route('**/assets/sprites/504_blue.webp',route=>route.abort());
+   page.route(/\/assets\/sprites\/523_blue\.webp(?:\?.*)?$/,async route=>{await new Promise(resolve=>setTimeout(resolve,5500));await route.abort()});
+   page.route(/\/assets\/sprites\/504_blue\.webp(?:\?.*)?$/,route=>route.abort());
    page.route('**/app.js?*',route=>{
     let source=fs.readFileSync(path.join(__dirname,'../dist/app.js'),'utf8');
     source=source.replace('function drawProjectileFallback(visual,color,alpha){','function drawProjectileFallback(visual,color,alpha){window.__projectileFallbacks||=[];window.__projectileFallbacks.push(visual.image);');
@@ -50,7 +50,8 @@ const {createServer}=require('../server.cjs');
    assert.deepEqual(hydraFrames.visuals.map(v=>v.kind),['hitscan','contact']);
    assert.ok(hydraFrames.visuals.every(v=>v.firstRendered),'the sting and contact flash reach the first rendered frame');
    assert.ok(hydraFrames.contactFallbacks>0,'a missing 504 contact image uses its short green flash fallback');
-   assert.ok(hydraFrames.failures.some(url=>url.includes('504_blue.webp')));
+   await page.waitForFunction(()=>window.__projectileTest.failedImages.some(url=>url.includes('504_blue.webp')),null,{timeout:2000});
+   assert.ok((await page.evaluate(()=>window.__projectileTest.failedImages)).some(url=>url.includes('504_blue.webp')));
    assert.ok(hydraFrames.targetHp<hydra.hp,'Hydralisk damage remains immediate');
    await page.screenshot({path:'/tmp/ministar-projectile-hydra.png'});
 

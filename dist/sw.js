@@ -2,7 +2,7 @@
 self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
  await self.clients.claim();
- await Promise.all((await caches.keys()).filter(key=>key.startsWith('ministar-')).map(key=>caches.delete(key)));
+ await Promise.all((await caches.keys()).filter(key=>key.startsWith('ministar-pages-')).map(key=>caches.delete(key)));
  await self.registration.unregister();
  const scope=new URL(self.registration.scope);
  for(const client of await self.clients.matchAll({type:'window'})){
