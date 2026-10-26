@@ -116,7 +116,7 @@ async function testBuildingCatalogUI(browser,url){
   assert.equal((await physics.locator('.command-cost').innerText()).trim(),'1500');assert.match(await physics.getAttribute('title'),/배틀크루저 2기/);assert.equal(await physics.isDisabled(),false);
   assert.doesNotMatch(await covert.locator('.command-name').innerText(),/건설|변태|부착/);assert.doesNotMatch(await covert.innerText(),/미네랄/);
   await page.screenshot({path:'/tmp/ministar-building-catalog-terran.png',fullPage:true});await close();
-  await select(ids.comsat);await openBuild();assert.match(await page.getByRole('button',{name:/^콤샛 스테이션/}).getAttribute('title'),/사이언스 베슬 1기/);assert.match(await page.getByRole('button',{name:/^뉴클리어 사일로/}).getAttribute('title'),/고스트 4기/);await close();
+  await select(ids.comsat);await openSelected();assert.match(await page.getByRole('button',{name:/^콤샛 스테이션/}).getAttribute('title'),/사이언스 베슬 1기/);assert.match(await page.getByRole('button',{name:/^뉴클리어 사일로/}).getAttribute('title'),/고스트 4기/);await close();
   await select(ids.starport);await openSelected();assert.match(await page.getByRole('button',{name:/^컨트롤 타워/}).getAttribute('title'),/병력 HP 회복.*자동 발동·소모/);await close();
   await select(ids.academy);await openBuild();assert.match(await page.getByRole('button',{name:/아카데미/}).getAttribute('title'),/파이어뱃 1기.*메딕 1기/);await close();
   ids.special=await page.evaluate(()=>{const b=window.__catalogTest.battle,u=b.create(115,0,1100,3500);u.productionOnly=true;u.completed=false;u.construction={time:0,total:1000,started:true,cost:[...b.buildingCost(115)],original:null};return u.id});
