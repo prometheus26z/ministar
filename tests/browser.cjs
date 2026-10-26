@@ -144,7 +144,7 @@ async function testBuildingCatalogUI(browser,url){
   assert.deepEqual(errors,[]);
  }finally{await context.close()}
 }
-(async()=>{const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{browser=await chromium.launch({headless:true});await testLegacyMigration(browser);await testLegacyMigration(browser,true);const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+': '+r.url())});await page.addInitScript(()=>{window.__spriteDraws=new Set();const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(image,...args){if(image?.src)window.__spriteDraws.add(image.__ministarSource||image.src);return draw.call(this,image,...args)}});await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__visualTest={get battle(){return battle},get placement(){return placementPoint},get viewMode(){return viewMode},centerOn(p){camera.x=p.x;camera.y=p.y;limitCamera();return this.project(p)},findValidBuildPoint(){const type=Number(battle.targeting.split(":")[1]);for(let y=80;y<H-140;y+=8)for(let x=16;x<W-16;x+=8){const point=toWorld(x,y);if(document.elementFromPoint(x,y)===document.getElementById("field")&&!battle.placement(battle.builder,type,point).reason){return{x,y}}}throw new Error("No valid building point in the field viewport")},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));await page.goto('http://127.0.0.1:'+server.address().port+'/ministar/');await page.locator('#title').waitFor({state:'visible'});// Every select uses an overlay: no Android picker, layout shift or viewport overflow.
+(async()=>{const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{browser=await chromium.launch({headless:true});await testLegacyMigration(browser);await testLegacyMigration(browser,true);const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+': '+r.url())});await page.addInitScript(()=>{window.__spriteDraws=new Set();const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(image,...args){if(image?.src)window.__spriteDraws.add(image.__ministarSource||image.src);return draw.call(this,image,...args)}});await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__visualTest={get battle(){return battle},get placement(){return placementPoint},get viewMode(){return viewMode},get camera(){return {x:camera.x,y:camera.y}},centerOn(p){camera.x=p.x;camera.y=p.y;limitCamera();return this.project(p)},findValidBuildPoint(){const type=Number(battle.targeting.split(":")[1]);for(let y=80;y<H-140;y+=8)for(let x=16;x<W-16;x+=8){const point=toWorld(x,y);if(document.elementFromPoint(x,y)===document.getElementById("field")&&!battle.placement(battle.builder,type,point).reason){return{x,y}}}throw new Error("No valid building point in the field viewport")},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));await page.goto('http://127.0.0.1:'+server.address().port+'/ministar/');await page.locator('#title').waitFor({state:'visible'});// Every select uses an overlay: no Android picker, layout shift or viewport overflow.
 for(const viewport of [{width:405,height:594},{width:390,height:600},{width:360,height:640},{width:412,height:740},{width:390,height:844},{width:320,height:568},{width:844,height:390},{width:1280,height:800}]){
  await page.setViewportSize(viewport);
  if(viewport.height>viewport.width){
@@ -222,9 +222,25 @@ await page.waitForFunction(()=>document.getElementById('order').textContent.incl
 await page.locator('#spaceToggle').click();
 assert.equal((await page.locator('#spaceToggle').boundingBox()).x,0);
 await page.locator('#map').click();const minimap=page.locator('#minimap'),miniBox=await minimap.boundingBox();
-await minimap.click({position:{x:miniBox.width/2,y:1}});await page.locator('#map').click();
-const enemyMainPoint=await page.evaluate(()=>{const t=window.__visualTest;return t.project(t.battle.enemyMain)});
-await page.locator('#field').tap({position:enemyMainPoint});await page.waitForTimeout(100);
+// Letterboxed margins must not move the camera.
+const cameraBeforeMargin=await page.evaluate(()=>window.__visualTest.camera);
+await minimap.click({position:{x:miniBox.width/2,y:1}});
+assert.deepEqual(await page.evaluate(()=>window.__visualTest.camera),cameraBeforeMargin,'minimap margin must not move the camera');
+// Map the enemy main from world coordinates through the minimap canvas to CSS pixels.
+const miniTarget=await minimap.evaluate(canvas=>{
+ const bounds={x:0,y:0,width:1280,height:2048},margin=3,rect=canvas.getBoundingClientRect();
+ const world=window.__visualTest.battle.enemyMain;
+ const scale=Math.min((canvas.width-2*margin)/bounds.width,(canvas.height-2*margin)/bounds.height);
+ const offsetX=(canvas.width-bounds.width*scale)/2,offsetY=(canvas.height-bounds.height*scale)/2;
+ return {x:(offsetX+(world.x-bounds.x)*scale)*rect.width/canvas.width,y:(offsetY+(world.y-bounds.y)*scale)*rect.height/canvas.height};
+});
+await minimap.click({position:miniTarget});await page.locator('#map').click();
+const enemyMainPoint=await page.evaluate(()=>{
+ const t=window.__visualTest,p=t.project(t.battle.enemyMain),field=document.getElementById('field'),rect=field.getBoundingClientRect();
+ return {x:p.x,y:p.y,width:rect.width,height:rect.height,hit:document.elementFromPoint(rect.left+p.x,rect.top+p.y)===field};
+});
+assert.ok(enemyMainPoint.x>=0&&enemyMainPoint.x<enemyMainPoint.width&&enemyMainPoint.y>=0&&enemyMainPoint.y<enemyMainPoint.height&&enemyMainPoint.hit,JSON.stringify(enemyMainPoint));
+await page.locator('#field').tap({position:{x:enemyMainPoint.x,y:enemyMainPoint.y}});await page.waitForTimeout(100);
 assert.equal(await page.locator('#unitName').innerText(),'케이다린 수정 형성부');
 assert.doesNotMatch(await page.locator('#toast').innerText(),/HP/);assert.equal(await page.locator('#inspectionNumbers').isVisible(),true);assert.equal(await page.locator('#hp').isVisible(),true);assert.match(await page.locator('#hp').innerText(),/HP \d+\/\d+/);
 const enemyHealth=await page.evaluate(()=>{const b=window.__visualTest.battle,u=b.units.find(u=>u.team===1&&u.alive&&!u.hidden&&!u.loaded);b.inspect(u);return `${u.def.shield>0?`실드 ${Math.floor(u.shield)}/${Math.floor(u.def.shield)}  `:''}HP ${Math.ceil(u.hp)}/${Math.ceil(u.maxHp||u.def.hp)}`});await page.waitForFunction(expected=>document.getElementById('hp').textContent===expected,enemyHealth);assert.match(await page.locator('#hp').innerText(),/HP \d+\/\d+/);
