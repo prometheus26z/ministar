@@ -94,7 +94,7 @@ body[data-panel=min] #productionQueue{display:none}
 
 
 :root{--panel:100px}
-#panel .group-row,#panel .panel-tools,#portrait,#chips{display:none!important}
+#panel .group-row,#panel .panel-tools,#chips{display:none!important}
 #panel .panel-main{gap:5px;min-height:40px}
 #panel .unit-info{max-width:34vw}
 #panel .unit-info strong{font-size:11px}

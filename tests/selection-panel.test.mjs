@@ -43,3 +43,8 @@ test('a lethal weapon hit credits the live source unit once for its inspection k
  b.hitUnit(target,10,0,3,null,attacker);assert.equal(target.alive,false);assert.equal(attacker.killCount,1);
  b.die(target,0,attacker.id);assert.equal(attacker.killCount,1);
 });
+
+test('ground inspection damage uses ground hit count even when the unit also has an air weapon',()=>{
+ const b=battle(),unit=b.create(0,0,100,100);unit.def={...unit.def,groundHits:2,airHits:1};
+ const model=selectionPanelModel(b,unit,data);assert.equal(model.weapons[0].kind,'ground');assert.equal(model.weapons[0].hits,2);
+});

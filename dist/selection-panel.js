@@ -21,7 +21,7 @@ export function selectionPanelModel(battle,unit,data,unitUi=UNIT_UI){
   if(weapons.some(entry=>entry.sourceId===sourceId))continue;
   const weaponMap=unitUi.weapons?.[sourceId];if(!weaponMap?.icon)continue;
   const upgrade=Number.isInteger(weaponMap.damageUpgrade)?weaponMap.damageUpgrade:null;
-  weapons.push({kind,sourceId,icon:weaponMap.icon,level:upgrade===null?0:floorNonNegative(unit.def.combatUpgrades?.[upgrade]),damage:weapon.damage,hits:attackHitCount(attacker,weapon,air)||1,range:weapon.range||0,name:data.weapons?.[sourceId]?.name||(kind==='air'?'공중 공격':'지상 공격')});
+  weapons.push({kind,sourceId,icon:weaponMap.icon,level:upgrade===null?0:floorNonNegative(unit.def.combatUpgrades?.[upgrade]),damage:weapon.damage,hits:attackHitCount(attacker,weapon,kind==='air')||1,range:weapon.range||0,name:data.weapons?.[sourceId]?.name||(kind==='air'?'공중 공격':'지상 공격')});
  }
  const armorUpgrade=Number.isInteger(unitMap.armorUpgrade)?unitMap.armorUpgrade:null;
  const armor=unitMap.armorIcon?{icon:unitMap.armorIcon,level:armorUpgrade===null?0:floorNonNegative(unit.def.combatUpgrades?.[armorUpgrade]),value:floorNonNegative(unit.def.armor)}:null;
