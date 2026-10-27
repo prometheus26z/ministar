@@ -54,6 +54,19 @@ export class Battle{
  // The index lives only during a simulation step. External edits and UI queries
  // use the authoritative array; every step rebuilds it before any unit acts.
  nearby(point,radius){return this.spatial?this.spatial.query(point,radius,this.units):this.units}
+ // A synchronous render-only index. Never carry it across battle.update/step;
+ // the per-tick spatial index continues to take priority during simulation.
+ withPresentationQueries(render,{byId=false}={}){
+  const previous=this.presentationQueries,queries={arbiters:new Set(),detectors:new Set(),byId:byId?new Map():null};
+  for(const unit of this.units){
+   if(unit.type===71||unit.type===86)queries.arbiters.add(unit);
+   if(unit.def.detector)queries.detectors.add(unit);
+   if(queries.byId)queries.byId.set(unit.id,unit);
+  }
+  this.presentationQueries=queries;
+  try{return render()}finally{this.presentationQueries=previous??null}
+ }
+ filteredNearby(point,radius,predicate){return this.spatial?this.spatial.queryFilteredOrdered(point,radius,predicate):this.units.filter(predicate)}
  staticBlocked(x,y,r,ignore=null){
   if(this.map.blocked(x,y,r))return true;
   return (this.spatial?.buildings||this.units).some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&u.def.building&&(!u.construction||u.construction.started)&&Math.abs(x-u.x)<=(u.def.footprint?.[0]||64)/2+r&&Math.abs(y-u.y)<=(u.def.footprint?.[1]||64)/2+r);
@@ -90,16 +103,18 @@ export class Battle{
   // In open ground a straight approach wins the steering score. Test it once
   // and leave turning/acceleration and the final swept collision to BW control.
   const straight={x:from.x+dx/d*travel,y:from.y+dy/d*travel};
-  const straightCandidates=this.spatial?.collisionCandidates(u,from,straight)||null;
-  if(this.movementLimit(u,from,straight,straightCandidates)>=travel-MOVEMENT_EPSILON){
-   const moved=advanceUnitMovement(this,u,goal,dt,{finalWaypoint});
+  // One all-direction superset covers steering probes and the final movement
+  // script, even when the velocity heading differs from the goal direction.
+  const candidates=this.spatial?.collisionCandidates(u,from,{x:from.x+travel,y:from.y},true)||null;
+  const collisionContext=candidates?{unit:u,origin:from,radius:u.r,maxTravel:travel,candidates,spatial:this.spatial}:null;
+  if(this.movementLimit(u,from,straight,candidates)>=travel-MOVEMENT_EPSILON){
+   const moved=advanceUnitMovement(this,u,goal,dt,{finalWaypoint,collisionContext});
    if(moved&&u.avoidSideUntil<=this.time){u.avoidSide=0;u.avoidSideUntil=0}
    return moved;
   }
-  const collisionCandidates=this.spatial?.collisionCandidates(u,from,{x:from.x+travel,y:from.y},true)||null;
   const base=Math.atan2(dy,dx),side=u.avoidSideUntil>this.time?u.avoidSide:((u.id&1)?1:-1),offsets=[0,side*Math.PI/8,-side*Math.PI/8,side*Math.PI/4,-side*Math.PI/4,side*3*Math.PI/8,-side*3*Math.PI/8,side*Math.PI/2,-side*Math.PI/2,side*5*Math.PI/8,-side*5*Math.PI/8,side*3*Math.PI/4,-side*3*Math.PI/4,side*7*Math.PI/8,-side*7*Math.PI/8,Math.PI];
   let best=null,bestScore=Infinity;
-  for(let i=0;i<offsets.length;i++){const offset=offsets[i],angle=base+offset,to={x:from.x+Math.cos(angle)*travel,y:from.y+Math.sin(angle)*travel};const moved=this.movementLimit(u,from,to,collisionCandidates);if(moved<.01){if(i===4&&best?.moved>=travel*.9)break;continue}
+  for(let i=0;i<offsets.length;i++){const offset=offsets[i],angle=base+offset,to={x:from.x+Math.cos(angle)*travel,y:from.y+Math.sin(angle)*travel};const moved=this.movementLimit(u,from,to,candidates);if(moved<.01){if(i===4&&best?.moved>=travel*.9)break;continue}
    const ratio=moved/travel,p={x:from.x+(to.x-from.x)*ratio,y:from.y+(to.y-from.y)*ratio};
    const score=dist(p,goal)+(travel-moved)*2+Math.abs(offset)*2+(u.avoidSideUntil>this.time&&Math.sign(offset||side)!==side ? travel*2+4 : 0);
    if(score<bestScore){bestScore=score;best={point:p,offset,moved}}
@@ -109,7 +124,7 @@ export class Battle{
    if(i===4&&best?.moved>=travel*.9)break;
   }
   if(!best)return false;
-  const moved=advanceUnitMovement(this,u,Math.abs(best.offset)<1e-9?goal:best.point,dt,{finalWaypoint:finalWaypoint&&Math.abs(best.offset)<1e-9});
+  const moved=advanceUnitMovement(this,u,Math.abs(best.offset)<1e-9?goal:best.point,dt,{finalWaypoint:finalWaypoint&&Math.abs(best.offset)<1e-9,collisionContext});
   if(!moved){if(Math.abs(best.offset)>Math.PI/32){u.avoidSide=Math.sign(best.offset);u.avoidSideUntil=this.time+1}return false}
   if(Math.abs(best.offset)>Math.PI/32){u.avoidSide=Math.sign(best.offset);u.avoidSideUntil=this.time+1}else if(u.avoidSideUntil<=this.time){u.avoidSide=0;u.avoidSideUntil=0}
   return true;
@@ -169,7 +184,7 @@ export class Battle{
   u.energy=Math.max(0,u.energy-s[2]);if(!['burrow','siege','cloak'].includes(key)){u.action='cast';u.animTime=0}const spellPoint=p??(target?{x:target.x,y:target.y}:null);if(spellPoint){const imageSpec=SPELL_IMPACT_IMAGES[key],overlaySize=clamp(target?.def?.spellOverlaySize??((target?.def?.size||0)>=3?2:(target?.def?.size||0)===2?1:0),0,2),image=Array.isArray(imageSpec)?imageSpec[overlaySize]:imageSpec,track=image&&this.data.graphics?.[image]?.tracks?.idle,duration=Math.max(0.12,(track?.ticks||12)/24);if(Number.isInteger(image))this.effects.push({kind:'spell',spell:key,image,x:spellPoint.x,y:spellPoint.y,team:u.team,left:duration,duration,age:0,visualAge:0,firstRendered:false})}this.emit('spell',{casterId:u.id,commanderId:u.commanderId,team:u.team,key,targetId:target?.id??null,point:spellPoint,energyAfter:u.energy});this.emit('change');return true;
  }
  detectedBy(team,u){
-  const detectors=this.spatial?.detectors||this.units;
+  const detectors=this.spatial?.detectors||this.presentationQueries?.detectors||this.units;
   for(const detector of detectors){
    if(!detector.alive||detector.team!==team||!detector.def.detector||detector.loaded||detector.hidden||detector.productionOnly||detector.buffs?.stasis>0)continue;
    if(detector.construction&&!this.ready(detector))continue;
@@ -182,7 +197,7 @@ export class Battle{
  }
  // Burrowing locks movement immediately, but concealment starts after the last transition frame.
  isHiddenByBurrow(u){if(!u?.burrowed)return false;return u.type===103?u.lurkerState!=='burrowing':u.burrowState!=='burrowing'}
- hasArbiterAura(u){if(!u?.alive||u.team===undefined||u.def?.building||[71,86,14].includes(u.type)||u.def?.powerup||u.hallucination||u.hidden||u.loaded||u.productionOnly||u.construction||u.egg)return false;const arbiters=this.spatial?.arbiters;if(arbiters&&!arbiters.size)return false;for(const a of arbiters||this.units){if(!a.alive||![71,86].includes(a.type)||a.team!==u.team||a===u||a.hallucination||a.hidden||a.loaded||a.productionOnly||a.buffs?.stasis>0||a.buffs?.lockdown>0||a.buffs?.maelstrom>0||a.construction||a.egg||!this.inNoExpandRect(u,a,160))continue;const weapon=resolveWeapon(this.data,this,a,true),range=weapon?.range??this.data.weapons?.[77]?.range??160;if(this.edgeDistance(a,u)<=range)return true}return false;}
+ hasArbiterAura(u){if(!u?.alive||u.team===undefined||u.def?.building||[71,86,14].includes(u.type)||u.def?.powerup||u.hallucination||u.hidden||u.loaded||u.productionOnly||u.construction||u.egg)return false;const arbiters=this.spatial?.arbiters||this.presentationQueries?.arbiters;if(arbiters&&!arbiters.size)return false;for(const a of arbiters||this.units){if(!a.alive||![71,86].includes(a.type)||a.team!==u.team||a===u||a.hallucination||a.hidden||a.loaded||a.productionOnly||a.buffs?.stasis>0||a.buffs?.lockdown>0||a.buffs?.maelstrom>0||a.construction||a.egg||!this.inNoExpandRect(u,a,160))continue;const weapon=resolveWeapon(this.data,this,a,true),range=weapon?.range??this.data.weapons?.[77]?.range??160;if(this.edgeDistance(a,u)<=range)return true}return false;}
  isEffectivelyCloaked(u){return !!(u?.cloaked||this.hasArbiterAura(u))}
  inVision(team,u){if(u?.team===team)return true;if(this.laneMode)return true;const friends=this.units.filter(a=>a.alive&&!a.loaded&&a.team===team),canObserve=a=>(a.def.air||u.def.air||this.map.heightAt(a.x,a.y)>=this.map.heightAt(u.x,u.y))&&dist(a,u)<(a.buffs.blind>0?64:a.def.sight)+u.r;return friends.some(canObserve)||u.parasite===team}
  canSee(team,u){if(u.team===team)return true;if(!this.inVision(team,u))return false;const burrowHidden=this.isHiddenByBurrow(u),revealed=!burrowHidden&&(u.buffs.ensnare>0||u.buffs.maelstrom>0||u.buffs.plague>0);if((this.isEffectivelyCloaked(u)||burrowHidden)&&!revealed&&!this.detectedBy(team,u))return false;return true;}
@@ -238,7 +253,7 @@ export class Battle{
   const slots=reserve?this.activeAttackSlots(t):[],direct=[],points=[];
   const isAvoided=p=>avoidPoints.some(a=>dist(p,a)<Math.max(8,u.r));
   const reserved=p=>slots.some(slot=>slot.unit!==u&&slot.team===u.team&&dist(p,slot.point)<u.r+slot.r+4);
-  const crowdAt=p=>this.nearby(p,this.spatialRange(u.r+10)).reduce((n,a)=>n+(a!==u&&a.alive&&!a.hidden&&!a.productionOnly&&!a.loaded&&!a.def.building&&a.def.air===u.def.air&&dist(a,p)<u.r+a.r+10?Math.max(0,u.r+a.r+10-dist(a,p))*2:0),0);
+  const crowdAt=p=>this.filteredNearby(p,this.spatialRange(u.r+10),a=>a!==u&&a.alive&&!a.hidden&&!a.productionOnly&&!a.loaded&&!a.def.building&&a.def.air===u.def.air&&dist(a,p)<u.r+a.r+10).reduce((n,a)=>n+Math.max(0,u.r+a.r+10-dist(a,p))*2,0);
   let occupied=0;
   for(let i=0;i<count;i++){
    const angle=i*Math.PI*2/count,dx=Math.cos(angle),dy=Math.sin(angle);
@@ -313,15 +328,14 @@ export class Battle{
   const cw=this.weapon(u,current),base=this.targetScore(u,current,cw),scanRange=acquisitionRange(this,u);let best=null,bestScore=Infinity;
   // nearby() retains authoritative unit order, so the first equal-score
   // candidate wins without allocating and sorting every in-range threat.
-  for(const t of this.nearby(u,this.spatialRange(scanRange+u.r))){
-   if(t===current||!this.inAcquisitionRange(u,t,scanRange)||!this.canPursueTarget(u,t))continue;
+  for(const t of this.filteredNearby(u,this.spatialRange(scanRange+u.r),t=>t!==current&&this.inAcquisitionRange(u,t,scanRange)&&this.canPursueTarget(u,t))){
    const w=this.weapon(u,t),edge=this.edgeDistance(u,t);
    if(edge>w.range||edge<(w.minRange||0))continue;
    const score=this.targetScore(u,t,w);if(score<bestScore){bestScore=score;best=t}
   }
   return best&&base-bestScore>80?best:current;
  }
- acquireTarget(u,approachResult=null){const scanRange=acquisitionRange(this,u),candidates=this.nearby(u,this.spatialRange(scanRange+u.r)).filter(t=>this.inAcquisitionRange(u,t,scanRange)&&this.canPursueTarget(u,t));const source=this.findUnit(u.aggroTarget);if(this.inAcquisitionRange(u,source,scanRange)&&this.canPursueTarget(u,source)&&u.aggroUntil>this.time){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
+ acquireTarget(u,approachResult=null){const scanRange=acquisitionRange(this,u),candidates=this.filteredNearby(u,this.spatialRange(scanRange+u.r),t=>this.inAcquisitionRange(u,t,scanRange)&&this.canPursueTarget(u,t));const source=this.findUnit(u.aggroTarget);if(this.inAcquisitionRange(u,source,scanRange)&&this.canPursueTarget(u,source)&&u.aggroUntil>this.time){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
   const scored=candidates.map(t=>{const w=this.weapon(u,t),edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge);return{t,w,edge,gap,minGap,score:this.targetScore(u,t,w)}}).sort((a,b)=>a.score-b.score);
   for(const c of scored){if(c.gap<=0&&c.minGap<=0)return c.t;if(u.order==='hold')continue;const edgeRange=Math.max(c.w.minRange||0,c.w.range-Math.max(8,u.r*.25)),approach=this.approachPath(u,c.t,edgeRange,{reserve:true});if(approach){if(approachResult)Object.assign(approachResult,{targetId:c.t.id,fromX:u.x,fromY:u.y,targetX:c.t.x,targetY:c.t.y,edgeRange,approach});return c.t}u.unreachableTargets||={};u.unreachableTargets[c.t.id]=this.time+1.5}
   return null;

@@ -8,12 +8,15 @@ const rotate=(from,to,amount)=>{const delta=signedDelta(from,to);return (from+Ma
 
 // Apply collision to the actual source-controlled movement segment, including
 // turning and braking. Only the moving unit may change position.
-function collisionStep(battle,unit,x,y){
+function collisionStep(battle,unit,x,y,collisionContext=null){
  if(unit.def.air)return{x,y,blocked:false};
  const distance=Math.hypot(x-unit.x,y-unit.y);
  if(distance<EPS)return{x:unit.x,y:unit.y,blocked:true};
  if(typeof battle.movementLimit==='function'){
-  const allowed=battle.movementLimit(unit,unit,{x,y}),ratio=Math.min(1,allowed/distance);
+  // Reuse only the all-direction broad phase from this same synchronous move.
+  // BW movement scripts can exceed the steering estimate: re-query then.
+  const reuse=collisionContext&&collisionContext.unit===unit&&collisionContext.spatial===battle.spatial&&collisionContext.radius===unit.r&&collisionContext.origin.x===unit.x&&collisionContext.origin.y===unit.y&&distance<=collisionContext.maxTravel+EPS;
+  const allowed=battle.movementLimit(unit,unit,{x,y},reuse?collisionContext.candidates:null),ratio=Math.min(1,allowed/distance);
   return{x:unit.x+(x-unit.x)*ratio,y:unit.y+(y-unit.y)*ratio,blocked:ratio<1-EPS};
  }
  return battle.map.blocked(x,y,unit.r*.55)?{x:unit.x,y:unit.y,blocked:true}:{x,y,blocked:false};
@@ -77,7 +80,7 @@ export function aimUnit(battle,unit,target,dt,{turret=false}={}){
  return Math.abs(signedDelta(motion.heading256,direction))<=8;
 }
 
-export function advanceUnitMovement(battle,unit,point,dt,{finalWaypoint=true,stop=false}={}){
+export function advanceUnitMovement(battle,unit,point,dt,{finalWaypoint=true,stop=false,collisionContext=null}={}){
  if(!point||!unit?.alive||unit.def?.building||unit.burrowed||unit.type===103&&unit.lurkerState!=='ground'||unit.sieged||unit.buffs?.stasis>0||unit.buffs?.lockdown>0||unit.buffs?.maelstrom>0)return false;
  const motion=ensureMotion(unit),dx=point.x-unit.x,dy=point.y-unit.y,distance=Math.hypot(dx,dy),frames=Math.max(0,dt*24);
  if(distance<.05){if(stop)clearMovementControl(unit);return false}
@@ -92,14 +95,14 @@ export function advanceUnitMovement(battle,unit,point,dt,{finalWaypoint=true,sto
   const scriptDistance=movementScriptDistance(unit,motion,frames,profile),step=Math.min(distance,scriptDistance);
   if(step<=0)return false;
   const x=unit.x+dx/distance*step,y=unit.y+dy/distance*step;
-  const next=collisionStep(battle,unit,x,y);if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
+  const next=collisionStep(battle,unit,x,y,collisionContext);if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
   unit.x=next.x;unit.y=next.y;motion.speedRaw=next.blocked?0:motion.walkSpeedRaw;
   if(!next.blocked&&finalWaypoint&&step>=distance-EPS){unit.x=point.x;unit.y=point.y;clearMovementControl(unit)}
   battle.spatial?.update(unit);unit.action='walk';return true;
  }
  if(control!==0&&control!==1){
   const speed=unit.movementSpeedOverride??unit.def?.speed??0,step=Math.min(distance,speed*dt),x=unit.x+dx/distance*step,y=unit.y+dy/distance*step;
-  const next=collisionStep(battle,unit,x,y);if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
+  const next=collisionStep(battle,unit,x,y,collisionContext);if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
   unit.x=next.x;unit.y=next.y;battle.spatial?.update(unit);unit.action='walk';return step>0;
  }
  const turnError=Math.abs(signedDelta(motion.velocityDirection256,desired));
@@ -115,7 +118,7 @@ export function advanceUnitMovement(battle,unit,point,dt,{finalWaypoint=true,sto
  else motion.speedRaw=profile.topSpeedRaw;
  const travel=Math.max(0,(motion.speedRaw/256)*frames),step=Math.min(distance,travel),angle=motion.velocityDirection256*Math.PI/128,x=unit.x+Math.sin(angle)*step,y=unit.y-Math.cos(angle)*step;
  if(step<=0)return false;
- const next=collisionStep(battle,unit,x,y);if(next.blocked)motion.speedRaw=0;if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
+ const next=collisionStep(battle,unit,x,y,collisionContext);if(next.blocked)motion.speedRaw=0;if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
  unit.x=next.x;unit.y=next.y;
  if(!next.blocked&&finalWaypoint&&step>=distance-EPS){unit.x=point.x;unit.y=point.y;clearMovementControl(unit)}
  battle.spatial?.update(unit);unit.action='walk';return true;

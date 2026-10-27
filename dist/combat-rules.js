@@ -6,6 +6,9 @@ const ATTACK_SPEED_UPGRADES={37:28};
 const ENERGY_UPGRADES={1:21,8:22,9:19,12:23,34:51,45:31,46:32,60:47,63:49,67:40,71:44};
 const SIGHT_UPGRADES={1:20,42:25,84:38,70:41};
 const PROFILE_CACHE=new WeakMap();
+const WEAPON_PROFILE_CACHE=new WeakMap();
+export const WEAPON_CACHE_METRICS={hits:0,misses:0,profiles:0};
+const STANDARD_WEAPON_FIELDS=['id','damage','cooldown','range','minRange','type','factor','splash','air','ground','behavior','image','speed'];
 const CONTROL_WEAPONS=Object.freeze({
  carrier:Object.freeze({id:79,damage:0,cooldown:0,range:256,minRange:0,type:3,factor:1,splash:[0,0,0],air:true,ground:true,controlOnly:true}),
  reaver:Object.freeze({id:82,damage:0,cooldown:0,range:256,minRange:0,type:3,factor:1,splash:[0,0,0],air:false,ground:true,controlOnly:true})
@@ -30,6 +33,26 @@ function levelFor(battle,unit,upgrade){return upgradeLevel(sourcePlayerForUnit(b
 function unitId(unit){return Number(unit?.sieged?30:unit?.type)}
 function unitRule(unit){return COMBAT_SOURCE.units[unitId(unit)]||null}
 function profileCache(baseDef){let cache=PROFILE_CACHE.get(baseDef);if(!cache)PROFILE_CACHE.set(baseDef,cache=new Map());return cache}
+function weaponProfileCache(data,base){
+ let byWeapon=WEAPON_PROFILE_CACHE.get(data);if(!byWeapon)WEAPON_PROFILE_CACHE.set(data,byWeapon=new WeakMap());
+ let record=byWeapon.get(base),changed=!record;
+ if(record?.standard){
+  // Generated Brood War weapon records all have this exact 13-field shape.
+  // Comparing scalars avoids 13-key enumeration and splash string creation
+  // on every target check, while still noticing in-place test/runtime edits.
+  const old=record.snapshot,splash=base.splash;
+  changed=old.id!==base.id||old.damage!==base.damage||old.cooldown!==base.cooldown||old.range!==base.range||old.minRange!==base.minRange||old.type!==base.type||old.factor!==base.factor||old.splash!==splash||old.air!==base.air||old.ground!==base.ground||old.behavior!==base.behavior||old.image!==base.image||old.speed!==base.speed||record.splashLength!==splash?.length||record.splash0!==splash?.[0]||record.splash1!==splash?.[1]||record.splash2!==splash?.[2];
+ }else if(record){
+  let count=0;for(const key in base){count++;if(record.snapshot[key]!==base[key])changed=true}
+  if(count!==record.count||record.splashSignature!==(Array.isArray(base.splash)?base.splash.join(','):null))changed=true;
+ }
+ if(changed){
+  const keys=Object.keys(base),standard=keys.length===STANDARD_WEAPON_FIELDS.length&&keys.every(key=>STANDARD_WEAPON_FIELDS.includes(key)),splash=base.splash;
+  record={snapshot:{...base},standard,count:keys.length,splashSignature:standard?null:Array.isArray(splash)?splash.join(','):null,splashLength:splash?.length,splash0:splash?.[0],splash1:splash?.[1],splash2:splash?.[2],profiles:new Map()};
+  byWeapon.set(base,record);
+ }
+ return record.profiles;
+}
 
 export function resolveUnitDefinition(battle,unit,baseDef=unit?.baseDef||unit?.def,mapOverride=unit?.mapDefOverride||null){
  if(!baseDef)return baseDef;
@@ -96,8 +119,12 @@ export function resolveWeapon(data,battle,unit,targetAir=false,forcedWeaponId=nu
  const bonus=mapCombat&&Number.isFinite(weaponRule?.mapBonus)?weaponRule.mapBonus:0;
  const damage=Math.max(0,rawDamage+bonus*damageLevel);
  const range=base.range+rangeBonus(unit,weaponId,player);
- const splash=weaponRule?[weaponRule.wpnSplashRangeInner,weaponRule.wpnSplashRangeMid,weaponRule.wpnSplashRangeOuter]:base.splash;
- return Object.freeze({...base,damage,range,splash,explosionType:weaponRule?.explosionType||base.explosionType||'Normal',sourceWeaponId:weaponId,damageUpgrade,damageLevel,mapDamage:rawDamage,mapBonus:bonus,combatProfilePlayer:player});
+ const cache=weaponProfileCache(data,base),key=`${weaponId}:${player??'base'}:${mapCombat?1:0}:${damageLevel}:${rawDamage}:${bonus}:${range}`;
+ const cached=cache.get(key);if(cached){WEAPON_CACHE_METRICS.hits++;return cached}
+ const splash=weaponRule?[weaponRule.wpnSplashRangeInner,weaponRule.wpnSplashRangeMid,weaponRule.wpnSplashRangeOuter]:Array.isArray(base.splash)?[...base.splash]:base.splash;
+ if(Array.isArray(splash))Object.freeze(splash);
+ const profile=Object.freeze({...base,damage,range,splash,explosionType:weaponRule?.explosionType||base.explosionType||'Normal',sourceWeaponId:weaponId,damageUpgrade,damageLevel,mapDamage:rawDamage,mapBonus:bonus,combatProfilePlayer:player});
+ cache.set(key,profile);WEAPON_CACHE_METRICS.misses++;WEAPON_CACHE_METRICS.profiles++;return profile;
 }
 
 export function acquisitionRange(battle,unit,targetAir=null,definition=unit?.def,baseDef=unit?.baseDef){

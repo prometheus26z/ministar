@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),{createServer}=require('../server.cjs');
 (async()=>{
  const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
  try{
-  browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true}),errors=[];
+  browser=await chromium.launch({headless:true,...(process.env.MINISTAR_CHROMIUM?{executablePath:process.env.MINISTAR_CHROMIUM}:{})});const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/app.js?*',route=>{
    let source=fs.readFileSync(path.join(__dirname,'../dist/app.js'),'utf8');
