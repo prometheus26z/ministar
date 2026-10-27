@@ -44,7 +44,7 @@ function criticalSceneImageUrls(){const urls=new Set();for(const id of new Set([
 function dependencyImageUrls(imageIds){const urls=new Set(),visited=new Set(),queue=[...imageIds].filter(Number.isInteger).map(id=>({id,depth:0}));while(queue.length&&visited.size<2048){const {id,depth}=queue.shift();if(depth>8||visited.has(id))continue;visited.add(id);const graphic=data.graphics[id];if(!graphic)continue;for(const url of graphicUrls(graphic))urls.add(url);for(const track of Object.values(graphic.tracks||{})){const events=track?.overlayEvents||(track?.overlays||[]).map(image=>({image}));for(const event of events)if(Number.isInteger(event?.image))queue.push({id:event.image,depth:depth+1})}for(const overlay of graphic.persistentOverlays||[])if(Number.isInteger(overlay?.image))queue.push({id:overlay.image,depth:depth+1});for(const shadow of graphic.shadowLayers||[])if(Number.isInteger(shadow.image))queue.push({id:shadow.image,depth:depth+1})}return urls}
 function selectedRaceImageUrls(selectedRace,constructionGraphics,turretGraphics,destructionGraphics){const types=new Set(data.races[selectedRace]||[]),images=[...types].map(type=>data.units[type]?.image).filter(Number.isInteger),urls=dependencyImageUrls(images);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const [type,graphic]of Object.entries(graphics))if(types.has(Number(type)))for(const url of graphicUrls(graphic))urls.add(url);for(const id of Object.values(BASE))for(const url of graphicUrls(data.graphics[data.units[id]?.image]))urls.add(url);return urls}
 function optionalImageUrls(constructionGraphics,turretGraphics,destructionGraphics){
- const optional=new Set(['ds-assets/production.webp?v=0.16.25']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
+ const optional=new Set([`ds-assets/production.webp?v=${VERSION}`]);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
  for(const url of graphicUrls(data.graphics[215]))optional.add(url);
  for(const id of [210,211])for(const url of graphicUrls(data.graphics[id]))optional.add(url);
  const images=new Set([523,504,524,503,536,337,364,383,387,951,998]);for(const value of Object.values(spellVisualData?.images||{}))for(const id of Array.isArray(value)?value:[value])if(Number.isInteger(id))images.add(id);for(const weapon of Object.values(data.weapons||{}))if(weapon?.damage&&Number.isInteger(weapon.image))images.add(weapon.image);
@@ -520,7 +520,7 @@ function drawRelief(){
 }
 function drawProductionBoard(){
  ctx.fillStyle='#1c100a';ctx.fillRect(0,PRODUCTION_OFFSET,1280,PRODUCTION_HEIGHT);
- if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.25');
+ if(!desertProduction)desertProduction=getImage(`ds-assets/production.webp?v=${VERSION}`);
  ctx.save();if(productionTeam){ctx.translate(1280,0);ctx.scale(-1,1)}
  if(desertProduction)ctx.drawImage(desertProduction,PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
  ctx.restore();ctx.strokeStyle='#c49b61';ctx.lineWidth=2;ctx.strokeRect(productionTeam?1280-PRODUCTION_GROUND_X-PRODUCTION_GROUND_WIDTH:PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
@@ -689,15 +689,15 @@ async function boot(){if(bootInProgress)return;bootInProgress=true;const retry=$
  if(!await retireOfflineStorage())return;
  const cacheState=await resourceStore.init();if(!cacheState.manifest)console.warn('Resource manifest unavailable; continuing with online requests only');
  if(!uiEnhanced){enhanceSelects();uiEnhanced=true}
- const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.25');
+ const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage(`ds-assets/battlefield.webp?v=${VERSION}`);
  const [base,extra,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations,spellVisuals]=await Promise.all([
   fetchJson('assets/data.json','전투 데이터를 읽을 수 없습니다.'),
-  fetchJson('rts-data.json?v=0.16.25','생산 데이터를 읽을 수 없습니다.'),
-  fetchJson('construction-data.json?v=0.16.25','건설 그래픽을 읽을 수 없습니다.'),
-  fetchJson('turret-data.json?v=0.16.25','포탑 그래픽을 읽을 수 없습니다.'),
-  fetchJson('destruction-data.json?v=0.16.25','건물 파괴 그래픽을 읽을 수 없습니다.'),
-  fetchJson('original-animation-data.json?v=0.16.25','원본 애니메이션을 읽을 수 없습니다.'),
-  fetchJson('spell-visual-data.json?v=0.16.25','원본 주문 효과 데이터를 읽을 수 없습니다.')
+  fetchJson(`rts-data.json?v=${VERSION}`,'생산 데이터를 읽을 수 없습니다.'),
+  fetchJson(`construction-data.json?v=${VERSION}`,'건설 그래픽을 읽을 수 없습니다.'),
+  fetchJson(`turret-data.json?v=${VERSION}`,'포탑 그래픽을 읽을 수 없습니다.'),
+  fetchJson(`destruction-data.json?v=${VERSION}`,'건물 파괴 그래픽을 읽을 수 없습니다.'),
+  fetchJson(`original-animation-data.json?v=${VERSION}`,'원본 애니메이션을 읽을 수 없습니다.'),
+  fetchJson(`spell-visual-data.json?v=${VERSION}`,'원본 주문 효과 데이터를 읽을 수 없습니다.')
  ]);
  data=base;spellVisualData=spellVisuals;for(const [id,size]of Object.entries(spellVisualData.unitOverlaySizes||{}))if(data.units[id])data.units[id].spellOverlaySize=size;warmupGraphics=[constructionGraphics,turretGraphics,destructionGraphics];clearMediaSession();Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations);
  for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);
