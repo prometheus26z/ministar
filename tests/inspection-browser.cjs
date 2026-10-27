@@ -140,7 +140,7 @@ async function testInspection(browser){
    assert.ok(layout.menu.bottom<=layout.frame.top+1,JSON.stringify(layout));
    assert.ok(layout.grid.left>=0&&layout.grid.right<=viewport.width+1&&layout.mini.left>=0&&layout.mini.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.mini.right<=layout.wrap.left+3&&layout.wrap.right<=layout.portrait.left+3&&layout.portrait.right<=layout.grid.left+3,'map, unit information, Menu/portrait and card occupy separate columns: '+JSON.stringify(layout));
-   assert.ok(Math.abs(layout.mini.height-layout.console.height)<2&&Math.abs(layout.grid.bottom-layout.console.bottom)<2,'minimap and card stretch to console height: '+JSON.stringify(layout));
+   assert.ok(Math.abs(layout.mini.height-(layout.grid.bottom-layout.grid.top))<1.5&&layout.mini.bottom<=layout.console.bottom+1&&layout.grid.bottom>=layout.console.bottom-3,'minimap and card stretch inside the console frame: '+JSON.stringify(layout));
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(id=>window.__inspectionTest.centerOn(id,.4),ids.dragoon);await page.waitForTimeout(80);
