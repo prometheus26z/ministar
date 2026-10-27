@@ -113,6 +113,15 @@ test('a blocked pursuit retries another approach and resumes when movement becom
  assert.ok(Math.hypot(attacker.x-start.x,attacker.y-start.y)>1,'the attacker follows a newly selected approach after movement recovers');
 });
 
+test('turning in place does not cause a pursuit to abandon its chosen flank',()=>{
+ const b=combat(),u=b.create(65,0,400,700),target=b.create(0,1,600,700),waypoint={x:520,y:700};
+ u.attackPath=[waypoint];u.motion.heading256=0;u.motion.desiredDirection256=128;
+ assert.equal(b.updateAttackProgress(u,target,.1),false);
+ for(let i=0;i<7;i++)assert.equal(b.updateAttackProgress(u,target,.1),false,'the turn is still in progress');
+ u.motion.heading256=128;
+ assert.equal(b.updateAttackProgress(u,target,.1),true,'an unchanged blocked path still triggers recovery once aligned');
+});
+
 test('recovery approach search avoids the endpoint that just stalled',()=>{
  const b=combat();b.map.rocks=[];b.canSee=()=>true;
  const attacker=b.create(65,0,400,700),target=b.create(0,1,600,700),weapon=b.weapon(attacker,target);

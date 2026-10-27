@@ -241,6 +241,30 @@ export class Battle extends EconomyBattle{
   u.goal=goal;u.path=route;u.order='attackmove';u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.aiClock=0;u.stuck=0;
  }
 
+ recoverLaneRoute(u,objective){
+  // A static A* route is still valid when soldiers temporarily block one another.
+  // Repeating that exact route at every stall makes whole columns oscillate.
+  const direction=u.team?1:-1,goal=this.formationGoal(u,objective),end={x:goal.x,y:goal.y-direction*128},clearance=u.r*.55;
+  const previousSide=u.laneDetourSide||((u.id&1)?1:-1),choices=[];
+  for(const side of [previousSide,-previousSide])for(const sideways of [112,208]){
+   const p={x:clamp(u.x+side*sideways,64,1216),y:clamp(u.y+direction*128,64,1984)};
+   if(this.staticBlocked(p.x,p.y,clearance,u))continue;
+   const first=this.clearGroundSegment(u,p,clearance,u)?[p]:this.path(u,p,false,clearance,u),last=first.at(-1);
+   if(!last||dist(last,p)>36)continue;
+   const tail=this.clearGroundSegment(p,end,clearance,u)?[end]:this.path(p,end,false,clearance,u);
+   if(!tail.length||dist(tail.at(-1),end)>48)continue;
+   // Prefer the current avoidance side unless it is crowded; do not march
+   // towards a second queue just to get around the first one.
+   const crowd=this.nearby(p,this.spatialRange(96)).reduce((n,other)=>n+(other!==u&&other.alive&&!other.hidden&&!other.loaded&&!other.productionOnly&&!other.def.air&&!other.def.building&&dist(other,p)<other.r+u.r+40?1:0),0);
+   const route=[...first,...tail],length=route.reduce((n,point,i)=>n+dist(i?route[i-1]:u,point),0);
+   choices.push({side,path:route,score:length+crowd*65+(side!==previousSide?30:0)});
+  }
+  choices.sort((a,b)=>a.score-b.score);
+  if(!choices.length)return false;
+  u.path=choices[0].path;u.goal=goal;u.order='attackmove';u.laneDetourSide=choices[0].side;u.laneDetourUntil=this.time+1.8;
+  return true;
+ }
+
  deploymentPoint(def,team,point,spacing=32,ignore=null){
   const clearance=Math.max(20,(def.radius||10)*.55),direction=team?1:-1;
   const free=p=>{
@@ -264,7 +288,8 @@ export class Battle extends EconomyBattle{
   if(preferred&&free(preferred))return preferred;
   spacing=Math.max(32,spacing);const columns=Math.floor((zone.right-zone.left)/spacing)+1,rows=Math.floor((zone.bottom-zone.top)/spacing)+1,center=640,xOrder=[];
   for(let offset=0;offset<columns;offset++){if(!offset)xOrder.push(center);else{xOrder.push(center-offset*spacing,center+offset*spacing)}}
-  const startY=team?zone.bottom-clearance:zone.top+clearance,direction=team?-1:1;
+  // Deploy from the map edge, with overflow rows moving in towards the base.
+  const startY=team?zone.top+clearance:zone.bottom-clearance,direction=team?1:-1;
   for(let row=0;row<rows;row++){const y=startY+direction*row*spacing;for(const x of xOrder){const p={x,y};if(free(p))return p}}
   return null;
  }
@@ -302,7 +327,7 @@ export class Battle extends EconomyBattle{
  }
  spawnUnit(type,team,index,total,origin,spacing=32){
   const def=this.data.units[type];if(!def)return null;
-  const columns=Math.min(8,Math.max(1,Math.floor(448/spacing)),Math.max(1,total)),row=Math.floor(index/columns),rowCount=Math.min(columns,total-row*columns),spread=(index%columns-(rowCount-1)/2)*spacing,zone=DESERT_STRIKE.map.mobileLayout.deploymentZones[team],clearance=Math.max(16,(def.radius||10)*.55),request={type:Number(type),team,index,total,spacing,spread,waveId:++this.waveId,commanderId:this.ownerByTeam[team],preferred:{x:640+spread,y:team?zone.bottom-clearance-row*spacing:zone.top+clearance+row*spacing}};
+  const columns=Math.min(8,Math.max(1,Math.floor(448/spacing)),Math.max(1,total)),row=Math.floor(index/columns),rowCount=Math.min(columns,total-row*columns),spread=(index%columns-(rowCount-1)/2)*spacing,zone=DESERT_STRIKE.map.mobileLayout.deploymentZones[team],clearance=Math.max(16,(def.radius||10)*.55),request={type:Number(type),team,index,total,spacing,spread,waveId:++this.waveId,commanderId:this.ownerByTeam[team],preferred:{x:640+spread,y:team?zone.top+clearance+row*spacing:zone.bottom-clearance-row*spacing}};
   if(!this.enqueueDeployment(request))return null;
   if(!this.inSimulationStep)this.drainPendingDeployments();
   return request.spawned||this.units.find(u=>u.alive&&u.waveId===request.waveId)||null;
@@ -310,7 +335,7 @@ export class Battle extends EconomyBattle{
  spawnWave(team){
   const lineup=[];for(const [type,count]of this.activeWave(team))for(let i=0;i<count;i++)lineup.push(type);
   const spacing=Math.max(32,...lineup.map(type=>(this.data.units[type]?.radius||10)*2.4)),columns=Math.min(8,Math.max(1,Math.floor(448/spacing)),Math.max(1,lineup.length)),rowCounts=Math.ceil(lineup.length/columns),zone=DESERT_STRIKE.map.mobileLayout.deploymentZones[team],commanderId=this.ownerByTeam[team],waveId=++this.waveId;
-  lineup.forEach((type,index)=>{const row=Math.floor(index/columns),rowCount=Math.min(columns,lineup.length-row*columns),spread=(index%columns-(rowCount-1)/2)*spacing,clearance=Math.max(16,(this.data.units[type]?.radius||10)*.55);this.enqueueDeployment({type,team,index,total:lineup.length,spacing,spread,row,waveId,commanderId,preferred:{x:640+spread,y:team?zone.bottom-clearance-row*spacing:zone.top+clearance+row*spacing}})});
+  lineup.forEach((type,index)=>{const row=Math.floor(index/columns),rowCount=Math.min(columns,lineup.length-row*columns),spread=(index%columns-(rowCount-1)/2)*spacing,clearance=Math.max(16,(this.data.units[type]?.radius||10)*.55);this.enqueueDeployment({type,team,index,total:lineup.length,spacing,spread,row,waveId,commanderId,preferred:{x:640+spread,y:team?zone.top+clearance+row*spacing:zone.bottom-clearance-row*spacing}})});
   if(!this.inSimulationStep)this.drainPendingDeployments();return lineup.length;
  }
  botBuild(plan){return this.ai.build(plan.type)}
@@ -356,7 +381,11 @@ export class Battle extends EconomyBattle{
   const idle=!u.goal&&!u.combatMoving&&!u.target&&!u.healTarget&&dist(u,objective)>120,stalled=u.laneStall>.9&&!u.combatMoving&&!u.target&&!u.healTarget&&!['attack','airAttack','cast'].includes(u.action)&&dist(u,objective)>120;
   if(objective?.id!==u.laneObjectiveId||idle||stalled){
    if(!u.def.air&&this.map.blocked(u.x,u.y,u.r*.55)){const p=this.deploymentPoint(u.def,u.team,u,32,u);if(p){u.x=p.x;u.y=p.y}}
-   u.laneObjectiveId=objective.id;this.setAdvanceGoal(u,objective);u.laneStall=0;
+   const needsNewGoal=objective?.id!==u.laneObjectiveId||idle;
+   u.laneObjectiveId=objective.id;
+   if(needsNewGoal)this.setAdvanceGoal(u,objective);
+   else if(this.time>=(u.laneDetourUntil||0)&&!this.recoverLaneRoute(u,objective))this.setAdvanceGoal(u,objective);
+   u.laneStall=0;
   }
  }
  tickUnit(u,dt){

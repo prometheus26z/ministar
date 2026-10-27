@@ -17,10 +17,29 @@ test('36-unit waves on both sides spawn clear of HQ and turrets and every member
   assert.equal(army.length,36);assert.equal(new Set(army.map(u=>`${u.x},${u.y}`)).size,36);
   const main=team?b.core:b.main,zone=DESERT_STRIKE.map.mobileLayout.deploymentZones[team],direction=team?1:-1;
   assert.ok(army.every(u=>direction*(u.y-main.y)<0&&u.x>=zone.left+u.r&&u.x<=zone.right-u.r&&u.y>=zone.top+u.r&&u.y<=zone.bottom-u.r));
+  const firstRow=army.slice(0,8),lastRow=army.slice(-8);
+  assert.ok(firstRow.every(u=>team?u.y<=zone.top+u.r+8:u.y>=zone.bottom-u.r-8),'the first deployment row enters from the map edge');
+  assert.ok((firstRow.reduce((n,u)=>n+u.y,0)/firstRow.length)*(team?1:-1)<(lastRow.reduce((n,u)=>n+u.y,0)/lastRow.length)*(team?1:-1),'overflow rows form towards the base, not behind it');
   assert.ok(army.every(u=>!b.map.blocked(u.x,u.y,Math.max(20,u.r*.55))));
   for(let frame=0;frame<450;frame++)for(const u of army)b.tickUnit(u,1/30);
   assert.ok(army.every(u=>team?u.y>500:u.y<1500),JSON.stringify(army.filter(u=>team?u.y<=500:u.y>=1500).map(u=>[u.x,u.y,u.order])));
  }
+});
+
+test('a congested lane rebuilds a stable sideways route without changing the attack objective',()=>{
+ const b=fresh(),u=b.create(0,0,640,1500),objective=b.laneObjective(0);
+ u.laneArmy=true;u.laneOffset=0;u.laneObjectiveId=objective.id;b.setAdvanceGoal(u,objective);
+ // The normal straight route is obstructed by units parked across the lane.
+ for(let x=560;x<=720;x+=32){const blocker=b.create(0,0,x,1465);blocker.order='hold'}
+ const firstGoal={...u.goal};
+ assert.equal(b.recoverLaneRoute(u,objective),true);
+ assert.deepEqual(u.goal,firstGoal);
+ assert.ok(u.path.length>1,'recovery plans a flank plus a route back to the original objective');
+ const firstSide=u.laneDetourSide,firstWaypoint={...u.path[0]};
+ assert.ok(firstSide===1||firstSide===-1);
+ b.time+=.9;u.laneStall=1.0;u.laneCheckpoint={x:u.x,y:u.y};b.maintainAdvance(u,1/24);
+ assert.equal(u.laneDetourSide,firstSide,'the escape direction is held while the unit turns');
+ assert.deepEqual(u.path[0],firstWaypoint,'stalls do not immediately discard the detour');
 });
 
 test('rear-zone congestion queues units without forward fallback or cross-team starvation',()=>{
