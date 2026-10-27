@@ -11,6 +11,38 @@ Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics
 const lane=(race='protoss')=>{const b=new LaneBattle(data,{race,enemyRace:race,difficulty:'easy'});b.begin();b.botStep=()=>{};b.waveClock=99999;return b};
 const combat=()=>{const b=new CombatBattle(data,{race:'terran'});b.phase='battle';return b};
 
+test('burrowed lane Lurker acquires and damages a large temple by edge distance',()=>{
+ const b=lane('zerg');b.units=[];b.map.rocks=[];
+ const lurker=b.create(103,0,350,768),temple=b.create(174,1,640,768);
+ b.canSee=()=>true;lurker.laneArmy=true;lurker.lurkerState='burrowed';lurker.burrowed=true;lurker.order='hold';lurker.lurkerResumeOrder='attackmove';
+ assert.equal(b.edgeDistance(lurker,temple),162.5);
+ assert.ok(b.lurkerThreats(lurker).includes(temple));
+ assert.equal(b.acquireTarget(lurker),temple);
+ const before=temple.hp+temple.shield;
+ for(let i=0;i<200;i++){b.time+=1/24;b.tickUnit(lurker,1/24);b.tickLurkerSpines?.(1/24);if(temple.hp+temple.shield<before)break}
+ assert.ok(lurker.target===temple,'actual combat target is retained');
+ assert.ok(temple.hp+temple.shield<before,'normal Lurker spine pulses must deal actual damage');
+ assert.ok(temple.hp<temple.maxHp||temple.shield<temple.def.shield,'the temple must lose shield or hull, not only a visual cue');
+ temple.def={...temple.def,invincible:true};assert.ok(!b.lurkerThreats(lurker).includes(temple),'invincible target cannot sustain burrow');
+});
+
+test('Lurker candidate set rejects invincible and airborne targets and keeps inclusive edge-range boundaries',()=>{
+ for(const team of [0,1]){
+  const b=lane('zerg');b.units=[];b.map.rocks=[];b.canSee=()=>true;
+  const u=b.create(103,team,350,768);u.laneArmy=true;u.lurkerState='burrowed';u.burrowed=true;u.order='hold';
+  const temple=b.create(174,1-team,640,768);
+  const baseWidth=temple.def.footprint[0]/2;
+  for(const [edge,expected]of [[192,true],[192.01,false],[176,true],[175.99,true]]){
+   temple.x=u.x+u.r+baseWidth+edge;
+   assert.equal(b.lurkerThreats(u).includes(temple),expected,`team ${team} edge ${edge}`);
+   assert.equal(b.acquireTarget(u)===temple,expected,`acquisition team ${team} edge ${edge}`);
+  }
+  temple.x=640;temple.def={...temple.def,invincible:true};assert.equal(b.acquireTarget(u),null);
+  temple.def={...temple.def,invincible:false,air:true};assert.equal(b.acquireTarget(u),null);
+  temple.def={...temple.def,air:false};temple.hidden=true;assert.equal(b.acquireTarget(u),null);
+ }
+});
+
 test('eight Protoss Zealots reach and damage the durable temple outpost',()=>{
  const b=lane(),temple=b.enemyOutpost,hp=temple.hp;
  for(let i=0;i<8;i++){const u=b.create(65,0,570+(i%4)*40,730+Math.floor(i/4)*40),objective=b.laneObjective(0);u.laneArmy=true;u.laneOffset=0;b.setAdvanceGoal(u,objective);u.laneObjectiveId=objective.id}

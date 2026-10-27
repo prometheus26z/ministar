@@ -3,8 +3,8 @@ import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.25';
 import {SATISFIES} from './tech.js?v=0.16.25';
 import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.25';
 import {buildingDestruction} from './presentation.js?v=0.16.25';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.25-stall-ui34';
-import {clamp,dist} from './core.js?v=0.16.25-stall-ui34';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.26-pr35';
+import {clamp,dist} from './core.js?v=0.16.26-pr35';
 import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.25';
 import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.25';
 import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.25';
@@ -409,13 +409,16 @@ export class Battle extends EconomyBattle{
    const heading=u.motion?.heading256,desired=u.motion?.desiredDirection256;
    if(stalled&&Number.isFinite(heading)&&Number.isFinite(desired)&&Math.abs(((desired-heading+384)%256)-128)>16&&u.laneStall<1.5){u.movementState='TURNING';return}
    if(stalled&&this.time<(u.laneDetourUntil||0))return;
+   // Legacy recovery applies only to a genuinely invalid position (e.g.
+   // a unit already embedded in a rock), never a safe point whose grid center
+   // is blocked. Normal building detours still use collision-safe A*.
    if(!u.def.air&&this.map.blocked(u.x,u.y,u.r*.55)){const p=this.deploymentPoint(u.def,u.team,u,32,u);if(p){u.x=p.x;u.y=p.y}}
    const needsNewGoal=objective?.id!==u.laneObjectiveId||idle;
    u.laneObjectiveId=objective.id;
    if(stalled&&!u.attackControl&&['attack','airAttack','cast'].includes(u.action)){
     this.clearActionControl(u,'route-stalled');u.action='idle';u.animTime=0;
    }
-   if(needsNewGoal)this.setAdvanceGoal(u,objective);
+   if(needsNewGoal){this.setAdvanceGoal(u,objective);if(!u.path.length)u.laneDetourUntil=this.time+1}
    else if(!this.recoverLaneRoute(u,objective)){
     this.setAdvanceGoal(u,objective);u.laneDetourUntil=this.time+1;
    }
@@ -448,7 +451,10 @@ export class Battle extends EconomyBattle{
  }
  lurkerThreats(u,range=this.data.weapons[u.def.groundWeapon]?.range||0){
   const weapon=this.data.weapons[u.def.groundWeapon];if(!weapon?.damage||!weapon.ground)return[];
-  return this.nearby(u,this.spatialRange(range+u.r,true)).filter(t=>t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.def.air&&!t.buffs?.stasis&&this.canSee(u.team,t)&&this.edgeDistance(u,t)<=range&&this.edgeDistance(u,t)>=(weapon.minRange||0)).sort((a,b)=>this.edgeDistance(u,a)-this.edgeDistance(u,b)||a.id-b.id);
+  // Ground Lurkers have no resolved weapon until fully burrowed. Validate
+  // approach candidates against the future weapon, without changing state.
+  const active=u.lurkerState==='burrowed'&&u.burrowed;
+  return this.units.filter(t=>this.lurkerThreatValid(u,t,weapon)&&this.edgeDistance(u,t)<=range+1e-6&&(!active||this.burrowedLurkerTarget(u,t))).sort((a,b)=>this.edgeDistance(u,a)-this.edgeDistance(u,b)||a.id-b.id);
  }
  lurkerThreatInRange(u){return this.lurkerThreats(u).length>0}
  clearLaneLurkerApproach(u){u.lurkerApproachPath=[];u.lurkerApproachTargetId=null;u.lurkerApproachPoint=null;u.lurkerApproachClock=0;u.lurkerApproachStall=0;u.lurkerApproachNoPath=false;u.lurkerApproachLastX=null;u.lurkerApproachLastY=null}
@@ -456,7 +462,7 @@ export class Battle extends EconomyBattle{
   if(['burrowing','unburrowing'].includes(u.lurkerState)){this.clearLaneLurkerApproach(u);return false}
   const weapon=this.data.weapons[u.def.groundWeapon];if(!weapon?.damage||!weapon.ground){this.clearLaneLurkerApproach(u);return false}
   const threats=this.lurkerThreats(u,weapon.range),target=threats[0]||null;
-  if(u.lurkerState==='burrowed'){this.clearLaneLurkerApproach(u);if(!target){this.cast(u,'burrow');return true}return false}
+  if(u.lurkerState==='burrowed'){this.clearLaneLurkerApproach(u);if(!target){u.target=null;this.cast(u,'burrow');return true}if(!this.burrowedLurkerTarget(u,u.target))u.target=target;return false}
   if(u.lurkerState!=='ground'||!target){this.clearLaneLurkerApproach(u);return false}
   const edge=this.edgeDistance(u,target),enterRange=Math.max(weapon.minRange||0,weapon.range-LURKER_BURROW_MARGIN);
   if(edge<=enterRange+1e-6){this.clearLaneLurkerApproach(u);this.cast(u,'burrow');return true}

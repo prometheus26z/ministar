@@ -61,7 +61,7 @@ test('entrypoint and legacy migration use the package cache version',()=>{
  const version=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url))).version;
  const html=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8'),worker=fs.readFileSync(new URL('../dist/sw.js',import.meta.url),'utf8');
  assert.ok(fs.readFileSync(new URL('../dist/economy.js',import.meta.url),'utf8').includes('core.js?v='+version));
- assert.ok(html.includes('app.js?v='+version+'-lane'));assert.ok(html.includes('v'+version+'</small>'));assert.ok(worker.includes("set('v','"+version+"')"));
+ assert.match(html,new RegExp('app\\.js\\?v='+version.replaceAll('.','\\.')+'-[a-z0-9-]+'));assert.ok(html.includes('v'+version+'</small>'));assert.ok(worker.includes("set('v','"+version+"')"));
 });
 
 test('original source frames fit their real texture atlas and remain complete',()=>{

@@ -10,6 +10,7 @@ const injection=`
 window.__inspectionTest={
  get battle(){return battle},
  get camera(){return camera},
+ get activePointerIds(){return [...pointers.keys()]},
  get wireframeCacheSize(){return wireframeCache.size},
  setMoney(value){battle.money=value;commandPanelSignature='';renderCommandPanel(true)},
  createPanelScene(){
@@ -108,22 +109,37 @@ async function testInspection(browser){
   await page.locator('#field').tap({position:enemyPoint});
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='마린');
   assert.equal(await page.locator('#commandTabs').count(),0,'the command tab bar stays absent');assert.equal(await page.locator('#commandGrid .command-slot:not(:disabled)').count(),0);
-  assert.equal(await page.locator('#portrait').getAttribute('src'),'assets/portraits/0.webm');
+  assert.equal(await page.locator('#baseView, #frontView, #map, #mapWrap, #minimap, .lane-views').count(),0,'removed auxiliary console and expanded map have no DOM');
+  const vacant={x:18,y:200};await page.locator('#field').tap({position:vacant});
+  await page.waitForFunction(()=>!document.getElementById('unitName').textContent);
+  assert.equal(await page.evaluate(()=>window.__inspectionTest.battle.inspectedUnit),null,'a real vacant ground tap clears enemy inspection');
+  await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
+  const dragStart={x:60,y:260};await page.mouse.move(dragStart.x,dragStart.y);await page.mouse.down();await page.mouse.move(dragStart.x+50,dragStart.y+50,{steps:5});await page.mouse.up();
+  assert.equal(await page.locator('#unitName').innerText(),'드라군','dragging preserves inspection');
+  await page.mouse.move(50,220);await page.mouse.down();
+  await page.evaluate(()=>{const id=window.__inspectionTest.activePointerIds[0];if(id!==undefined)document.getElementById('field').dispatchEvent(new PointerEvent('pointercancel',{pointerId:id,bubbles:true,clientX:50,clientY:220}))});
+  await page.mouse.up();
+  assert.equal(await page.locator('#unitName').innerText(),'드라군','pointercancel preserves inspection');
+  assert.equal(await page.locator('#portrait').getAttribute('src'),ids.portrait,'pointercancel retains the selected Dragoon portrait');
+  await page.locator('#field').tap({position:vacant});
+  await page.waitForFunction(()=>!document.getElementById('unitName').textContent);
+  assert.equal(await page.evaluate(()=>window.__inspectionTest.battle.inspectedUnit),null,'a real vacant ground tap clears allied inspection');
 
   const buildingPoint=await page.evaluate(id=>window.__inspectionTest.centerOn(id,1.2),ids.building);
   await page.locator('#field').tap({position:buildingPoint});
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='배럭');
   assert.equal(await page.locator('#killCount').isVisible(),false,'buildings have no unit kill count');
   assert.equal(await page.locator('#portrait').getAttribute('src'),'assets/portraits/111.webm');
-  await page.evaluate(()=>window.__inspectionTest.clearSelection());
+  await page.locator('#field').tap({position:vacant});
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='');
-  assert.equal(await page.locator('#portrait').getAttribute('src'),null,'clearing inspection releases the previous portrait');
+  assert.equal(await page.locator('#portrait').getAttribute('src'),null,'tapping vacant ground releases the building portrait');
   assert.equal(await page.locator('#statIcons button').count(),0);
   const emptyFrame=await page.locator('.portrait-frame').boundingBox();
-  assert.ok(emptyFrame?.width>0&&emptyFrame.height<=68,'the portrait has a compact, uncropped window in its independent column');
+  assert.ok(emptyFrame?.width>0&&emptyFrame.height>68,'the portrait fills the expanded area beneath Menu');
   for(const race of ['terran','zerg','protoss']){
-   const raceImage=await page.evaluate(race=>{document.body.dataset.race=race;return getComputedStyle(document.querySelector('#portraitArea'),'::after').backgroundImage},race);
-   assert.ok(raceImage.includes(`/original-ui/${race}/console-normalized.webp`),`${race} portrait footer uses its own original race background`);
+   const raceStyle=await page.evaluate(race=>{document.body.dataset.race=race;const area=document.querySelector('#portraitArea');return{background:getComputedStyle(area).backgroundImage,decoration:getComputedStyle(area,'::after').content}},race);
+   assert.ok(raceStyle.background.includes(`/original-ui/${race}/console.webp`),`${race} portrait area uses its original race panel texture`);
+   assert.equal(raceStyle.decoration,'none','portrait decoration remains removed for every race');
   }
   await page.evaluate(()=>{document.body.dataset.race='terran'});
 
@@ -167,11 +183,13 @@ async function testInspection(browser){
    assert.ok(layout.frame.top>=layout.portrait.top&&layout.frame.bottom<=layout.portrait.bottom+1,JSON.stringify(layout));
    assert.ok(layout.portrait.top>=layout.console.top&&layout.portrait.bottom<=layout.console.bottom+1,'Menu/portrait must stay inside the console after race-skin decoration: '+JSON.stringify(layout));
    assert.ok(layout.menu.bottom<=layout.frame.top+1,JSON.stringify(layout));
-   assert.ok(layout.menu.top-layout.portrait.top>=10,'Menu is recessed below the top of the original console: '+JSON.stringify(layout));
-   assert.ok(layout.portrait.bottom-layout.frame.bottom>=30,'race-specific console texture remains visible beneath the smaller portrait: '+JSON.stringify(layout));
+   assert.ok(layout.menu.top-layout.portrait.top>=4,'Menu remains within its own row: '+JSON.stringify(layout));
+   assert.ok(layout.portrait.bottom-layout.frame.bottom<=5,'portrait occupies the former ornament area: '+JSON.stringify(layout));
    assert.ok(layout.portrait.background.includes('/original-ui/'),'portrait backing uses the selected race texture');
    assert.equal(layout.fit,'contain','the original portrait frames are never cropped by cover scaling');
-   assert.ok(layout.frame.height<=68,'portrait window is at least 50px shorter than its former full-height design');
+   assert.ok(layout.frame.height>68,'portrait expands into the former decoration area');
+   assert.equal(await page.locator('#portraitArea').evaluate(el=>getComputedStyle(el,'::after').content),'none','no decorative pseudo-element below the portrait');
+   assert.ok(layout.footer.bottom>=viewport.height-1,'footer reaches the safe-area bottom');
    if(viewport.width>=390)assert.ok(layout.portrait.width>=85,'the portrait column receives the unit-information width');
    assert.ok(layout.grid.left>=0&&layout.grid.right<=viewport.width+1&&layout.mini.left>=0&&layout.mini.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.mini.right<=layout.wrap.left+3&&layout.wrap.right<=layout.portrait.left+3&&layout.portrait.right<=layout.grid.left+3,'map, unit information, Menu/portrait and card occupy separate columns: '+JSON.stringify(layout));
@@ -208,6 +226,7 @@ async function testInspection(browser){
   await page.locator('#spaceToggle').tap();
   await page.waitForFunction(()=>document.body.dataset.space==='production');
   await page.evaluate(()=>window.__inspectionTest.setMoney(0));
+  await page.locator('#commandGrid [aria-label="기본 건설 명령"]').tap();
   const unaffordable=page.locator('#commandGrid .building-card[aria-label*="미네랄이 부족합니다"]').first();
   // Playwright treats aria-disabled as non-actionable even though these
   // deliberately clickable build cards are not HTML-disabled.

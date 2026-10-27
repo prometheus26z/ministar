@@ -4,7 +4,7 @@ import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,po
 import {resolveUnitDefinition,resolveWeapon,acquisitionRange,attackHitCount,cooldownFrames,movementSpeed,movementProfile,scriptProgramForImage,healthDamageAfterArmor,shieldDamageAfterArmor,unitBoundsGap,inNoExpandRect as unitInNoExpandRect} from './combat-rules.js?v=0.16.25';
 import {ensureMotion,clearMovementControl,aimUnit,advanceUnitMovement,brakeUnitMovement} from './action-control.js?v=0.16.25';
 import {octileDistance,segmentAabbEntry,sweptCircleEntry,MOVEMENT_EPSILON,isFullyBurrowed} from './movement.js?v=0.16.25';
-export const VERSION='0.16.25';
+export const VERSION='0.16.26';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
@@ -30,21 +30,34 @@ export class Battlefield{
  constructor(){this.w=1280;this.h=2048;this.cell=32;this.elevation=false;this.water=[];this.rocks=[{x:200,y:1056,w:288,h:192},{x:768,y:1088,w:288,h:192},{x:480,y:640,w:288,h:128},{x:96,y:384,w:192,h:128},{x:1024,y:384,w:160,h:128}];}
  heightAt(x,y){if(!this.elevation)return 0;if(y<576||y>=1472)return 2;if(y<640||y>=1408)return 1;return 0}
  blocked(x,y,r=0){return x<r||y<r||x>1280-r||y>2048-r||this.water.some(a=>x+r>a.x&&x-r<a.x+a.w&&y+r>a.y&&y-r<a.y+a.h)||this.rocks.some(a=>x+r>a.x&&x-r<a.x+a.w&&y+r>a.y&&y-r<a.y+a.h)}
- path(a,b,air=false,clearance=20,blocked=this.blocked.bind(this)){
+ path(a,b,air=false,clearance=20,blocked=this.blocked.bind(this),segmentClear=null){
   b={x:clamp(b.x,clearance,1280-clearance),y:clamp(b.y,clearance,2048-clearance)};if(air)return[b];
-  const cell=p=>({x:clamp(Math.floor(p.x/32),0,39),y:clamp(Math.floor(p.y/32),0,63)}),s=cell(a),g=cell(b),key=p=>p.y*40+p.x,start=key(s),goal=key(g),open=new PathHeap(),cost=new Map([[start,0]]),prev=new Map(),closed=new Set(),heuristic=(x,y)=>octileDistance(g.x-x,g.y-y),startH=heuristic(s.x,s.y);
-  open.push({node:start,f:startH,h:startH});let best=start,bh=startH;
+  const cell=p=>({x:clamp(Math.floor(p.x/32),0,39),y:clamp(Math.floor(p.y/32),0,63)}),s=cell(a),g=cell(b),key=p=>p.y*40+p.x,goal=key(g),open=new PathHeap(),cost=new Map(),prev=new Map(),closed=new Set(),heuristic=(x,y)=>octileDistance(g.x-x,g.y-y);
   const center=(x,y)=>({x:x*32+16,y:y*32+16});
-  const clear=(from,to)=>{if(blocked(to.x,to.y,clearance))return false;const steps=Math.max(1,Math.ceil(Math.hypot(to.x-from.x,to.y-from.y)/8));for(let i=1;i<steps;i++){const f=i/steps;if(blocked(from.x+(to.x-from.x)*f,from.y+(to.y-from.y)*f,clearance))return false}return true};
+  const clear=(from,to)=>{if(blocked(from.x,from.y,clearance)||blocked(to.x,to.y,clearance))return false;if(segmentClear)return segmentClear(from,to,clearance);const steps=Math.max(1,Math.ceil(Math.hypot(to.x-from.x,to.y-from.y)/8));for(let i=1;i<steps;i++){const f=i/steps;if(blocked(from.x+(to.x-from.x)*f,from.y+(to.y-from.y)*f,clearance))return false}return true};
+  if(blocked(a.x,a.y,clearance))return[];
+  if(clear(a,b))return[b];
+  // The unit is a virtual start node. Its grid center may lie *inside* a
+  // building while the actual unit position is collision-free.
+  let best=null,bh=Infinity;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+   const x=s.x+dx,y=s.y+dy;if(x<0||x>=40||y<0||y>=64)continue;
+   const point=center(x,y);if(!clear(a,point))continue;
+   const node=key({x,y}),initial=Math.hypot(point.x-a.x,point.y-a.y)/32,h=heuristic(x,y);
+   if(initial>=(cost.get(node)??Infinity))continue;
+   cost.set(node,initial);open.push({node,f:initial+h,h});
+   if(h<bh){best=node;bh=h}
+  }
+  if(best===null)return[];
   while(open.length){const {node:n}=open.pop();if(closed.has(n))continue;closed.add(n);const x=n%40,y=Math.floor(n/40),h=heuristic(x,y);if(h<bh-1e-9||Math.abs(h-bh)<=1e-9&&cost.get(n)<cost.get(best)){bh=h;best=n}if(n===goal){best=n;break}
    for(const [dx,dy]of[[0,-1],[1,0],[0,1],[-1,0],[1,-1],[1,1],[-1,1],[-1,-1]]){const xx=x+dx,yy=y+dy;if(xx<0||xx>39||yy<0||yy>63)continue;const nn=yy*40+xx;if(closed.has(nn))continue;const from=center(x,y),to=center(xx,yy);if(!clear(from,to))continue;
     if(dx&&dy&&(!clear(from,center(x+dx,y))||!clear(from,center(x,y+dy))))continue;
     const next=cost.get(n)+(dx&&dy?Math.SQRT2:1);if(next>=(cost.get(nn)??Infinity)-1e-9)continue;cost.set(nn,next);prev.set(nn,n);const hh=heuristic(xx,yy);open.push({node:nn,f:next+hh,h:hh});
    }
   }
-  const route=[];for(let n=best;n!==start&&prev.has(n);n=prev.get(n))route.unshift(center(n%40,Math.floor(n/40)));
-  if(best===goal&&!blocked(b.x,b.y,clearance))route.push(b);if(!route.length)return route;
-  const smooth=[];let anchor={x:a.x,y:a.y},index=0;while(index<route.length){let far=index;for(let j=index;j<route.length;j++)if(clear(anchor,route[j]))far=j;smooth.push(route[far]);anchor=route[far];index=far+1}return smooth;
+  const route=[];for(let n=best;n!==undefined;n=prev.get(n))route.unshift(center(n%40,Math.floor(n/40)));
+  if(best===goal&&clear(route.at(-1),b))route.push(b);
+  const smooth=[];let anchor={x:a.x,y:a.y},index=0;while(index<route.length){let far=-1;for(let j=index;j<route.length;j++)if(clear(anchor,route[j]))far=j;if(far<0)return[];smooth.push(route[far]);anchor=route[far];index=far+1}return smooth;
  }
 }
 export class Battle{
@@ -81,7 +94,7 @@ export class Battle{
   }
   return true;
  }
- path(a,b,air=false,clearance=20,ignore=null){return this.map.path(a,b,air,clearance,(x,y,r)=>this.staticBlocked(x,y,r,ignore))}
+ path(a,b,air=false,clearance=20,ignore=null){return this.map.path(a,b,air,clearance,(x,y,r)=>this.staticBlocked(x,y,r,ignore),(from,to,r)=>this.clearGroundSegment(from,to,r,ignore))}
  movementLimit(u,from,to,candidates=null){
   const length=dist(from,to);if(length<MOVEMENT_EPSILON)return 0;let first=1;const clearance=u.r*.55;
   const boundary=(start,end,min,max)=>{const delta=end-start;if(end<min&&delta<0)return (min-start)/delta;if(end>max&&delta>0)return (max-start)/delta;return 1};
@@ -216,12 +229,19 @@ export class Battle{
  syncStatusVisuals(unit){unit.statusVisuals||={};for(const key of STATUS_VISUAL_BUFFS){if(unit.buffs?.[key]>0){if(!Number.isFinite(unit.statusVisuals[key]))unit.statusVisuals[key]=this.time}else delete unit.statusVisuals[key]}}
  edgeDistance(a,b){if(b.def.building){const [w,h]=b.def.footprint||this.data.units[b.type]?.footprint||[64,64],dx=Math.max(0,Math.abs(a.x-b.x)-w/2),dy=Math.max(0,Math.abs(a.y-b.y)-h/2);return Math.max(0,Math.hypot(dx,dy)-(a.r||0))}return Math.max(0,dist(a,b)-(a.r||0)-(b.r||0))}
  canAttackTarget(u,t){return !!t&&t.alive&&!t.def?.invincible&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.fighter?.docked&&t.team!==u.team&&this.canSee(u.team,t)&&!!this.weapon(u,t)&&!t.buffs?.stasis}
+ lurkerThreatValid(u,t,weapon){
+  if(!weapon?.damage||!weapon.ground||!t?.alive||t.team===u.team||t.def.air||t.def.invincible||t.hidden||t.productionOnly||t.loaded||t.fighter?.docked||t.buffs?.stasis||!this.canSee(u.team,t))return false;
+  const edge=this.edgeDistance(u,t);
+  return edge>= (weapon.minRange||0)-1e-6&&edge<=weapon.range+1e-6;
+ }
+ burrowedLurkerTarget(u,t){return u.type===103&&u.lurkerState==='burrowed'&&u.burrowed&&this.canAttackTarget(u,t)&&this.lurkerThreatValid(u,t,this.weapon(u,t))}
  canPursueTarget(u,t){
   if(!this.canAttackTarget(u,t))return false;
   const weapon=this.weapon(u,t),edge=this.edgeDistance(u,t);
   return edge<=weapon.range&&edge>=(weapon.minRange||0)||!(u.unreachableTargets?.[t.id]>this.time);
  }
  inAcquisitionRange(u,t,scanRange){
+  if(u.type===103&&u.lurkerState==='burrowed'&&u.burrowed)return this.burrowedLurkerTarget(u,t);
   return !!t&&t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.fighter?.docked&&!t.def.invincible&&dist(u,t)<=acquisitionRange(this,u,t.def.air)+u.r+t.r;
  }
  clearAttackSlotWait(u){u.attackSlotWaitTargetId=null;u.attackSlotWaitSince=null;u.waitingAttackSlot=false;}
@@ -349,14 +369,15 @@ export class Battle{
   const cw=this.weapon(u,current),base=this.targetScore(u,current,cw),scanRange=acquisitionRange(this,u);let best=null,bestScore=Infinity;
   // nearby() retains authoritative unit order, so the first equal-score
   // candidate wins without allocating and sorting every in-range threat.
-  for(const t of this.filteredNearby(u,this.spatialRange(scanRange+u.r),t=>t!==current&&this.inAcquisitionRange(u,t,scanRange)&&this.canPursueTarget(u,t))){
+  const nearby=u.type===103&&u.lurkerState==='burrowed'?this.units:this.nearby(u,this.spatialRange(scanRange+u.r));
+  for(const t of nearby){if(t===current||!this.inAcquisitionRange(u,t,scanRange)||!this.canPursueTarget(u,t))continue;
    const w=this.weapon(u,t),edge=this.edgeDistance(u,t);
    if(edge>w.range||edge<(w.minRange||0))continue;
    const score=this.targetScore(u,t,w);if(score<bestScore){bestScore=score;best=t}
   }
   return best&&base-bestScore>80?best:current;
  }
- acquireTarget(u,approachResult=null){const scanRange=acquisitionRange(this,u),candidates=this.filteredNearby(u,this.spatialRange(scanRange+u.r),t=>this.inAcquisitionRange(u,t,scanRange)&&this.canPursueTarget(u,t));const source=this.findUnit(u.aggroTarget);if(this.inAcquisitionRange(u,source,scanRange)&&this.canPursueTarget(u,source)&&u.aggroUntil>this.time){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
+ acquireTarget(u,approachResult=null){const scanRange=acquisitionRange(this,u),nearby=u.type===103&&u.lurkerState==='burrowed'?this.units:this.nearby(u,this.spatialRange(scanRange+u.r)),candidates=nearby.filter(t=>this.inAcquisitionRange(u,t,scanRange)&&this.canPursueTarget(u,t));const source=this.findUnit(u.aggroTarget);if(this.inAcquisitionRange(u,source,scanRange)&&this.canPursueTarget(u,source)&&u.aggroUntil>this.time){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
   const scored=candidates.map(t=>{const w=this.weapon(u,t),edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge);return{t,w,edge,gap,minGap,score:this.targetScore(u,t,w)}}).sort((a,b)=>a.score-b.score);
   for(const c of scored){if(c.gap<=0&&c.minGap<=0)return c.t;if(u.order==='hold')continue;const edgeRange=Math.max(c.w.minRange||0,c.w.range-Math.max(8,u.r*.25)),approach=this.approachPath(u,c.t,edgeRange,{reserve:true});if(approach){if(approachResult)Object.assign(approachResult,{targetId:c.t.id,fromX:u.x,fromY:u.y,targetX:c.t.x,targetY:c.t.y,edgeRange,approach});return c.t}u.unreachableTargets||={};u.unreachableTargets[c.t.id]=this.time+1.5}
   return null;
@@ -624,7 +645,7 @@ export class Battle{
   if(this.medicHeal(u,dt))return;
   if(u.order==='repair'&&u.target?.alive){const t=u.target;if(this.edgeDistance(u,t)<=20&&this.money>0){const amount=Math.min(12*dt,t.maxHp-t.hp,this.money*4);t.hp+=amount;this.money-=amount/4}else this.move(u,t,dt);return;}
   const mayAttack=u.order!=='move';let target=null,acquiredApproach=null;
-  if(mayAttack){const w=u.target&&this.weapon(u,u.target),edge=u.target&&this.edgeDistance(u,u.target),holdValid=u.order!=='hold'||w&&edge<=w.range&&edge>=(w.minRange||0);if(this.canPursueTarget(u,u.target)&&holdValid&&(u.order==='focus'||dist(u,u.target)<=u.def.sight+u.r+u.target.r)){target=u.target;u.targetReviewClock=(u.targetReviewClock||0)-dt;if(u.order!=='focus'&&u.targetReviewClock<=0){target=this.betterTarget(u,target);u.targetReviewClock=.45}}else{u.target=null;const result={};target=this.acquireTarget(u,result);if(result.targetId===target?.id)acquiredApproach=result}if(target&&target!==u.target){u.target=target;this.resetAttackPursuit(u);}}
+  if(mayAttack){const w=u.target&&this.weapon(u,u.target),edge=u.target&&this.edgeDistance(u,u.target),holdValid=u.order!=='hold'||w&&edge<=w.range&&edge>=(w.minRange||0),lurkerInRange=this.burrowedLurkerTarget(u,u.target);if(this.canPursueTarget(u,u.target)&&holdValid&&(u.order==='focus'||lurkerInRange||dist(u,u.target)<=u.def.sight+u.r+u.target.r)){target=u.target;u.targetReviewClock=(u.targetReviewClock||0)-dt;if(u.order!=='focus'&&u.targetReviewClock<=0){target=this.betterTarget(u,target);u.targetReviewClock=.45}}else{u.target=null;const result={};target=this.acquireTarget(u,result);if(result.targetId===target?.id)acquiredApproach=result}if(target&&target!==u.target){u.target=target;this.resetAttackPursuit(u);}}
   if(target&&mayAttack){const w=this.weapon(u,target),edge=this.edgeDistance(u,target),inRange=edge<=w.range&&edge>=(w.minRange||0),inWeb=this.areas.some(a=>a.kind==='web'&&!u.def.air&&Math.abs(u.x-a.x)<=a.halfWidth+u.r&&Math.abs(u.y-a.y)<=a.halfHeight+u.r),inSwarm=!target.def.air&&this.areas.some(a=>a.kind==='swarm'&&Math.abs(target.x-a.x)<=a.halfWidth+target.r&&Math.abs(target.y-a.y)<=a.halfHeight+target.r);
    if(inRange){u.combatMoving=true;this.clearAttackSlotWait(u);u.movementState='MOVING';u.attackPath=[];u.attackPathTarget=target.id;u.attackStall=0;u.attackRetries=0;u.attackProgress=null;u.failedAttackApproaches=[];if(brakeUnitMovement(this,u,dt))return;const facing=this.aimTarget(u,target,u.attackControl?0:dt);if(facing&&u.cooldown===0&&!u.attackControl&&!inWeb&&!(inSwarm&&w.range>40&&!(u.type===103&&w.id===109)))this.attack(u,target,w);return}
    if(u.order!=='hold'){
@@ -643,7 +664,7 @@ export class Battle{
    }
   }
   if(!u.target&&u.combatMoving){u.combatMoving=false;if(u.goal)u.path=this.path(u,u.goal,u.def.air,u.def.air?0:u.r*.55,u)}
-  if(u.goal){if(u.path.length){const p=u.path[0];this.move(u,p,dt,u.path.length<=1);if(dist(u,p)<5)u.path.shift()}else if(u.order==='patrol'){const goal=u.goal;this.setGoal(u,u.anchor,'patrol');u.anchor=goal}else{u.goal=null;if(u.order!=='hold')u.order='stop';u.action='idle';this.clearActionControl(u,'stop',true)}}else if(u.animTime>.5){u.action=u.burrowed?'burrow':'idle';this.clearActionControl(u,'idle')}
+  if(u.goal){if(u.path.length){const p=u.path[0];this.move(u,p,dt,u.path.length<=1);if(dist(u,p)<5)u.path.shift()}else if(dist(u,u.goal)<=5){if(u.order==='patrol'){const goal=u.goal;this.setGoal(u,u.anchor,'patrol');u.anchor=goal}else{u.goal=null;if(u.order!=='hold')u.order='stop';u.action='idle';this.clearActionControl(u,'stop',true)}}else{u.action=u.burrowed?'burrow':'idle'}}else if(u.animTime>.5){u.action=u.burrowed?'burrow':'idle';this.clearActionControl(u,'idle')}
  }
  update(realDt,{maxTicks=Infinity,cpuBudgetMs=Infinity}={}){
   if(this.paused||!Number.isFinite(realDt)||realDt<=0)return;

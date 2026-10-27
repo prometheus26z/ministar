@@ -5,6 +5,12 @@ export function commandSlots(layout,race,page,availableTypes){
  return ids.map(id=>id==='cancel'?'cancel':Number.isInteger(id)&&available.has(id)?id:null);
 }
 
+// Command slots 7 and 8 are stable parent relationships, not an availability
+// list: a PUNI-forbidden add-on still occupies its original slot, disabled.
+export function selectedBuildingSlotTypes(buildings,parentType){
+ return Object.entries(buildings).filter(([,rule])=>rule.morph===parentType||rule.addon===parentType).map(([id])=>Number(id)).sort((a,b)=>a-b).slice(0,2);
+}
+
 export function creepNeighborMask(field,x,y,neighborOrder){
  let mask=0;
  for(let index=0;index<neighborOrder.length;index++){

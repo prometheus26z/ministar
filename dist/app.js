@@ -1,27 +1,27 @@
 import {constructionVisual,healthBarLayout,healthBarFillWidth,waveDescription,formatSupply,formatElapsedTime} from './presentation.js?v=0.16.25';
 import {selectionPanelModel,inspectionEnergyMaximum,selectionStatItems} from './selection-panel.js?v=0.16.25';
 import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.25';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.25-stall-ui34';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.25-stall-ui34';
-import {invalidateAbilityRequirements} from './economy.js?v=0.16.25-stall-ui34';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.26-pr35';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.26-pr35';
+import {invalidateAbilityRequirements} from './economy.js?v=0.16.26-pr35';
 import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.25';
 import {researchAt} from './tech.js?v=0.16.25';
 import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.25';
 import {unitRenderTracks} from './unit-render-state.js?v=0.16.25';
-import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.25';
+import {DEFAULT_FIELD_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.25';
 import {psiFieldTiles} from './build-placement.js?v=0.16.25';
 import {resolveWeapon,attackHitCount} from './combat-rules.js?v=0.16.25';
 import {createResourceStore,ResourceVersionError} from './resource-cache.js?v=0.16.25';
 import {createResourcePlanner} from './resource-planner.js?v=0.16.25';
-import {commandSlots,creepEdgeFrameIndex,minimapTransform,minimapWorldPoint} from './console-panel.js?v=0.16.25';
-import {CREEP_EDGE_MAP,CREEP_EDGE_FRAMES,BUILD_COMMAND_LAYOUT,BUILD_COMMAND_ICONS} from './original-ui-data.js?v=0.16.25';
-const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),consoleMini=$('consoleMinimap');
+import {commandSlots,selectedBuildingSlotTypes,creepEdgeFrameIndex,minimapTransform,minimapWorldPoint} from './console-panel.js?v=0.16.26-pr35';
+import {CREEP_EDGE_MAP,CREEP_EDGE_FRAMES,BUILD_COMMAND_LAYOUT,BUILD_COMMAND_ICONS} from './original-ui-data.js?v=0.16.26-pr35';
+const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),consoleMini=$('consoleMinimap');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';
 const productionTeam=0;
 const DEFAULT_SETTINGS={bgm:.22,sfx:.55,voice:.7,panel:'normal',zoom:DEFAULT_FIELD_ZOOM,quality:'auto'};
-let settings={...DEFAULT_SETTINGS,...read('settings',{})},race=read('race','terran'),data,spellVisualData,battle,terrain,W=innerWidth,H=innerHeight,DPR=1,last=0,hudTime=0,viewMode='field',productionSeat=0,desertField,desertProduction,ctrl=false,box=false,map=false,modalKind='',pausedBefore=false,toastTimer,camera={x:640,y:1700,zoom:DEFAULT_FIELD_ZOOM},pointers=new Map(),gesture=null,pinch=null,lastTap={time:0,type:null},lastGroup={time:0,id:null},cache=new Map(),pending=new Map(),failedImages=new Map(),audioContext=null,audioBuffers=new Map(),audioChannels=null,musicSource=null,musicGeneration=0,musicTrackIndex=0,musicTrackRace='',audioLifecycle=0,voiceSources=new Set(),transientSounds=new Set(),voiceGeneration=0,lastVoice=0,sfxActive=0,backgroundPauseRequired=false,pausedBeforeBackground=false;
-let commandPage='basic',commandPanelSignature='',minimapClock=0,activeCommandTooltip=null,creepAtlasPending=false;
+let settings={...DEFAULT_SETTINGS,...read('settings',{})},race=read('race','terran'),data,spellVisualData,battle,terrain,W=innerWidth,H=innerHeight,DPR=1,last=0,hudTime=0,viewMode='field',productionSeat=0,desertField,desertProduction,ctrl=false,box=false,modalKind='',pausedBefore=false,toastTimer,camera={x:640,y:1700,zoom:DEFAULT_FIELD_ZOOM},pointers=new Map(),gesture=null,pinch=null,lastTap={time:0,type:null},lastGroup={time:0,id:null},cache=new Map(),pending=new Map(),failedImages=new Map(),audioContext=null,audioBuffers=new Map(),audioChannels=null,musicSource=null,musicGeneration=0,musicTrackIndex=0,musicTrackRace='',audioLifecycle=0,voiceSources=new Set(),transientSounds=new Set(),voiceGeneration=0,lastVoice=0,sfxActive=0,backgroundPauseRequired=false,pausedBeforeBackground=false;
+let commandPage='worker',commandContextKey='',commandPanelSignature='',minimapClock=0,activeCommandTooltip=null,creepAtlasPending=false;
 document.body.dataset.panel=settings.panel;
 const STARTUP_MARK_PREFIX='ministar:';let firstSceneReady=false,uiEnhanced=false,bootInProgress=false;
 const resourceStore=createResourceStore({baseURL:new URL('./',document.baseURI),appVersion:VERSION}),resourcePlanner=createResourcePlanner({store:resourceStore});
@@ -44,7 +44,7 @@ function criticalSceneImageUrls(){const urls=new Set();for(const id of new Set([
 function dependencyImageUrls(imageIds){const urls=new Set(),visited=new Set(),queue=[...imageIds].filter(Number.isInteger).map(id=>({id,depth:0}));while(queue.length&&visited.size<2048){const {id,depth}=queue.shift();if(depth>8||visited.has(id))continue;visited.add(id);const graphic=data.graphics[id];if(!graphic)continue;for(const url of graphicUrls(graphic))urls.add(url);for(const track of Object.values(graphic.tracks||{})){const events=track?.overlayEvents||(track?.overlays||[]).map(image=>({image}));for(const event of events)if(Number.isInteger(event?.image))queue.push({id:event.image,depth:depth+1})}for(const overlay of graphic.persistentOverlays||[])if(Number.isInteger(overlay?.image))queue.push({id:overlay.image,depth:depth+1});for(const shadow of graphic.shadowLayers||[])if(Number.isInteger(shadow.image))queue.push({id:shadow.image,depth:depth+1})}return urls}
 function selectedRaceImageUrls(selectedRace,constructionGraphics,turretGraphics,destructionGraphics){const types=new Set(data.races[selectedRace]||[]),images=[...types].map(type=>data.units[type]?.image).filter(Number.isInteger),urls=dependencyImageUrls(images);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const [type,graphic]of Object.entries(graphics))if(types.has(Number(type)))for(const url of graphicUrls(graphic))urls.add(url);for(const id of Object.values(BASE))for(const url of graphicUrls(data.graphics[data.units[id]?.image]))urls.add(url);return urls}
 function optionalImageUrls(constructionGraphics,turretGraphics,destructionGraphics){
- const optional=new Set(['ds-assets/production.webp?v=0.16.25']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
+ const optional=new Set([`ds-assets/production.webp?v=${VERSION}`]);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
  for(const url of graphicUrls(data.graphics[215]))optional.add(url);
  for(const id of [210,211])for(const url of graphicUrls(data.graphics[id]))optional.add(url);
  const images=new Set([523,504,524,503,536,337,364,383,387,951,998]);for(const value of Object.values(spellVisualData?.images||{}))for(const id of Array.isArray(value)?value:[value])if(Number.isInteger(id))images.add(id);for(const weapon of Object.values(data.weapons||{}))if(weapon?.damage&&Number.isInteger(weapon.image))images.add(weapon.image);
@@ -82,8 +82,8 @@ function limitCamera(){if(!battle)return;const hw=W/2/camera.zoom,hh=(H-panelHei
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,settings.quality==='low'?1.2:2);canvas.width=W*DPR;canvas.height=H*DPR;limitCamera()}addEventListener('resize',resize);resize();
 function focus(units=battle.selected){if(!units.length)return;camera.x=units.reduce((n,u)=>n+u.x,0)/units.length;camera.y=units.reduce((n,u)=>n+u.y,0)/units.length;limitCamera()}
 function zoom(z,x=W/2,y=cy()){const p=toWorld(x,y);camera.zoom=clamp(z,.25,2.8);const q=toWorld(x,y);camera.x+=p.x-q.x;camera.y+=p.y-q.y;limitCamera();settings.zoom=camera.zoom;save('settings',settings);drawMinimaps()}
-function setViewMode(mode){if(!battle||battle.phase!=='battle')return;closeStatTooltip();closeCommandTooltip();if(battle.menuOpen||battle.targeting)battle.closeMenu();placementPoint=null;commandPage='basic';commandPanelSignature='';viewMode=mode;$('productionSeat').hidden=mode!=='production'||battle.teamSize===1;refreshProductionSeat();document.body.dataset.space=mode;const button=$('spaceToggle');button.textContent=mode==='production'?'전장':'생산';button.setAttribute('aria-label',mode==='production'?'전장으로 돌아가기':'생산 공간으로 이동');map=false;$('mapWrap').hidden=true;$('map').setAttribute('aria-pressed','false');$('map').disabled=mode!=='field';battle.select([],false);camera={x:640,y:(mode==='production'?PRODUCTION_OFFSET:0)+(mode==='production'?PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT/2:1700),zoom:mode==='production'?defaultProductionZoom(W):DEFAULT_FIELD_ZOOM};limitCamera();selectionUI();drawMinimaps()}
-function newBattle(){resourcePlanner.cancel();stopMusic(true);stopTransientSounds();closeCommandTooltip();if(battle?.menuOpen||battle?.targeting)battle.closeMenu();placementPoint=null;commandPage='basic';commandPanelSignature='';battle=new Battle(data,{race,difficulty:$('difficulty').value,teamSize:Number($('teamSize').value)});battle.on(event);viewMode='field';productionSeat=0;document.body.dataset.space='field';backgroundPauseRequired=false;pausedBeforeBackground=false;$('backgroundPause').hidden=true;ctrl=box=map=false;camera={x:640,y:1700,zoom:DEFAULT_FIELD_ZOOM};phaseUI();selectionUI();groupsUI();queueMicrotask(scheduleOptionalWarmup)}
+function setViewMode(mode){if(!battle||battle.phase!=='battle')return;closeStatTooltip();closeCommandTooltip();if(battle.menuOpen||battle.targeting)battle.closeMenu();placementPoint=null;commandPage='worker';commandContextKey='';commandPanelSignature='';viewMode=mode;$('productionSeat').hidden=mode!=='production'||battle.teamSize===1;refreshProductionSeat();document.body.dataset.space=mode;const button=$('spaceToggle');button.textContent=mode==='production'?'전장':'생산';button.setAttribute('aria-label',mode==='production'?'전장으로 돌아가기':'생산 공간으로 이동');battle.select([],false);camera={x:640,y:(mode==='production'?PRODUCTION_OFFSET:0)+(mode==='production'?PRODUCTION_GROUND_Y+PRODUCTION_GROUND_HEIGHT/2:1700),zoom:mode==='production'?defaultProductionZoom(W):DEFAULT_FIELD_ZOOM};limitCamera();selectionUI();drawMinimaps()}
+function newBattle(){resourcePlanner.cancel();stopMusic(true);stopTransientSounds();closeCommandTooltip();if(battle?.menuOpen||battle?.targeting)battle.closeMenu();placementPoint=null;commandPage='worker';commandContextKey='';commandPanelSignature='';battle=new Battle(data,{race,difficulty:$('difficulty').value,teamSize:Number($('teamSize').value)});battle.on(event);viewMode='field';productionSeat=0;document.body.dataset.space='field';backgroundPauseRequired=false;pausedBeforeBackground=false;$('backgroundPause').hidden=true;ctrl=box=false;camera={x:640,y:1700,zoom:DEFAULT_FIELD_ZOOM};phaseUI();selectionUI();groupsUI();queueMicrotask(scheduleOptionalWarmup)}
 // Coalesce simulation notifications before touching the DOM. A large volley
 // can kill dozens of units in one frame; refresh the selection panel once.
 let uiPending=false,uiSelection=false,uiGroups=false,uiProduction=false,uiMenu=false;
@@ -103,8 +103,8 @@ function event(e){
 function phaseUI(){
  closeDropdown();closeStatTooltip();closeCommandTooltip();const title=battle.phase==='title';$('title').hidden=!title;
  for(const id of ['hud','panel','camera'])$(id).hidden=title;$('spaceToggle').hidden=battle.phase!=='battle';$('productionSeat').hidden=battle.phase!=='battle'||viewMode!=='production'||battle.teamSize===1;
- if(battle.phase==='battle'){viewMode='field';commandPage='basic';commandPanelSignature='';placementPoint=null;document.body.dataset.space='field';camera.x=640;camera.y=1700;camera.zoom=DEFAULT_FIELD_ZOOM;$('backgroundPause').hidden=!backgroundPauseRequired;syncAudioPause();toast('상대: '+({terran:'테란',zerg:'저그',protoss:'프로토스'}[battle.enemyRace]))}
- if(title){map=false;commandPage='basic';commandPanelSignature='';$('mapWrap').hidden=true}if(battle.phase==='result'){stopMusic();stopTransientSounds();audioContext?.suspend().catch(()=>{})}
+ if(battle.phase==='battle'){viewMode='field';commandPage='worker';commandContextKey='';commandPanelSignature='';placementPoint=null;document.body.dataset.space='field';camera.x=640;camera.y=1700;camera.zoom=DEFAULT_FIELD_ZOOM;$('backgroundPause').hidden=!backgroundPauseRequired;syncAudioPause();toast('상대: '+({terran:'테란',zerg:'저그',protoss:'프로토스'}[battle.enemyRace]))}
+ if(title){commandPage='worker';commandContextKey='';commandPanelSignature=''}if(battle.phase==='result'){stopMusic();stopTransientSounds();audioContext?.suspend().catch(()=>{})}
  selectionUI();menuUI();hudUI();resize()
 }
 function hudUI(){
@@ -244,7 +244,7 @@ function gasInvestmentDetail(){
  const step=Math.min(5,battle.units.filter(x=>x.alive&&x.team===0&&x.gasNode).length+1),rates=DESERT_STRIKE.income,delay=!battle.gasDelayApplied[0].has(step)?Math.round(DESERT_STRIKE.gasPenaltyCycles[step]*DESERT_STRIKE.hyperCycleSeconds):0;
  return '수입 +'+rates[step]+(delay?' · 중단 '+delay+'초':'');
 }
-function openCommandPage(page){if(commandPage===page)return;closeCommandTooltip();commandPage=page;commandPanelSignature='';renderCommandPanel(true)}
+function openCommandPage(page){if(!['worker','basic','advanced'].includes(page)||battle.selected.length||battle.inspectedUnit)return;if(commandPage===page)return;closeCommandTooltip();commandPage=page;commandPanelSignature='';renderCommandPanel(true)}
 function emptyCommandSlot(){
  const button=document.createElement('button');button.type='button';button.className='command-slot command-slot-empty';button.disabled=true;button.tabIndex=-1;button.setAttribute('aria-hidden','true');$('commandGrid').append(button);
 }
@@ -268,46 +268,55 @@ function addBuildingCommand(type){
  actionCommandSlot({name:def.name,id:type,cost,reason,detail,kind:'building',click:()=>startBuildTarget(type)});
 }
 function selectedBuildingCommands(unit){
- const actions=[];
- for(const type of battle.morphOptions(unit)){const def=data.units[type];actions.push({name:def.name,id:type,cost:battle.buildingCost(type),reason:battle.morphReason(unit,type),detail:waveDescription(type,battle.waveUnitsForBuilding(type),data),click:()=>battle.morph(unit,type),kind:'building'})}
- for(const type of battle.addonOptions(unit)){const def=data.units[type];actions.push({name:def.name,id:type,cost:battle.buildingCost(type),reason:battle.addonReason(unit,type),detail:waveDescription(type,battle.waveUnitsForBuilding(type),data),click:()=>battle.addon(unit,type),kind:'building'})}
- for(const key of battle.researchOptions(unit)){const spec=RESEARCH[key];actions.push({name:spec.name,id:spec.icon,cost:spec.cost,reason:battle.researchReason(unit,key),detail:Math.ceil(spec.time)+'초',click:()=>battle.research(unit,key)})}
- if(unit.construction||unit.egg)actions.push({name:unit.egg?'변태 취소':'건설 취소',id:unit.type,detail:'현재 작업 취소',click:()=>battle.cancel(unit)});
- for(const [index,task]of (unit.queue||[]).entries())actions.push({name:(index+1)+'번 취소',id:task.type||unit.type,detail:task.kind==='research'?RESEARCH[task.key]?.name||'연구':'대기열 취소',click:()=>battle.cancel(unit,index)});
- return actions;
+ const slots=Array(9).fill(null);
+ // BUILDINGS is the authoritative parent graph, including add-ons whose
+ // lane-rule availability deliberately prevents them from being built.
+ const linked=selectedBuildingSlotTypes(BUILDINGS,unit.type);
+ for(const [index,type]of linked.slice(0,2).entries()){
+  const def=data.units[type],addon=BUILDINGS[type].addon===unit.type;
+  const reason=addon?battle.addonReason(unit,type):battle.morphReason(unit,type);
+  slots[6+index]={name:def.name,id:type,cost:battle.buildingCost(type),reason,detail:waveDescription(type,battle.waveUnitsForBuilding(type),data),kind:'building',click:()=>{
+   const current=addon?battle.addonReason(unit,type):battle.morphReason(unit,type);
+   if(current){showCommandTooltip($('commandGrid').children[6+index],{name:def.name,cost:battle.buildingCost(type),reason:current});return}
+   if(addon)battle.addon(unit,type);else battle.morph(unit,type);
+  }};
+ }
+ const extras=[];
+ for(const key of battle.researchOptions(unit)){const spec=RESEARCH[key];extras.push({name:spec.name,id:spec.icon,cost:spec.cost,reason:battle.researchReason(unit,key),detail:Math.ceil(spec.time)+'초',click:()=>battle.research(unit,key)})}
+ for(const [index,task]of (unit.queue||[]).entries())extras.push({name:(index+1)+'번 취소',id:'cancel',detail:task.kind==='research'?RESEARCH[task.key]?.name||'연구':'대기열 취소',click:()=>battle.cancel(unit,index)});
+ for(const [index,action]of extras.slice(0,6).entries())slots[index]=action;
+ if(unit.construction||unit.egg)slots[8]={name:unit.egg?'변태 취소':'건설 취소',id:'cancel',detail:'현재 작업 취소',click:()=>battle.cancel(unit)};
+ return slots;
 }
 function renderCommandPanel(force=false){
  if(!battle||!data)return;
  const grid=$('commandGrid'),unit=battle.selected[0]||battle.inspectedUnit;
  const ownProduction=battle.phase==='battle'&&viewMode==='production'&&productionSeat===0;
  const ownBuilding=ownProduction&&unit?.alive&&unit.productionOnly&&unit.team===0&&unit.commanderId===viewCommanderId()&&unit.def.building;
+ const context=ownBuilding?'building:'+unit.id:unit?'inspected:'+unit.id:'none';
+ if(context!==commandContextKey){commandContextKey=context;commandPage='worker'}
  const selectedActions=ownBuilding?selectedBuildingCommands(unit):[];
- const hasSelectedTab=!!ownBuilding&&(selectedActions.length>0);
- if(commandPage.startsWith('selected')&&!hasSelectedTab)commandPage='basic';
- else if(commandPage.startsWith('selected:')&&Number(commandPage.split(':')[1])*7>=selectedActions.length)commandPage='selected';
- const productionState=battle.units.filter(item=>item.alive&&item.productionOnly&&item.commanderId===0&&item.def.building).map(item=>item.id+','+item.type+','+Number(item.completed)+','+(item.construction?.nextType||'')).sort().join(';');
+ const productionState=battle.units.filter(item=>item.alive&&item.productionOnly&&item.commanderId===0&&item.def.building).map(item=>[item.id,item.type,Number(item.completed),item.construction?.nextType||'',item.addonId||'',item.parentId||'',item.queue?.length||0].join(',')).sort().join(';');
  const unitState=unit?[unit.id,unit.type,Number(unit.alive),Number(unit.completed),unit.construction?.nextType||'',unit.egg?.type||'',(unit.queue||[]).length].join(','):'';
- const signature=[battle.phase,viewMode,productionSeat,race,commandPage,battle.targeting||'',Math.floor(battle.money),Math.floor(battle.gas),productionState,unitState].join('|');
+ const actionState=selectedActions.map(action=>action?[action.id,action.reason||'',action.cost?.join(',')||'',action.name].join(':'):'').join(';');
+ const signature=[battle.phase,viewMode,productionSeat,race,commandPage,battle.targeting||'',Math.floor(battle.money),Math.floor(battle.gas),productionState,unitState,actionState].join('|');
  if(!force&&signature===commandPanelSignature)return;
  commandPanelSignature=signature;closeCommandTooltip();grid.replaceChildren();
  if(ownProduction){
-  if(commandPage==='worker'){
-   for(let i=0;i<5;i++)emptyCommandSlot();
-   if(hasSelectedTab)actionCommandSlot({name:'선택 건물 명령',id:unit.type,click:()=>openCommandPage('selected')});else emptyCommandSlot();
+  if(ownBuilding){
+   for(const action of selectedActions){if(action)actionCommandSlot(action);else emptyCommandSlot()}
+  }else if(unit){
+   for(let i=0;i<9;i++)emptyCommandSlot();
+  }else if(commandPage==='worker'){
+   for(let i=0;i<6;i++)emptyCommandSlot();
    actionCommandSlot({name:'기본 건설 명령',id:'basic',click:()=>openCommandPage('basic')});
    actionCommandSlot({name:'고급 건설 명령',id:'advanced',click:()=>openCommandPage('advanced')});
    emptyCommandSlot();
-  }else if(commandPage.startsWith('selected')){
-   const page=Number(commandPage.split(':')[1]||0),remaining=selectedActions.slice(page*7),hasMore=remaining.length>8;
-   for(const action of remaining.slice(0,hasMore?7:8))actionCommandSlot(action);
-   if(hasMore){while(grid.children.length<7)emptyCommandSlot();actionCommandSlot({name:'다음 명령',id:'advanced',click:()=>openCommandPage('selected:'+(page+1))})}
-   while(grid.children.length<8)emptyCommandSlot();
-   actionCommandSlot({name:'건설 메뉴로 돌아가기',id:'cancel',click:()=>openCommandPage('worker')});
   }else{
    const available=battle.buildingOptions(battle.builder),slots=commandSlots(BUILD_COMMAND_LAYOUT,race,commandPage,available);
    for(const type of slots){
     if(type===null)emptyCommandSlot();
-    else if(type==='cancel')actionCommandSlot({name:'건설 명령 취소',id:'cancel',click:()=>{commandPage='worker';commandPanelSignature='';if(battle.targeting)battle.closeMenu();else renderCommandPanel(true)}});
+    else if(type==='cancel')actionCommandSlot({name:'건설 명령 취소',id:'cancel',click:()=>{if(battle.targeting)battle.closeMenu();openCommandPage('worker')}});
     else addBuildingCommand(type);
    }
   }
@@ -349,14 +358,14 @@ function refreshProductionSeat(){
  const names={terran:'테란',zerg:'저그',protoss:'프로토스'},commander=battle.commanders.find(c=>c.id===viewCommanderId());
  $('productionSeat').textContent=(productionSeat?'아군 AI '+productionSeat:'내 생산')+' · '+(names[commander?.race]||'');
 }
-function switchProduction(){if(battle.menuOpen||battle.targeting)battle.closeMenu();placementPoint=null;commandPage='basic';commandPanelSignature='';battle.select([],false);refreshProductionSeat();selectionUI()}
+function switchProduction(){if(battle.menuOpen||battle.targeting)battle.closeMenu();placementPoint=null;commandPage='worker';commandContextKey='';commandPanelSignature='';battle.select([],false);refreshProductionSeat();selectionUI()}
 $('productionSeat').onclick=()=>{productionSeat=(productionSeat+1)%battle.teamSize;switchProduction()};
-$('confirmBuild').onclick=confirmBuild;$('spaceToggle').onclick=()=>setViewMode(viewMode==='field'?'production':'field');$('baseView').onclick=()=>setViewMode('field');$('frontView').onclick=()=>{setViewMode('field');camera.y=1024;camera.zoom=DEFAULT_FRONT_ZOOM;limitCamera();drawMinimaps()};$('cancel').onclick=()=>{placementPoint=null;if(battle.targeting)battle.closeMenu();else menuUI()};
-$('box').onclick=()=>{box=!box;$('box').setAttribute('aria-pressed',box);toast(box?'지면을 드래그해 범위 선택':'길게 누른 뒤 드래그해 범위 선택')};$('map').onclick=()=>{map=!map;$('map').setAttribute('aria-pressed',map);$('mapWrap').hidden=!map;drawMinimaps()};$('selectAll').onclick=()=>battle.select(battle.allies.filter(u=>!u.loaded).map(u=>u.id));$('home').onclick=()=>{$('baseView').click()};$('plus').onclick=()=>zoom(camera.zoom*1.2);$('minus').onclick=()=>zoom(camera.zoom/1.2);
+$('confirmBuild').onclick=confirmBuild;$('spaceToggle').onclick=()=>setViewMode(viewMode==='field'?'production':'field');$('cancel').onclick=()=>{placementPoint=null;if(battle.targeting)battle.closeMenu();else menuUI()};
+$('box').onclick=()=>{box=!box;$('box').setAttribute('aria-pressed',box);toast(box?'지면을 드래그해 범위 선택':'길게 누른 뒤 드래그해 범위 선택')};$('selectAll').onclick=()=>battle.select(battle.allies.filter(u=>!u.loaded).map(u=>u.id));$('home').onclick=()=>{setViewMode('field')};$('plus').onclick=()=>zoom(camera.zoom*1.2);$('minus').onclick=()=>zoom(camera.zoom/1.2);
 const visible=u=>{const p=toScreen(u.x,u.y);return p.x>-40&&p.x<W+40&&p.y>40&&p.y<H-panelHeight()+40};
 function hit(p,own=false){return battle.units.filter(u=>u.alive&&!u.hidden&&!u.loaded&&!!u.productionOnly===(viewMode==='production')&&(viewMode!=='production'||inProductionView(u))&&(!own||u.team===0)&&(u.team===0||battle.canSee(0,u))&&(u.def.building?Math.abs(u.x-p.x)<battle.footprint(u.type)[0]/2&&Math.abs(u.y-p.y)<battle.footprint(u.type)[1]/2:dist(u,p)<Math.max(u.r,15/camera.zoom))).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
 function nodeHit(p){return battle.nodes.find(n=>n.amount>0&&dist(p,n)<n.r+12&&(battle.fog[Math.floor(n.y/32)*40+Math.floor(n.x/32)]))||null}
-function tap(p){const wp=toWorld(p.x,p.y),u=hit(wp);if(battle.targeting){if(battle.targeting==='irradiate'&&u){battle.execute('irradiate',null,u);return}if(viewMode!=='production')return;placementPoint=wp;refreshPlacementUI();return}if(battle.menuOpen){battle.closeMenu();return}if(u)battle.inspect(u)}
+function tap(p){const wp=toWorld(p.x,p.y),u=hit(wp);if(battle.targeting){if(battle.targeting==='irradiate'&&u){battle.execute('irradiate',null,u);return}if(viewMode!=='production')return;placementPoint=wp;refreshPlacementUI();return}if(battle.menuOpen){battle.closeMenu();return}if(u)battle.inspect(u);else{closeStatTooltip();closeCommandTooltip();battle.select([],false)}}
 const position=e=>({x:e.clientX,y:e.clientY});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());canvas.addEventListener('pointerdown',e=>{if(!battle||!['prep','battle'].includes(battle.phase)||!$('modal').hidden)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);const p=position(e);pointers.set(e.pointerId,p);if(pointers.size===2){clearTimeout(gesture?.timer);const [a,b]=[...pointers.values()];pinch={distance:dist(a,b),zoom:camera.zoom,world:toWorld((a.x+b.x)/2,(a.y+b.y)/2)};gesture=null;return}if(pointers.size>2)return;const wp=toWorld(p.x,p.y);gesture={pointer:e.pointerId,kind:'pending',start:p,current:p,world:wp,unit:hit(wp,true),camera:{...camera}}});
 canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;e.preventDefault();const p=position(e);if(battle.targeting?.startsWith('build:')){placementPoint=toWorld(p.x,p.y);refreshPlacementUI()}pointers.set(e.pointerId,p);if(pinch&&pointers.size>=2){const [a,b]=[...pointers.values()],x=(a.x+b.x)/2,y=(a.y+b.y)/2;camera.zoom=clamp(pinch.zoom*dist(a,b)/Math.max(1,pinch.distance),.25,2.8);camera.x=pinch.world.x-(x-W/2)/camera.zoom;camera.y=pinch.world.y-(y-cy())/camera.zoom;limitCamera();return}if(!gesture||gesture.pointer!==e.pointerId)return;gesture.current=p;if(gesture.kind==='pending'&&dist(p,gesture.start)>8){clearTimeout(gesture.timer);gesture.kind='pan'}if(gesture.kind==='pan'){camera.x=gesture.camera.x-(p.x-gesture.start.x)/camera.zoom;camera.y=gesture.camera.y-(p.y-gesture.start.y)/camera.zoom;limitCamera()}});
@@ -511,7 +520,7 @@ function drawRelief(){
 }
 function drawProductionBoard(){
  ctx.fillStyle='#1c100a';ctx.fillRect(0,PRODUCTION_OFFSET,1280,PRODUCTION_HEIGHT);
- if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.25');
+ if(!desertProduction)desertProduction=getImage(`ds-assets/production.webp?v=${VERSION}`);
  ctx.save();if(productionTeam){ctx.translate(1280,0);ctx.scale(-1,1)}
  if(desertProduction)ctx.drawImage(desertProduction,PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
  ctx.restore();ctx.strokeStyle='#c49b61';ctx.lineWidth=2;ctx.strokeRect(productionTeam?1280-PRODUCTION_GROUND_X-PRODUCTION_GROUND_WIDTH:PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
@@ -548,12 +557,12 @@ function drawMinimapTo(target){
  const top=toWorld(0,63),bottom=toWorld(W,H-panelHeight());context.strokeStyle='#e2eccf';context.lineWidth=1/layout.scale;context.strokeRect(top.x,top.y,bottom.x-top.x,bottom.y-top.y);
  context.restore();
 }
-function drawMinimaps(){if(!battle)return;drawMinimapTo(consoleMini);if(map&&!$('mapWrap').hidden)drawMinimapTo(mini)}
+function drawMinimaps(){if(!battle)return;drawMinimapTo(consoleMini)}
 let miniDragCanvas=null;
 function minimapPointFromEvent(target,event){
  const rect=target.getBoundingClientRect();if(!rect.width||!rect.height)return null;
  const x=(event.clientX-rect.left)*target.width/rect.width,y=(event.clientY-rect.top)*target.height/rect.height;
- return minimapWorldPoint(x,y,target.width,target.height,minimapBounds(),target===consoleMini?0:3);
+ return minimapWorldPoint(x,y,target.width,target.height,minimapBounds(),0);
 }
 function moveCameraFromMinimap(target,event){
  const point=minimapPointFromEvent(target,event);if(!point)return;
@@ -565,7 +574,7 @@ function bindMinimap(target){
  target.addEventListener('pointerup',()=>{if(miniDragCanvas===target)miniDragCanvas=null});
  target.addEventListener('pointercancel',()=>{if(miniDragCanvas===target)miniDragCanvas=null});
 }
-bindMinimap(mini);bindMinimap(consoleMini);
+bindMinimap(consoleMini);
 function drawEconomy(){
  if(battle.phase==='title')return;
  const creepField=battle.laneMode?(viewMode==='production'?battle.creepFields.get(viewCommanderId()):null):battle.creepFields.get(0);if(creepField)drawCreepField(creepField);
@@ -657,7 +666,7 @@ function help(){modal('help',`<div class="eyebrow">FIELD MANUAL</div><h2>자동 
 function settingsModal(){modal('settings',`<div class="eyebrow">COMMAND CENTER</div><h2>설정</h2>${[['배경음악','bgm'],['효과음','sfx'],['유닛 음성','voice']].map(([label,key])=>`<label>${label}<input id="vol-${key}" type="range" min="0" max="1" step=".01" value="${settings[key]}"></label>`).join('')}<label>렌더링<select id="quality"><option value="auto" ${settings.quality==='auto'?'selected':''}>자동 · 선명하게</option><option value="low" ${settings.quality==='low'?'selected':''}>절전 · 낮은 해상도</option></select></label><div class="row"><button id="pause">${pausedBefore?'전투 재개':'일시 정지 유지'}</button><button id="manual">조작 방법</button><button id="leave">작전 나가기</button></div><p>미니스타 ${VERSION} · 리마스터 ${data.sourceBuild}<br>설정과 전투 기록은 기기에 저장됩니다.</p>`);for(const key of ['bgm','sfx','voice'])$('vol-'+key).oninput=e=>{settings[key]=Number(e.target.value);save('settings',settings);setAudioVolume(key,settings[key])};$('quality').onchange=e=>{settings.quality=e.target.value;save('settings',settings);resize()};$('pause').onclick=()=>{pausedBefore=!pausedBefore;closeModal()};$('manual').onclick=()=>{const p=pausedBefore;help();pausedBefore=p};$('leave').onclick=()=>{modalKind='';$('modal').hidden=true;stopMusic();stopTransientSounds();audioContext?.suspend().catch(()=>{});newBattle()}}$('settings').onclick=settingsModal;
 function resultModal(r){modal('result',`<div class="eyebrow">OPERATION COMPLETE</div><h2 style="font-size:32px;color:${r.win?'#e4d28b':'#de987f'}">${r.win?'승리':'패배'}</h2><p>${r.reason}</p><div class="stats">${[['전투 시간',Math.floor(r.time/60)+':'+String(Math.floor(r.time%60)).padStart(2,'0')],['생산한 병력',r.produced+'기'],['생존 병력',r.survivors+'기'],['적 처치',r.kills+'기'],['아군 손실',r.losses+'기'],['총 피해량',Math.round(r.damage).toLocaleString()]].map(([a,b])=>`<div><span>${a}</span><b>${b}</b></div>`).join('')}</div><button id="retry" class="primary">다시 출전하기</button><button id="toTitle" class="secondary">종족 선택으로</button>`);$('retry').onclick=()=>{modalKind='';$('modal').hidden=true;newBattle();battle.begin()};$('toTitle').onclick=()=>{modalKind='';$('modal').hidden=true;newBattle()}}
 $('records').onclick=()=>{const records=read('records',[]);modal('records',`<div class="eyebrow">BATTLE LOG</div><h2>전투 기록</h2>${records.length?records.slice(0,20).map(r=>`<div class="log"><span>${r.win?'승리':'패배'} · ${labels[r.race]}<br><small>${new Date(r.date).toLocaleDateString('ko-KR')} · ${Math.floor(r.time/60)}분 ${Math.floor(r.time%60)}초</small></span><b>${r.kills} 처치</b></div>`).join(''):'<p>첫 작전에 출전해 기록을 남겨보세요.</p>'}`)};
-function raceUI(){document.body.dataset.race=race;for(const el of document.querySelectorAll('[data-race]')){el.classList.toggle('active',el.dataset.race===race);el.setAttribute('aria-pressed',el.dataset.race===race)}$('raceBriefing').textContent={terran:'테란 원정대의 지휘권이 이양되었습니다.',zerg:'군단이 당신의 명령을 기다립니다.',protoss:'기사단이 당신의 지휘를 기다립니다.'}[race];$('gasIcon').src=iconResource({terran:1,zerg:2,protoss:3}[race]);$('supplyIcon').src=iconResource({terran:4,zerg:5,protoss:6}[race])}const iconResource=n=>'assets/icons/resource_'+String(n).padStart(3,'0')+'.png';for(const el of document.querySelectorAll('[data-race]'))el.onclick=()=>{race=el.dataset.race;commandPage='basic';commandPanelSignature='';closeCommandTooltip();save('race',race);raceUI();scheduleOptionalWarmup()};$('deploy').onclick=()=>{newBattle();battle.begin()};
+function raceUI(){document.body.dataset.race=race;for(const el of document.querySelectorAll('[data-race]')){el.classList.toggle('active',el.dataset.race===race);el.setAttribute('aria-pressed',el.dataset.race===race)}$('raceBriefing').textContent={terran:'테란 원정대의 지휘권이 이양되었습니다.',zerg:'군단이 당신의 명령을 기다립니다.',protoss:'기사단이 당신의 지휘를 기다립니다.'}[race];$('gasIcon').src=iconResource({terran:1,zerg:2,protoss:3}[race]);$('supplyIcon').src=iconResource({terran:4,zerg:5,protoss:6}[race])}const iconResource=n=>'assets/icons/resource_'+String(n).padStart(3,'0')+'.png';for(const el of document.querySelectorAll('[data-race]'))el.onclick=()=>{race=el.dataset.race;commandPage='worker';commandContextKey='';commandPanelSignature='';closeCommandTooltip();save('race',race);raceUI();scheduleOptionalWarmup()};$('deploy').onclick=()=>{newBattle();battle.begin()};
 addEventListener('keydown',e=>{if(!battle)return;if(e.key==='Escape'){e.preventDefault();if(battle.menuOpen)battle.closeMenu();else if(!$('modal').hidden)closeModal();return}if(!$('modal').hidden||['title','result'].includes(battle.phase))return;if(e.key===' '){e.preventDefault();battle.paused=!battle.paused;syncAudioPause();toast(battle.paused?'일시 정지':'전투 재개')}});
 function pauseForBackground(){if(battle?.phase==='battle'){pausedBeforeBackground=battle.paused;backgroundPauseRequired=true;battle.paused=true;hudUI();$('backgroundPause').hidden=true}last=0;syncAudioPause()}
 function resumeFromBackground(){if(!backgroundPauseRequired)return;backgroundPauseRequired=false;$('backgroundPause').hidden=true;if(battle?.phase==='battle')battle.paused=pausedBeforeBackground;last=0;syncAudioPause();hudUI()}
@@ -680,15 +689,15 @@ async function boot(){if(bootInProgress)return;bootInProgress=true;const retry=$
  if(!await retireOfflineStorage())return;
  const cacheState=await resourceStore.init();if(!cacheState.manifest)console.warn('Resource manifest unavailable; continuing with online requests only');
  if(!uiEnhanced){enhanceSelects();uiEnhanced=true}
- const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.25');
+ const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage(`ds-assets/battlefield.webp?v=${VERSION}`);
  const [base,extra,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations,spellVisuals]=await Promise.all([
   fetchJson('assets/data.json','전투 데이터를 읽을 수 없습니다.'),
-  fetchJson('rts-data.json?v=0.16.25','생산 데이터를 읽을 수 없습니다.'),
-  fetchJson('construction-data.json?v=0.16.25','건설 그래픽을 읽을 수 없습니다.'),
-  fetchJson('turret-data.json?v=0.16.25','포탑 그래픽을 읽을 수 없습니다.'),
-  fetchJson('destruction-data.json?v=0.16.25','건물 파괴 그래픽을 읽을 수 없습니다.'),
-  fetchJson('original-animation-data.json?v=0.16.25','원본 애니메이션을 읽을 수 없습니다.'),
-  fetchJson('spell-visual-data.json?v=0.16.25','원본 주문 효과 데이터를 읽을 수 없습니다.')
+  fetchJson(`rts-data.json?v=${VERSION}`,'생산 데이터를 읽을 수 없습니다.'),
+  fetchJson(`construction-data.json?v=${VERSION}`,'건설 그래픽을 읽을 수 없습니다.'),
+  fetchJson(`turret-data.json?v=${VERSION}`,'포탑 그래픽을 읽을 수 없습니다.'),
+  fetchJson(`destruction-data.json?v=${VERSION}`,'건물 파괴 그래픽을 읽을 수 없습니다.'),
+  fetchJson(`original-animation-data.json?v=${VERSION}`,'원본 애니메이션을 읽을 수 없습니다.'),
+  fetchJson(`spell-visual-data.json?v=${VERSION}`,'원본 주문 효과 데이터를 읽을 수 없습니다.')
  ]);
  data=base;spellVisualData=spellVisuals;for(const [id,size]of Object.entries(spellVisualData.unitOverlaySizes||{}))if(data.units[id])data.units[id].spellOverlaySize=size;warmupGraphics=[constructionGraphics,turretGraphics,destructionGraphics];clearMediaSession();Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations);
  for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);
