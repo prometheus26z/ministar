@@ -83,7 +83,7 @@ async function testInspection(browser){
   assert.ok(await page.locator('#statIcons .stat-icon').count()>=2,'armor and weapon icons appear in the source panel slots');
   assert.equal(await page.locator('#portrait').getAttribute('src'),ids.portrait);
   assert.equal(await page.locator('#portrait').isVisible(),true);
-  assert.equal(await page.locator('#mission #settings').count(),0,'the mission bar has no settings gear');
+  assert.equal(await page.locator('#mission, #objective').count(),0,'the upper-left base HP overlay is removed');
   assert.equal(await page.locator('#panel #settings').count(),1,'the panel has one Menu button');
   await page.locator('#settings').tap();
   await page.locator('#modal').waitFor({state:'visible'});
@@ -142,6 +142,21 @@ async function testInspection(browser){
    assert.ok(layout.mini.right<=layout.wrap.left+3&&layout.wrap.right<=layout.portrait.left+3&&layout.portrait.right<=layout.grid.left+3,'map, unit information, Menu/portrait and card occupy separate columns: '+JSON.stringify(layout));
    assert.ok(Math.abs(layout.mini.height-(layout.grid.bottom-layout.grid.top))<1.5&&layout.mini.bottom<=layout.console.bottom+1&&layout.grid.bottom>=layout.console.bottom-3,'minimap and card stretch inside the console frame: '+JSON.stringify(layout));
   }
+  // Inspect the actual lane main at its full five-digit HP, including narrow phones.
+  const mainId=await page.evaluate(()=>{const t=window.__inspectionTest;t.battle.main.hp=t.battle.main.maxHp=30000;return t.battle.main.id});
+  await page.evaluate(id=>window.__inspectionTest.inspect(id),mainId);
+  await page.waitForFunction(()=>document.querySelector('#hp').textContent==='HP 30000/30000');
+  for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:844,height:390}]){
+   await page.setViewportSize(viewport);
+   const vitals=await page.evaluate(()=>{
+    const hp=document.querySelector('#hp'),row=hp.getBoundingClientRect(),info=document.querySelector('.unit-info').getBoundingClientRect(),icons=document.querySelector('#statDetails').getBoundingClientRect(),range=document.createRange();range.selectNodeContents(hp);const text=range.getBoundingClientRect();
+    return{width:innerWidth,client:hp.clientWidth,scroll:hp.scrollWidth,text:text.toJSON(),row:row.toJSON(),info:info.toJSON(),icons:icons.toJSON()};
+   });
+   assert.ok(vitals.scroll<=vitals.client&&vitals.text.right<=vitals.info.right&&vitals.text.left>=vitals.info.left,'five-digit HP is fully visible: '+JSON.stringify(vitals));
+   assert.ok(vitals.icons.bottom<=vitals.row.top,'HP and combat icons occupy separate rows: '+JSON.stringify(vitals));
+  }
+  await page.screenshot({path:'/tmp/ministar-main-hp.png'});
+  await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(id=>window.__inspectionTest.centerOn(id,.4),ids.dragoon);await page.waitForTimeout(80);
   const small=await page.evaluate(id=>window.__inspectionTest.bar(id),ids.dragoon);
