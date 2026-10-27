@@ -11,13 +11,15 @@ window.__inspectionTest={
  get battle(){return battle},
  get camera(){return camera},
  get wireframeCacheSize(){return wireframeCache.size},
+ setMoney(value){battle.money=value;commandPanelSignature='';renderCommandPanel(true)},
  createPanelScene(){
   const b=battle;b.paused=true;b.waveClock=1e9;b.botStep=()=>{};
   const dragoon=b.create(66,0,360,1640);dragoon.hp=73.2;dragoon.shield=51.7;dragoon.killCount=3;
   const medic=b.create(34,0,700,1500);medic.energy=75;medic.maxEnergy=250;
   const enemy=b.create(0,1,890,1640);enemy.order='hold';
   const building=b.create(111,0,520,1770);building.order='hold';
-  return{dragoon:dragoon.id,medic:medic.id,enemy:enemy.id,building:building.id,portrait:dragoon.def.portrait};
+  const zergling=b.create(37,0,410,1580),scout=b.create(70,0,460,1520),marine=b.create(0,0,470,1560),zealot=b.create(65,0,490,1600);
+  return{dragoon:dragoon.id,medic:medic.id,enemy:enemy.id,building:building.id,zergling:zergling.id,scout:scout.id,marine:marine.id,zealot:zealot.id,portrait:dragoon.def.portrait};
  },
  startManaBarSpy(id){
   const unit=this.getUnit(id),bar=healthBarLayout(unit,data.graphics[unit.def.image],camera.zoom),energyY=bar.y+(unit.def.shield>0?11:5)+1,original=ctx.fillRect;
@@ -135,8 +137,29 @@ async function testInspection(browser){
   assert.ok(await page.evaluate(()=>window.__inspectionTest.stopManaBarSpy())>0,'the real renderer draws the mana row below HP');
   await page.evaluate(id=>window.__inspectionTest.centerOn(id,.6),ids.medic);await page.waitForTimeout(80);
   await page.locator('#field').screenshot({path:'/tmp/ministar-mana-bar.png'});
-  for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:844,height:390}]){
+  for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:544,height:900},{width:600,height:900},{width:844,height:390}]){
    await page.setViewportSize(viewport);
+   for(const id of [ids.zergling,ids.dragoon,ids.scout,ids.marine,ids.zealot,ids.building]){
+    await page.evaluate(id=>window.__inspectionTest.inspect(id),id);
+    const metrics=await page.evaluate(()=>{
+     const box=element=>element.getBoundingClientRect().toJSON(),wire=box(document.querySelector('#wireframe')),container=box(document.querySelector('.unit-info')),hp=box(document.querySelector('#inspectionNumbers')),name=box(document.querySelector('#unitName'));
+     return{wire,container,hp,name,items:[...document.querySelectorAll('#statIcons .stat-icon')].map(button=>({button:box(button),image:box(button.querySelector('img'))}))};
+    });
+    const max=viewport.width<=350?20:viewport.width<=599?22:28,iconMax=viewport.width<=350?16:viewport.width<=599?17:22;
+    assert.ok(Math.abs(metrics.wire.width-metrics.wire.height)<.5,'wireframe must be square: '+JSON.stringify(metrics));
+    assert.ok(metrics.wire.right<=metrics.container.right+.5,'wireframe fits the inspection column');
+    for(const item of metrics.items){
+     const button=item.button,image=item.image;
+     assert.ok(Math.abs(button.width-button.height)<.5&&button.width<=max+.5,'stat frame square size cap: '+JSON.stringify({viewport,item}));
+     assert.ok(Math.abs(image.width-image.height)<.5&&image.width<=iconMax+.5,'stat glyph size cap: '+JSON.stringify({viewport,item}));
+     assert.ok(image.left>=button.left-.5&&image.right<=button.right+.5&&image.top>=button.top-.5&&image.bottom<=button.bottom+.5,'stat glyph not clipped');
+     assert.ok(button.right<=metrics.container.right+.5&&button.left>=metrics.container.left-.5,'stat frame fits inspection');
+     assert.ok(button.bottom<=metrics.hp.top+.5,'stat icons must not overlap the health rows');
+     assert.ok(button.top>=metrics.name.bottom-.5,'stat icons must not overlap unit name');
+    }
+    if([320,390,544,600].includes(viewport.width))await page.locator('#inspectionWrap').screenshot({path:`/tmp/ministar-stats-${viewport.width}-${id}.png`});
+   }
+   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.medic);
    const layout=await page.evaluate(()=>{const frame=document.querySelector('.portrait-frame').getBoundingClientRect(),portrait=document.querySelector('#portraitArea').getBoundingClientRect(),menu=document.querySelector('#settings').getBoundingClientRect(),grid=document.querySelector('#commandGrid').getBoundingClientRect(),mini=document.querySelector('#consoleMinimap').getBoundingClientRect(),info=document.querySelector('#inspectionWrap').getBoundingClientRect(),console=document.querySelector('#consoleMain').getBoundingClientRect();return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:info.toJSON(),console:console.toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON(),frame:{top:frame.top,bottom:frame.bottom,height:frame.height},portrait:{left:portrait.left,right:portrait.right,top:portrait.top,bottom:portrait.bottom,width:portrait.width,background:getComputedStyle(document.querySelector('#portraitArea')).backgroundImage},menu:{top:menu.top,bottom:menu.bottom},fit:getComputedStyle(document.querySelector('#portrait')).objectFit,grid:{left:grid.left,right:grid.right,top:grid.top,bottom:grid.bottom},mini:{left:mini.left,right:mini.right,top:mini.top,bottom:mini.bottom,height:mini.height}}});
    assert.ok(layout.document<=viewport.width,JSON.stringify(layout));
    assert.ok(layout.wrap.left>=0&&layout.wrap.right<=viewport.width+1,JSON.stringify(layout));
@@ -158,7 +181,7 @@ async function testInspection(browser){
   const mainId=await page.evaluate(()=>{const t=window.__inspectionTest;t.battle.main.hp=t.battle.main.maxHp=30000;return t.battle.main.id});
   await page.evaluate(id=>window.__inspectionTest.inspect(id),mainId);
   await page.waitForFunction(()=>document.querySelector('#hp').textContent==='HP 30000/30000');
-  for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:844,height:390}]){
+  for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:544,height:900},{width:600,height:900},{width:844,height:390}]){
    await page.setViewportSize(viewport);
    const vitals=await page.evaluate(()=>{
     const hp=document.querySelector('#hp'),row=hp.getBoundingClientRect(),info=document.querySelector('.unit-info').getBoundingClientRect(),icons=document.querySelector('#statDetails').getBoundingClientRect(),range=document.createRange();range.selectNodeContents(hp);const text=range.getBoundingClientRect();
@@ -184,7 +207,16 @@ async function testInspection(browser){
   await page.screenshot({path:'/tmp/ministar-inspection-panel-mobile.png',fullPage:true});
   await page.locator('#spaceToggle').tap();
   await page.waitForFunction(()=>document.body.dataset.space==='production');
-  await page.evaluate(()=>{window.__inspectionTest.battle.money=5000});
+  await page.evaluate(()=>window.__inspectionTest.setMoney(0));
+  const unaffordable=page.locator('#commandGrid .building-card[aria-label*="미네랄이 부족합니다"]').first();
+  await unaffordable.tap();
+  assert.equal(await page.locator('#statTooltip').isVisible(),true,'unaffordable buildings open tooltips');
+  assert.equal(await page.locator('#statTooltip .command-tooltip-price img').getAttribute('src'),'assets/icons/resource_000.png');
+  assert.ok(Number(await page.locator('#statTooltip .command-tooltip-price span').innerText())>0,'full building cost is displayed');
+  assert.doesNotMatch(await page.locator('#statTooltip').innerText(),/미네랄이 부족합니다|미네랄 /);
+  assert.doesNotMatch(await unaffordable.getAttribute('title'),/미네랄이 부족합니다/);
+  await page.keyboard.press('Escape');assert.equal(await page.locator('#statTooltip').isVisible(),false);
+  await page.evaluate(()=>window.__inspectionTest.setMoney(5000));
   await page.waitForTimeout(250);
   assert.equal(await page.locator('#commandTabs').count(),0);
   await page.screenshot({path:'/tmp/ministar-construction-console-mobile.png'});
