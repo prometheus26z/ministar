@@ -31,6 +31,13 @@ export function clearMovementControl(unit,{stop=true}={}){
  if(stop)motion.speedRaw=0;
 }
 
+function enterWalkVisual(unit){
+ if(unit.action!=='walk'){
+  unit.action='walk';
+  unit.animTime=0;
+ }
+}
+
 export function brakeUnitMovement(battle,unit,dt){
  const motion=ensureMotion(unit),profile=movementProfile(battle,unit),frames=Math.max(0,dt*24);
  if(profile.movementControl===2){clearMovementControl(unit);return false}
@@ -39,7 +46,7 @@ export function brakeUnitMovement(battle,unit,dt){
  if(distance<=0)return false;
  const angle=motion.velocityDirection256*Math.PI/128,x=unit.x+Math.sin(angle)*distance,y=unit.y-Math.cos(angle)*distance;
  const next=collisionStep(battle,unit,x,y);if(next.blocked)motion.speedRaw=0;if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
- unit.x=next.x;unit.y=next.y;unit.action='walk';battle.spatial?.update(unit);return true;
+ unit.x=next.x;unit.y=next.y;enterWalkVisual(unit);battle.spatial?.update(unit);return true;
 }
 
 function movementScriptDistance(unit,motion,frames,profile){
@@ -98,12 +105,12 @@ export function advanceUnitMovement(battle,unit,point,dt,{finalWaypoint=true,sto
   const next=collisionStep(battle,unit,x,y,collisionContext);if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
   unit.x=next.x;unit.y=next.y;motion.speedRaw=next.blocked?0:motion.walkSpeedRaw;
   if(!next.blocked&&finalWaypoint&&step>=distance-EPS){unit.x=point.x;unit.y=point.y;clearMovementControl(unit)}
-  battle.spatial?.update(unit);unit.action='walk';return true;
+  battle.spatial?.update(unit);enterWalkVisual(unit);return true;
  }
  if(control!==0&&control!==1){
   const speed=unit.movementSpeedOverride??unit.def?.speed??0,step=Math.min(distance,speed*dt),x=unit.x+dx/distance*step,y=unit.y+dy/distance*step;
   const next=collisionStep(battle,unit,x,y,collisionContext);if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
-  unit.x=next.x;unit.y=next.y;battle.spatial?.update(unit);unit.action='walk';return step>0;
+  unit.x=next.x;unit.y=next.y;battle.spatial?.update(unit);enterWalkVisual(unit);return step>0;
  }
  const turnError=Math.abs(signedDelta(motion.velocityDirection256,desired));
  motion.velocityDirection256=rotate(motion.velocityDirection256,desired,Math.floor(profile.turnRateRaw/2)*frames);
@@ -121,5 +128,5 @@ export function advanceUnitMovement(battle,unit,point,dt,{finalWaypoint=true,sto
  const next=collisionStep(battle,unit,x,y,collisionContext);if(next.blocked)motion.speedRaw=0;if(Math.hypot(next.x-unit.x,next.y-unit.y)<EPS)return false;
  unit.x=next.x;unit.y=next.y;
  if(!next.blocked&&finalWaypoint&&step>=distance-EPS){unit.x=point.x;unit.y=point.y;clearMovementControl(unit)}
- battle.spatial?.update(unit);unit.action='walk';return true;
+ battle.spatial?.update(unit);enterWalkVisual(unit);return true;
 }

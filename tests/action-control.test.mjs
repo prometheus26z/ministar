@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {Battle} from '../dist/core.js';
 import {COMBAT_SOURCE,movementProfile,scriptProgramForImage} from '../dist/combat-rules.js?v=0.16.16';
 import {combatData} from './combat-test-data.mjs';
+import {unitRenderTracks} from '../dist/unit-render-state.js';
+import {pose,trackFor} from '../dist/animation.js';
+import {brakeUnitMovement} from '../dist/action-control.js';
 
 const fresh=()=>{const battle=new Battle(combatData());battle.phase='battle';battle.core={alive:true};battle.map.blocked=()=>false;battle.map.water=[];battle.map.rocks=[];battle.canSee=()=>true;return battle};
 const face=(unit,direction)=>{unit.direction=direction;unit.motion.heading256=unit.motion.velocityDirection256=unit.motion.desiredDirection256=direction*8};
@@ -64,4 +67,86 @@ test('simulation updates preserve fractional time and advance the same 24 frames
  for(let i=0;i<60;i++)sixty.update(1/60);
  for(let i=0;i<120;i++)oneTwenty.update(1/120);
  assert.equal(sixty.simFrame,24);assert.equal(oneTwenty.simFrame,24);close(sixty.time,1);close(oneTwenty.time,1);
+});
+
+test('real repeat attacks recover animated walk tracks during automatic pursuit',()=>{
+ for(const type of [65,37,38,66]){
+  const battle=fresh(),attacker=battle.create(type,0,400,800),target=battle.create(0,1,425,800);
+  target.order='move';target.hp=target.maxHp=30000;attacker.order='focus';attacker.target=target;face(attacker,8);
+  const weapon=battle.weapon(attacker,target),graphic=battle.data.graphics[attacker.def.image];
+  target.x=attacker.x+attacker.r+target.r+Math.max(8,weapon.range-12);
+  assert.ok(battle.attack(attacker,target,weapon),`type ${type} begins its first attack`);
+  let repeated=false;
+  for(let frame=0;frame<300;frame++){
+   battle.step(1/24);
+   if(attacker.attackGeneration>=2&&attacker.attackVisualTrack&&!attacker.attackControl){repeated=true;break}
+  }
+  assert.ok(repeated,`type ${type} completes a source-script repeat attack`);
+  const repeatTrack=attacker.attackVisualTrack;
+  assert.ok(trackFor(graphic,'attack',{trackOverride:repeatTrack}));
+  target.x+=280;const x=attacker.x,frames=[],times=[];
+  for(let frame=0;frame<60;frame++){
+   const beforeX=attacker.x;battle.step(1/24);
+   if(attacker.x<=beforeX+1e-6)continue;
+   assert.equal(attacker.action,'walk',`type ${type} walks while chasing`);
+   const visual=unitRenderTracks(attacker,attacker.action);
+   assert.equal(visual.bodyTrackOverride,null,`type ${type} ignores its lingering ${repeatTrack}`);
+   const context={trackOverride:visual.bodyTrackOverride,seed:attacker.id};
+   assert.equal(trackFor(graphic,attacker.action,context),graphic.tracks.walk,`type ${type} renders the walk track`);
+   frames.push(pose(graphic,attacker.action,attacker.animTime,attacker.direction,context).frame);
+   times.push(attacker.animTime);
+   if(frames.length>=12)break;
+  }
+  assert.ok(attacker.x>x+5,`type ${type} pursues its retreating target`);
+  assert.ok(frames.length>=6,`type ${type} has consecutive walking frames`);
+  assert.ok(new Set(frames).size>=2,`type ${type} does not skate on its final attack pose: ${frames}`);
+  assert.ok(times.some(time=>time>1/24),`type ${type} does not reset walk time each movement tick`);
+ }
+});
+
+test('walk animation resets once on displacement, but not while turning or blocked',()=>{
+ const battle=fresh(),ling=battle.create(37,0,400,800);face(ling,0);ling.action='attack';ling.animTime=.7;ling.visualTime=5;
+ assert.equal(battle.move(ling,{x:700,y:800},1/24,false),false,'the source unit first turns in place');
+ assert.equal(ling.action,'attack');assert.equal(ling.animTime,.7);assert.equal(ling.visualTime,5);
+ face(ling,8);battle.movementLimit=()=>0;
+ assert.equal(battle.move(ling,{x:700,y:800},1/24,false),false,'collision does not start a walk');
+ assert.equal(ling.animTime,.7);
+ battle.movementLimit=()=>Infinity;
+ assert.equal(battle.move(ling,{x:700,y:800},1/24,false),true);
+ assert.equal(ling.action,'walk');assert.equal(ling.animTime,0);assert.equal(ling.visualTime,5,'persistent overlay clock is intact');
+ ling.animTime=.25;const walkTick=ling.motion.walkTick;
+ assert.equal(battle.move(ling,{x:700,y:800},1/24,false),true);
+ assert.equal(ling.animTime,.25);assert.ok(ling.motion.walkTick>walkTick,'the iscript movement clock continues');
+});
+
+test('turret track ownership and stale attacks cannot override body movement or status actions',()=>{
+ const battle=fresh(),goliath=battle.create(3,0,400,800),target=battle.create(0,1,450,800);target.hp=target.maxHp=30000;face(goliath,8);goliath.turretDirection256=64;goliath.order='focus';goliath.target=target;
+ assert.ok(battle.attack(goliath,target,battle.weapon(goliath,target)));
+ assert.notEqual(goliath.attackControl.image,goliath.def.image,'Goliath fires from a separate turret image');
+ assert.equal(goliath.attackVisualTrack,null,'the turret attack track is not owned by the body');
+ goliath.turretVisualTrack='attackRepeat';goliath.action='walk';goliath.cooldown=.4;
+ let tracks=unitRenderTracks(goliath,'walk');assert.equal(tracks.bodyTrackOverride,null);assert.equal(tracks.turretTrackOverride,'attackRepeat','turret retains its valid cooldown pose');
+ for(const action of ['idle','heal','burrow','unburrow','death'])assert.equal(unitRenderTracks({...goliath,attackVisualTrack:'attackRepeat'},action).bodyTrackOverride,null);
+ goliath.cooldown=0;goliath.attackControl=null;tracks=unitRenderTracks(goliath,'walk');assert.equal(tracks.turretAction,'idle');assert.equal(tracks.turretTrackOverride,null);
+ assert.equal(unitRenderTracks({...goliath,action:'attack',attackVisualTrack:'attackRepeat'},'attack').bodyTrackOverride,'attackRepeat');
+});
+
+test('visual track changes do not reschedule the two Zealot hits on first or repeat attacks',()=>{
+ const battle=fresh(),zealot=battle.create(65,0,400,700),target=battle.create(0,1,427,700);
+ target.hp=target.maxHp=30000;target.order='move';zealot.order='focus';zealot.target=target;face(zealot,8);
+ assert.ok(battle.attack(zealot,target,battle.weapon(zealot,target)));
+ const hits=[];let hp=target.hp;
+ for(let tick=1;tick<=32;tick++){
+  battle.step(1/24);
+  if(target.hp!==hp){hits.push([tick,hp-target.hp]);hp=target.hp}
+ }
+ assert.deepEqual(hits,[[4,8],[6,8],[26,8],[28,8]],'each first/repeat swing retains both source-timed impacts');
+});
+
+test('braking displacement enters walk once without resetting persistent visuals',()=>{
+ const battle=fresh(),vulture=battle.create(2,0,400,700);
+ vulture.motion.speedRaw=500;vulture.motion.velocityDirection256=64;vulture.action='attack';vulture.animTime=.6;vulture.visualTime=4;
+ assert.equal(brakeUnitMovement(battle,vulture,1/24),true);
+ assert.equal(vulture.action,'walk');assert.equal(vulture.animTime,0);assert.equal(vulture.visualTime,4);
+ vulture.animTime=.3;assert.equal(brakeUnitMovement(battle,vulture,1/24),true);assert.equal(vulture.animTime,.3);
 });

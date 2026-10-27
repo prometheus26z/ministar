@@ -7,6 +7,7 @@ import {invalidateAbilityRequirements} from './economy.js?v=0.16.25';
 import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.25';
 import {researchAt} from './tech.js?v=0.16.25';
 import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.25';
+import {unitRenderTracks} from './unit-render-state.js?v=0.16.25';
 import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.25';
 import {psiFieldTiles} from './build-placement.js?v=0.16.25';
 import {resolveWeapon,attackHitCount} from './combat-rules.js?v=0.16.25';
@@ -411,7 +412,7 @@ function unit(u){
  if(!normallyVisible&&!cloakFade&&!burrowFade)return;
  const concealedBurrow=u.alive&&(u.type===103?u.lurkerState==='burrowed':u.burrowed&&u.burrowState!=='unburrowing'),selected=battle.isHighlighted(u),cloakLevel=u.alive&&u.cloakLevel>0?u.cloakLevel:0,alpha=!u.alive?1:1,overlaySize=spellVisualData?.unitOverlaySizes?.[u.type]??0,hasMatrix=u.alive&&u.matrix>0;
  if(selected&&u.alive){ctx.strokeStyle=u.team===0?'#79f880':'#f16e67';ctx.lineWidth=1.3/camera.zoom;ctx.beginPath();ctx.ellipse(u.x,u.y+u.r*.55,u.r+5,(u.r+5)*.48,0,0,Math.PI*2);ctx.stroke()}
- const g=data.graphics[u.def.image],drawAction=concealedBurrow?'burrow':u.type===124?'idle':u.action,drawTime=concealedBurrow?(u.burrowPoseTime||u.lurkerBurrowPoseTime||transitionSeconds(g,'burrow')):drawAction==='heal'?(u.healVisualTime||0):u.animTime,visual={seed:u.type===103&&u.lurkerAnimSeed!==undefined?u.lurkerAnimSeed:u.id,lifetime:u.visualTime??u.animTime,targetDistance:u.target?dist(u,u.target):Infinity,inheritedFrame:u.lastVisualFrame,skipSpawnIntro:!!u.skipSpawnIntro&&drawAction==='idle',suppressEvents:concealedBurrow,trackOverride:u.attackVisualTrack||null,cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible};
+ const g=data.graphics[u.def.image],drawAction=concealedBurrow?'burrow':u.type===124?'idle':u.action,drawTime=concealedBurrow?(u.burrowPoseTime||u.lurkerBurrowPoseTime||transitionSeconds(g,'burrow')):drawAction==='heal'?(u.healVisualTime||0):u.animTime,renderTracks=unitRenderTracks(u,drawAction),visual={seed:u.type===103&&u.lurkerAnimSeed!==undefined?u.lurkerAnimSeed:u.id,lifetime:u.visualTime??u.animTime,targetDistance:u.target?dist(u,u.target):Infinity,inheritedFrame:u.lastVisualFrame,skipSpawnIntro:!!u.skipSpawnIntro&&drawAction==='idle',suppressEvents:concealedBurrow,trackOverride:renderTracks.bodyTrackOverride,cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible};
  const matrixBack=spellOverlayImage('matrixBack',overlaySize),matrixFront=spellOverlayImage('matrixFront',overlaySize);
  const bodyPose=g&&!u.construction&&!u.egg?pose(g,drawAction,drawTime,u.direction,visual):null;
  if(bodyPose&&u.alive&&!concealedBurrow)for(const layer of g.shadowLayers||[]){
@@ -422,7 +423,7 @@ function unit(u){
  }
  if(hasMatrix&&matrixBack){const effectVisual=unitEffectVisual(u,matrixBack,'matrix');sprite(matrixBack,u.team,u.x,u.y,'idle',effectVisual.lifetime,u.direction,alpha,new Set(),null,effectVisual)}
  if(!drawConstruction(u,alpha)){const p=bodyPose||pose(g,drawAction,drawTime,u.direction,visual);u.lastVisualFrame=p.frame;visual.poseOverride=p;sprite(u.egg?(u.type===43?11:u.type===38?914:21):u.def.image,u.team,u.x,u.y,drawAction,drawTime,u.direction,alpha,new Set(),null,visual)}
- const sub=u.def.subunit!==null?data.units[u.def.subunit]:null,turretImage=u.turretImage??sub?.image;if(Number.isInteger(turretImage)&&u.alive)sprite(turretImage,u.team,u.x,u.y,u.turretAction||u.action,u.turretAnimTime||u.animTime,u.turretDirection??u.direction,alpha,new Set(),null,{seed:u.id^turretImage,targetDistance:u.target?dist(u,u.target):Infinity,trackOverride:u.turretVisualTrack||null,cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible});
+ const sub=u.def.subunit!==null?data.units[u.def.subunit]:null,turretImage=u.turretImage??sub?.image;if(Number.isInteger(turretImage)&&u.alive)sprite(turretImage,u.team,u.x,u.y,renderTracks.turretAction,u.turretAnimTime||u.animTime,u.turretDirection??u.direction,alpha,new Set(),null,{seed:u.id^turretImage,targetDistance:u.target?dist(u,u.target):Infinity,trackOverride:renderTracks.turretTrackOverride,cloakLevel:cloakLevel||undefined,cloakHidden:u.team===1&&!normallyVisible});
  if(u.type===124&&u.alive&&!u.construction&&!Number.isInteger(u.turretImage))sprite(297,u.team,u.x,u.y,u.action,u.animTime,u.action==='idle'?Math.floor(u.animTime*16)%32:u.direction,alpha,new Set(),null,visual);
  if(hasMatrix&&matrixFront){const effectVisual=unitEffectVisual(u,matrixFront,'matrix');sprite(matrixFront,u.team,u.x,u.y,'idle',effectVisual.lifetime,u.direction,alpha,new Set(),null,effectVisual)}
  if(u.alive){for(const [key,imageName]of [['lockdown','lockdown'],['stasis','stasisOverlay'],['ensnare','ensnareOverlay'],['irradiate','irradiate'],['plague','plagueOverlay'],['maelstrom','maelstromOverlay']])if(u.buffs[key]>0){const image=spellOverlayImage(imageName,overlaySize);if(image){const effectVisual=unitEffectVisual(u,image,key);sprite(image,u.team,u.x,u.y,'idle',effectVisual.lifetime,u.direction,alpha,new Set(),null,effectVisual)}}}
@@ -578,31 +579,25 @@ function projectileAlpha(visual){
  const life=visual.kind==='projectile'?Math.max(.12,visual.flightElapsed+.06):visual.duration;
  return Math.max(0,Math.min(1,(life-(visual.kind==='projectile'?visual.age:(visual.visualAge||0)))/.06));
 }
-function drawProjectileTrail(visual,color,alpha,width=2,maxLength=18){
- const points=[...(visual.trail||[]),{x:visual.x,y:visual.y}];if(points.length<2)return;
- let left=maxLength,path=[points.at(-1)];
- for(let i=points.length-1;i>0&&left>0;i--){const from=points[i],to=points[i-1],length=Math.hypot(to.x-from.x,to.y-from.y);if(!length)continue;const take=Math.min(left,length);path.push({x:from.x+(to.x-from.x)*take/length,y:from.y+(to.y-from.y)*take/length});left-=take;if(take<length)break}
- if(path.length<2)return;path.reverse();ctx.save();ctx.globalAlpha*=alpha*.45;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(path[0].x,path[0].y);for(const point of path.slice(1))ctx.lineTo(point.x,point.y);ctx.stroke();ctx.restore();
-}
 function drawProjectileFallback(visual,color,alpha){
  const angle=Math.atan2(visual.endY-visual.startY,visual.endX-visual.startX),directional=[528,529,521,965,509,511,515,962,532,534,535,522,503,536].includes(visual.image);
- if(directional)drawProjectileTrail(visual,color,alpha,1.5,18);
  ctx.save();ctx.globalAlpha*=alpha;ctx.translate(visual.x,visual.y);if(directional)ctx.rotate(angle);ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=6;
- if(directional)ctx.fillRect(-4,-1,8,2);else{ctx.globalAlpha*=.45;ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=alpha;ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill()}
+ if(directional)ctx.fillRect(-4,-1,8,2);else{ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill()}
  ctx.restore();
 }
 function drawHydraSting(visual,alpha){
- const progress=Math.min(1,visual.age/visual.duration),hx=visual.startX+(visual.endX-visual.startX)*progress,hy=visual.startY+(visual.endY-visual.startY)*progress,dx=visual.endX-visual.startX,dy=visual.endY-visual.startY,length=Math.hypot(dx,dy)||1,travelled=length*progress,head=Math.min(6,travelled),tail=Math.min(10,Math.max(0,travelled-head)),ux=dx/length,uy=dy/length,hx0=hx-ux*head,hy0=hy-uy*head,tx=hx0-ux*tail,ty=hy0-uy*tail;
- ctx.save();ctx.globalAlpha*=alpha;ctx.lineCap='round';ctx.strokeStyle='#a8c958';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(hx0,hy0);ctx.stroke();ctx.strokeStyle='#d7f383';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(hx0,hy0);ctx.lineTo(hx,hy);ctx.stroke();ctx.fillStyle='#f2ffc1';ctx.beginPath();ctx.arc(hx,hy,1.3,0,Math.PI*2);ctx.fill();ctx.restore();
+ const progress=Math.min(1,Math.max(.025,(visual.visualAge||0)/visual.duration)),hx=visual.startX+(visual.endX-visual.startX)*progress,hy=visual.startY+(visual.endY-visual.startY)*progress,dx=visual.endX-visual.startX,dy=visual.endY-visual.startY,length=Math.hypot(dx,dy)||1,head=Math.min(6,length*progress),ux=dx/length,uy=dy/length;
+ if(head<=0)return;
+ ctx.save();ctx.globalAlpha*=alpha;ctx.lineCap='round';ctx.strokeStyle='#d7f383';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(hx-ux*head,hy-uy*head);ctx.lineTo(hx,hy);ctx.stroke();ctx.restore();
 }
 function drawHydraContactFallback(visual){const alpha=Math.max(0,1-visual.age/(visual.fallbackDuration||.1));if(!alpha)return;ctx.save();ctx.globalAlpha*=alpha;ctx.fillStyle='#d7f383';ctx.shadowColor='#d7f383';ctx.shadowBlur=7;ctx.beginPath();ctx.arc(visual.endX,visual.endY,3,0,Math.PI*2);ctx.fill();ctx.restore()}
 function drawProjectileVisuals(){
  if(!battle.projectileVisuals.length)return;
  const units=battle.presentationQueries?.byId||new Map(battle.units.map(unit=>[unit.id,unit]));
  for(const visual of battle.projectileVisuals){const source=units.get(visual.sourceId),target=units.get(visual.targetId);if(source&&(source.hidden||source.loaded||source.productionOnly)||source?.team===1&&!battle.canSee(0,source)||target&&(target.hidden||target.loaded||target.productionOnly||target.team===1&&!battle.canSee(0,target)))continue;const color=PROJECTILE_TONES[visual.image]||'#dcecff',alpha=projectileAlpha(visual);
-  if(visual.kind==='hitscan'){if(visual.age<visual.duration)drawHydraSting(visual,alpha);else if(!visual.firstRendered)drawProjectileFallback({...visual,image:511,x:visual.endX,y:visual.endY},'#d7f383',.9);battle.markProjectileVisualRendered(visual);continue}
+  if(visual.kind==='hitscan'){if((visual.visualAge||0)<visual.duration)drawHydraSting(visual,alpha);battle.markProjectileVisualRendered(visual);continue}
   if(visual.kind==='contact'){const elapsed=visual.visualAge||0,action=visual.image===504?'idle':'death';if(!sprite(visual.image,visual.team,visual.endX,visual.endY,action,elapsed,visual.direction,visual.firstRendered?alpha:1)){if(visual.image===504)drawHydraContactFallback({...visual,age:elapsed});else drawProjectileFallback({...visual,x:visual.endX,y:visual.endY},color,visual.firstRendered?alpha:1)}battle.markProjectileVisualRendered(visual);continue}
-  drawProjectileTrail(visual,color,alpha);if(!sprite(visual.image,visual.team,visual.x,visual.y,'idle',visual.age,visual.direction,alpha))drawProjectileFallback(visual,color,alpha);battle.markProjectileVisualRendered(visual);
+  if(!sprite(visual.image,visual.team,visual.x,visual.y,'idle',visual.age,visual.direction,alpha))drawProjectileFallback(visual,color,alpha);battle.markProjectileVisualRendered(visual);
  }
 }
 function drawSpellFallback(effect,time=0,radius=16){const colors={ensnare:'#8ff6ad',plague:'#b0ef6a',stasis:'#bce6ff',maelstrom:'#e5b5ff',storm:'#b6f3ff',swarm:'#94da70',web:'#ddd7ff'};const color=colors[effect.spell||effect.kind]||'#d9edff',phase=(Math.max(0,time)*5)%1,r=Math.max(3,radius*(.45+.28*phase));ctx.save();ctx.globalAlpha*=Math.max(.35,1-phase*.45);ctx.translate(effect.x,effect.y);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=8;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.stroke();ctx.rotate(time*2.5);for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(0,0,r+3,i*Math.PI/2+phase,i*Math.PI/2+phase+Math.PI/3);ctx.stroke()}ctx.globalAlpha*=.65;ctx.beginPath();ctx.arc(0,0,Math.max(1.5,r*.18),0,Math.PI*2);ctx.fill();ctx.restore()}
