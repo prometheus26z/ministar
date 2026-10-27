@@ -209,7 +209,11 @@ async function testInspection(browser){
   await page.waitForFunction(()=>document.body.dataset.space==='production');
   await page.evaluate(()=>window.__inspectionTest.setMoney(0));
   const unaffordable=page.locator('#commandGrid .building-card[aria-label*="미네랄이 부족합니다"]').first();
-  await unaffordable.tap();
+  // Playwright treats aria-disabled as non-actionable even though these
+  // deliberately clickable build cards are not HTML-disabled.
+  const unaffordableBox=await unaffordable.boundingBox();
+  assert.ok(unaffordableBox,'unaffordable build card is visible');
+  await page.touchscreen.tap(unaffordableBox.x+unaffordableBox.width/2,unaffordableBox.y+unaffordableBox.height/2);
   assert.equal(await page.locator('#statTooltip').isVisible(),true,'unaffordable buildings open tooltips');
   assert.equal(await page.locator('#statTooltip .command-tooltip-price img').getAttribute('src'),'assets/icons/resource_000.png');
   assert.ok(Number(await page.locator('#statTooltip .command-tooltip-price span').innerText())>0,'full building cost is displayed');
