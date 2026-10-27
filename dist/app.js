@@ -1,9 +1,9 @@
 import {constructionVisual,healthBarLayout,healthBarFillWidth,waveDescription,formatSupply,formatElapsedTime} from './presentation.js?v=0.16.25';
 import {selectionPanelModel,inspectionEnergyMaximum,selectionStatItems} from './selection-panel.js?v=0.16.25';
 import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.25';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.25';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.25';
-import {invalidateAbilityRequirements} from './economy.js?v=0.16.25';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.25-stall-ui34';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.25-stall-ui34';
+import {invalidateAbilityRequirements} from './economy.js?v=0.16.25-stall-ui34';
 import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.25';
 import {researchAt} from './tech.js?v=0.16.25';
 import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.25';
@@ -123,13 +123,28 @@ function hudUI(){
  $('money').textContent=Math.floor(battle.money).toLocaleString();$('gas').textContent=Math.floor(battle.gas).toLocaleString();$('gas').parentElement.hidden=!!battle.laneMode;if(battle.laneMode)$('incomeStatus').textContent=battle.incomePauseLeft>0?`수입 중단 ${Math.ceil(battle.incomePauseLeft)}초`:`시설 ${battle.completedGasCount(0)}/5 · +${battle.incomeAmount()} / ${INCOME_SECONDS.toFixed(2)}초`;$('supply').textContent=formatSupply(battle.supply,battle.maxSupply);$('slow').hidden=true;
 }
 const wireframeLayers=[0,1,2,3].map(layer=>`assets/selection-ui/wirefram-layer-${layer}.webp`),wireframeCache=new Map(),pendingWireframes=new Set();
+let wireframeRenderKey='';
+function centeredWireframe(source){
+ const context=source.getContext('2d'),pixels=context.getImageData(0,0,128,128).data;
+ let left=128,right=-1,top=128,bottom=-1;
+ for(let y=0;y<128;y++)for(let x=0;x<128;x++)if(pixels[(y*128+x)*4+3]>8){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y)}
+ if(right<left)return null;
+ const width=right-left+1,height=bottom-top+1,scale=Math.min(112/width,112/height,2);
+ const result=document.createElement('canvas');result.width=result.height=128;
+ result.getContext('2d').drawImage(source,left,top,width,height,(128-width*scale)/2,(128-height*scale)/2,width*scale,height*scale);
+ return result;
+}
 function paintWireframe(unit,model){
- const canvas=$('wireframe'),context=canvas.getContext('2d');context.clearRect(0,0,canvas.width,canvas.height);if(!unit||!model)return;const fallback=getImage(icon(unit.type));if(fallback)context.drawImage(fallback,16,16,96,96);
- const ratio=unit.hp/Math.max(1,unit.maxHp||unit.def.hp),band=ratio>2/3?'green':ratio>1/3?'yellow':'red',key=`${unit.type}:${band}`,cached=wireframeCache.get(key);
+ const canvas=$('wireframe'),context=canvas.getContext('2d');context.clearRect(0,0,canvas.width,canvas.height);
+ if(!unit||!model){wireframeRenderKey='';return}
+ const ratio=unit.hp/Math.max(1,unit.maxHp||unit.def.hp),band=ratio>2/3?'green':ratio>1/3?'yellow':'red',key=`${unit.type}:${band}`,renderKey=`${model.id}:${key}`;
+ wireframeRenderKey=renderKey;
+ const cached=wireframeCache.get(key);
  if(cached){context.drawImage(cached,0,0);wireframeCache.delete(key);wireframeCache.set(key,cached);return}
+ const fallback=getImage(icon(unit.type));if(fallback)context.drawImage(fallback,16,16,96,96);
  if(pendingWireframes.has(key))return;pendingWireframes.add(key);
  Promise.all(wireframeLayers.map(loadImage)).then(images=>{
-  if(images.some(image=>!image)||lastInspection?.id!==unit.id)return;
+  if(images.some(image=>!image))return;
   const tint=band==='green'?[77,245,88]:band==='yellow'?[255,213,81]:[240,82,73],result=document.createElement('canvas');result.width=result.height=128;const output=result.getContext('2d');
   for(const [layer,image]of images.entries()){
    const part=document.createElement('canvas');part.width=part.height=128;const px=part.getContext('2d'),sx=(unit.type%16)*128,sy=Math.floor(unit.type/16)*128;
@@ -137,8 +152,9 @@ function paintWireframe(unit,model){
    for(let i=0;i<values.length;i+=4){values[i]=Math.round(values[i]*tint[0]/255);values[i+1]=Math.round(values[i+1]*tint[1]/255);values[i+2]=Math.round(values[i+2]*tint[2]/255)}
    px.putImageData(pixels,0,0);output.drawImage(part,0,0);void layer;
   }
-  wireframeCache.set(key,result);while(wireframeCache.size>32)wireframeCache.delete(wireframeCache.keys().next().value);
-  if(lastInspection?.id===unit.id&&Math.floor((unit.hp/Math.max(1,unit.maxHp||unit.def.hp))*3)===Math.floor((ratio)*3))context.drawImage(result,0,0);
+  const composed=centeredWireframe(result);if(!composed)return;
+  wireframeCache.set(key,composed);while(wireframeCache.size>32)wireframeCache.delete(wireframeCache.keys().next().value);
+  if(wireframeRenderKey===renderKey&&lastInspection?.id===unit.id){context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(composed,0,0)}
  }).catch(()=>{}).finally(()=>pendingWireframes.delete(key));
 }
 function updatePortrait(unit){
@@ -214,9 +230,14 @@ function closeCommandTooltip(){
  activeCommandTooltip.removeAttribute('aria-describedby');activeCommandTooltip=null;
  if(!activeStatTooltip){$('statTooltip').hidden=true;$('statTooltip').textContent=''}
 }
-function showCommandTooltip(button,message){
+const mineralShortageReason=reason=>reason==='미네랄이 부족합니다.';
+function showCommandTooltip(button,{cost=null,name='',reason=''}={}){
  closeStatTooltip();closeCommandTooltip();const tooltip=$('statTooltip');activeCommandTooltip=button;
- tooltip.textContent=message;tooltip.hidden=false;button.setAttribute('aria-describedby','statTooltip');
+ const content=document.createElement('span');content.className='command-tooltip-content';
+ if(cost){const price=document.createElement('span');price.className='command-tooltip-price';const image=document.createElement('img');image.src=iconResource(0);image.alt='';image.setAttribute('aria-hidden','true');const amount=document.createElement('span');amount.textContent=String(cost[0]);price.append(image,amount);content.append(price);}
+ const label=document.createElement('span');label.textContent=name;if(cost)label.prepend(document.createTextNode(' · '));content.append(label);
+ if(reason&&!mineralShortageReason(reason)){const explanation=document.createElement('span');explanation.textContent=' · '+reason;content.append(explanation)}
+ tooltip.replaceChildren(content);tooltip.hidden=false;button.setAttribute('aria-describedby','statTooltip');
  positionStatTooltip(button);
 }
 function gasInvestmentDetail(){
@@ -235,9 +256,9 @@ function actionCommandSlot({name,id,cost=null,reason='',detail='',click=null,kin
  if(coords){const art=document.createElement('span');art.className='command-art';art.setAttribute('aria-hidden','true');art.style.backgroundPosition=`-${coords[0]}px -${coords[1]}px`;button.append(art)}
  else{const image=document.createElement('img');image.className='command-building-icon';image.src=icon(id);image.alt='';button.append(image)}
  button.append(label);
- const costText=cost?'미네랄 '+cost[0]+' · ':'',aria=name+(cost?', 미네랄 '+cost[0]:'')+(reason?', '+reason:'');
- button.title=(detail?detail+' · ':'')+costText+name+(reason?' · '+reason:'');button.setAttribute('aria-label',aria);button.setAttribute('aria-disabled',String(!!reason));
- if(reason)button.onclick=()=>showCommandTooltip(button,costText+name+' · '+reason);else button.onclick=click||(()=>{});
+ const visibleReason=mineralShortageReason(reason)?'':reason,costText=cost?'미네랄 '+cost[0]+' · ':'',aria=name+(cost?', 미네랄 '+cost[0]:'')+(reason?', '+reason:'');
+ button.title=(detail?detail+' · ':'')+costText+name+(visibleReason?' · '+visibleReason:'');button.setAttribute('aria-label',aria);button.setAttribute('aria-disabled',String(!!reason));
+ if(reason)button.onclick=()=>showCommandTooltip(button,{cost,name,reason});else button.onclick=click||(()=>{});
  $('commandGrid').append(button);return button;
 }
 function addBuildingCommand(type){

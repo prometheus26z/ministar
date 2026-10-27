@@ -246,6 +246,9 @@ body[data-panel=min] #panel .unit-info,body[data-panel=min] #panel .panel-tools{
 body[data-panel=min] #panel .panel-main{display:grid;justify-content:initial}
 body:not([data-panel=expanded]) #panel #portrait{display:block}
 #statTooltip{position:fixed;z-index:30;min-width:80px;max-width:calc(100vw - 12px);padding:5px 9px;border:2px solid #718a9a;background:#08151deF;color:#eee;box-shadow:inset 0 0 0 1px #263943,0 2px 8px #000c;font:11px/15px ui-monospace,Consolas,monospace;text-align:center;white-space:nowrap;pointer-events:none}
+#statTooltip .command-tooltip-content{display:inline-flex;align-items:center;justify-content:center;flex-wrap:wrap;column-gap:0;max-width:100%}
+#statTooltip .command-tooltip-price{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+#statTooltip .command-tooltip-price img{display:block;flex:none;width:14px;height:14px;object-fit:contain}
 .stat-tooltip-title,.stat-tooltip-value{display:block}
 @media(min-width:700px){#panel{padding-inline:max(12px,calc((100vw - 670px)/2))}}
 @media(max-width:380px){#panel{padding-inline:5px}#panel #panelTop{grid-template-columns:minmax(0,1fr) clamp(64px,20vw,76px) clamp(56px,17vw,62px);gap:3px}#panel .unit-info strong{font-size:10px}#panel .unit-info #order,#panel .unit-info #unitStatus,#panel .unit-info #killCount{font-size:8px}#panel #inspectionNumbers{left:4px;width:55px}#panel #statDetails{left:62px;right:2px}#panel .stat-icon{flex-basis:28px;width:28px;height:30px;min-width:28px;min-height:30px}#panel .lane-views{gap:3px}}
@@ -465,7 +468,8 @@ body[data-panel="normal"],body[data-panel="expanded"],body[data-panel="min"]{--p
 #panel #inspectionScaled{width:100%;height:100%}
 #panel .unit-info{width:100%;height:100%;min-height:0}
 #panel #wireframe{
- left:2px;top:19px;width:clamp(30px,9vw,40px);height:clamp(32px,10vw,43px);
+ --wireframe-size:40px;
+ left:2px;top:19px;width:var(--wireframe-size);height:var(--wireframe-size);
 }
 #panel .unit-info strong{
  left:clamp(35px,10vw,44px);right:3px;top:7px;
@@ -489,15 +493,15 @@ body[data-panel="normal"],body[data-panel="expanded"],body[data-panel="min"]{--p
  width:auto;max-width:none;
 }
 #panel #statIcons{
- display:flex;flex-wrap:nowrap;align-items:flex-end;justify-content:flex-start;
- gap:2px;max-height:28px;width:100%;overflow:hidden;
+ display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:flex-start;
+ gap:2px;max-height:none;width:100%;overflow:visible;
 }
 #panel .stat-icon{
- flex:0 1 28px;width:clamp(17px,5vw,28px);min-width:0;
- height:clamp(21px,6vw,28px);min-height:0;
+ flex:0 0 28px;width:28px;min-width:28px;max-width:28px;
+ height:28px;min-height:28px;max-height:28px;padding:1px;overflow:hidden;
  border:0;background:var(--stat-frame) center/100% 100% no-repeat;
 }
-#panel .stat-icon img{width:90%;height:85%}
+#panel .stat-icon img{display:block;width:22px;height:22px;object-fit:contain}
 #panel .stat-icon b{right:0;bottom:0;font-size:7px;line-height:9px}
 #panel .unit-info #productionQueue{left:3px;top:79px;max-width:100%;font-size:7px}
 #panel #portraitArea{
@@ -552,11 +556,13 @@ body[data-panel="normal"],body[data-panel="expanded"],body[data-panel="min"]{--p
  #panel .unit-info #order{top:23px}
  #panel .unit-info #unitStatus{top:37px}
  #panel .unit-info #killCount{top:51px}
- #panel #wireframe{top:23px}
+ #panel #wireframe{--wireframe-size:clamp(32px,8vw,40px);top:23px}
+ #panel .unit-info #killCount{top:49px}
  #panel #inspectionNumbers{bottom:3px}
- #panel #statDetails{bottom:44px}
- #panel #statIcons{gap:1px}
- #panel .stat-icon{flex:1 1 0}
+ #panel #statDetails{bottom:39px}
+ #panel #statIcons{gap:1px;max-height:none;flex-wrap:wrap;overflow:visible}
+ #panel .stat-icon{flex:0 0 22px;width:22px;min-width:22px;max-width:22px;height:22px;min-height:22px;max-height:22px}
+ #panel .stat-icon img{width:17px;height:17px}
  #panel #portraitArea{grid-template-rows:24px 68px;gap:2px}
  #panel #settings{height:24px;min-height:24px;font-size:8px}
  #panel .portrait-frame{height:68px;padding:2px}
@@ -567,4 +573,8 @@ body[data-panel="normal"],body[data-panel="expanded"],body[data-panel="min"]{--p
 @media(max-height:520px) and (max-width:599px){
  :root,body[data-panel="normal"],body[data-panel="expanded"],body[data-panel="min"]{--panel:190px}
  #consoleMain{--console-height:154px}
+}
+@media(max-width:350px){
+ #panel .stat-icon{flex-basis:20px;width:20px;min-width:20px;max-width:20px;height:20px;min-height:20px;max-height:20px}
+ #panel .stat-icon img{width:16px;height:16px}
 }

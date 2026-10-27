@@ -3,8 +3,8 @@ import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.25';
 import {SATISFIES} from './tech.js?v=0.16.25';
 import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.25';
 import {buildingDestruction} from './presentation.js?v=0.16.25';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.25';
-import {clamp,dist} from './core.js?v=0.16.25';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.25-stall-ui34';
+import {clamp,dist} from './core.js?v=0.16.25-stall-ui34';
 import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.25';
 import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.25';
 import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.25';
@@ -33,7 +33,7 @@ export class Battle extends EconomyBattle{
   this.menuMode='build';
   this.teamSize=[1,2,3].includes(Number(options.teamSize))?Number(options.teamSize):1;this.random=options.random||Math.random;this.ownerByTeam=[0,3];this.commanders=[];this.commanderScopeDepth=0;this.commanderEvents=[];
   this.enemyRace=ENEMY_RACES.includes(options.enemyRace)?options.enemyRace:randomEnemyRace(options.random);
-  this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
+  this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.gasDelayApplied=[new Set(),new Set()];
  }
  get battleTimeScale(){return 1}
  get timeScale(){return 1}
@@ -62,7 +62,7 @@ export class Battle extends EconomyBattle{
   if(this.phase!=='title')return false;
   this.phase='battle';this.simAccumulator=0;this.simFrame=0;this.paused=false;this.time=0;this.timeLeft=Infinity;this.ownerByTeam=[0,3];this.commanders=[];
   this.units=[];this.creepFields.clear();this.creepClock=0;this.projectiles=[];this.pendingProjectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.nodes=[];this.wrecks=[];this.outpostDefenses=[[],[]];this.pendingDeployments=[[],[]];this.deploymentBudget=[8,8];this.waveId=0;this.hangarFrame=0;this.hangarAccumulator=0;this.reaverRefillClock=0;this.waveElapsedTotal=0;this.carrierRefillEvents=new Set();
-  this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.baseWarnings=[false,false];this.gasDelayApplied=[new Set(),new Set()];
+  this.ai=new LaneAI(this);this.waveHistory=[];this.incomeTotal=[0,0];this.spendingHistory=[];this.specialStates=[{},{}];this.evolutionBonus=[false,false];this.gasDelayApplied=[new Set(),new Set()];
   this.money=DESERT_STRIKE.startingMinerals;this.gas=0;this.botMoney=DESERT_STRIKE.startingMinerals;this.botGas=0;this.maxSupply=200;
   this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.waveClock=WAVE_SECONDS;
   const player=this.installSide(0),enemy=this.installSide(1);
@@ -237,10 +237,10 @@ export class Battle extends EconomyBattle{
  research(unit,key){return this.fail(this.researchReason(unit,key))}
  formationGoal(u,objective){return{x:clamp(objective.x+(u.laneOffset||0),352,928),y:objective.y}}
  setAdvanceGoal(u,objective){
-  this.releaseAttackSlot(u);
+  this.resetAttackPursuit(u);
   const goal=this.formationGoal(u,objective),direction=u.team?1:-1,end={x:goal.x,y:goal.y-direction*128};
   const route=!u.def.air&&this.clearGroundSegment(u,end,u.r*.55,u)?[end]:this.path(u,end,u.def.air,u.def.air?0:u.r*.55,u);
-  u.goal=goal;u.path=route;u.order='attackmove';u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.aiClock=0;u.stuck=0;
+  u.goal=goal;u.path=route;u.order='attackmove';u.target=null;u.combatMoving=false;u.aiClock=0;u.stuck=0;
  }
 
  recoverLaneRoute(u,objective){
@@ -380,19 +380,27 @@ export class Battle extends EconomyBattle{
    const state=this.specialStates[team].heal;if(state){state.clock+=dt;const interval=DESERT_STRIKE.specials[115].intervalCycles*DESERT_STRIKE.hyperCycleSeconds;while(state.clock>=interval&&state.pulses<45){state.clock-=interval;state.pulses++;for(const u of this.units)if(u.alive&&u.team===team&&!u.def.building&&!u.productionOnly)u.hp=u.maxHp}if(state.pulses>=45)delete this.specialStates[team].heal}
   }
  }
- checkBaseWarning(){for(const team of [0,1]){const base=team?this.core:this.main,enemyDirection=team?-1:1,near=!!base&&this.units.some(u=>u.alive&&u.team!==team&&u.laneArmy&&!u.productionOnly&&enemyDirection*(u.y-base.y)>=-640);if(near&&!this.baseWarnings[team]&&team===0)this.emit('notice',{text:'경고: 적 병력이 기지에 접근합니다.'});this.baseWarnings[team]=near}}
-
  maintainAdvance(u,dt){
   const objective=this.laneObjective(u.team),path=u.path||[],last=path.at(-1)||u.goal||objective;
   let remaining=path.length?dist(u,path[0]):dist(u,last);
   for(let i=1;i<path.length;i++)remaining+=dist(path[i-1],path[i]);
-  const previous=u.laneProgress,samePath=previous?.last===last&&previous?.objectiveId===objective?.id;
-  if(!samePath||remaining<previous.remaining-1)u.laneStall=0;
+  const previous=u.laneProgress,moved=previous&&dist(u,previous)>0.75;
+  if(!previous||previous.objectiveId!==objective?.id||moved)u.laneStall=0;
   else u.laneStall=(u.laneStall||0)+dt;
-  u.laneProgress={last,remaining,objectiveId:objective?.id};
-  const immobilized=u.sieged||u.burrowed||u.buffs.lockdown>0||u.buffs.stasis>0||u.buffs.maelstrom>0;
+  u.laneProgress={x:!previous||moved?u.x:previous.x,y:!previous||moved?u.y:previous.y,last,remaining,objectiveId:objective?.id};
+  const immobilized=u.loaded||u.hidden||u.productionOnly||u.def.building||u.sieged||u.burrowed||u.burrowState==='burrowing'||u.burrowState==='unburrowing'||u.lurkerState==='burrowing'||u.lurkerState==='unburrowing'||u.buffs.lockdown>0||u.buffs.stasis>0||u.buffs.maelstrom>0;
   if(immobilized)return;
-  const idle=!u.goal&&!u.combatMoving&&!u.target&&!u.healTarget&&dist(u,objective)>120,stalled=u.laneStall>.9&&!u.combatMoving&&!u.target&&!u.healTarget&&!['attack','airAttack','cast'].includes(u.action)&&dist(u,objective)>120;
+  if(u.target&&(!u.target.alive||u.target.team===u.team||u.target.loaded||u.target.hidden)){
+   this.resetAttackPursuit(u);u.target=null;u.combatMoving=false;
+  }
+  if(u.healTarget&&(!u.healTarget.alive||u.healTarget.team!==u.team||u.healTarget.hp>=u.healTarget.maxHp)){
+   u.healTarget=null;this.stopMedicHealing(u);
+  }
+  const weapon=u.target&&this.weapon(u,u.target),edge=weapon&&this.edgeDistance(u,u.target);
+  const inCombat=!!u.attackControl||!!weapon&&edge<=weapon.range&&edge>=(weapon.minRange||0);
+  const movingIntent=!!u.goal&&['attackmove','move','patrol','focus'].includes(u.order);
+  const idle=!u.goal&&!u.combatMoving&&!u.target&&!u.healTarget&&dist(u,objective)>120;
+  const stalled=u.laneStall>.9&&movingIntent&&!u.combatMoving&&!u.target&&!u.healTarget&&!inCombat&&dist(u,objective)>120;
   if(objective?.id!==u.laneObjectiveId||idle||stalled){
    if(stalled&&this.allyBlocksMovement(u,path[0]||last)){
     u.laneAllyWaitSince??=this.time;u.movementState='WAITING_ALLY';
@@ -400,12 +408,17 @@ export class Battle extends EconomyBattle{
    }else u.laneAllyWaitSince=null;
    const heading=u.motion?.heading256,desired=u.motion?.desiredDirection256;
    if(stalled&&Number.isFinite(heading)&&Number.isFinite(desired)&&Math.abs(((desired-heading+384)%256)-128)>16&&u.laneStall<1.5){u.movementState='TURNING';return}
+   if(stalled&&this.time<(u.laneDetourUntil||0))return;
    if(!u.def.air&&this.map.blocked(u.x,u.y,u.r*.55)){const p=this.deploymentPoint(u.def,u.team,u,32,u);if(p){u.x=p.x;u.y=p.y}}
    const needsNewGoal=objective?.id!==u.laneObjectiveId||idle;
    u.laneObjectiveId=objective.id;
+   if(stalled&&!u.attackControl&&['attack','airAttack','cast'].includes(u.action)){
+    this.clearActionControl(u,'route-stalled');u.action='idle';u.animTime=0;
+   }
    if(needsNewGoal)this.setAdvanceGoal(u,objective);
-   else if(this.time>=(u.laneDetourUntil||0)&&!this.recoverLaneRoute(u,objective))this.setAdvanceGoal(u,objective);
-   u.laneStall=0;
+   else if(!this.recoverLaneRoute(u,objective)){
+    this.setAdvanceGoal(u,objective);u.laneDetourUntil=this.time+1;
+   }
    u.movementState='MOVING';
   }else if(!u.target&&!u.combatMoving&&u.movementState!=='WAITING_SLOT'){
    u.movementState='MOVING';u.laneAllyWaitSince=null;
@@ -475,7 +488,7 @@ export class Battle extends EconomyBattle{
   this.inSimulationStep=true;this.deploymentBudget=[8,8];
   try{
    super.step(dt);if(this.phase!=='battle')return;
-   this.advanceAmmoRefills(dt);this.fireBunkers(dt);this.tickIncome(dt);this.tickSpecials(dt);for(const c of this.commanders.filter(c=>c.slot>0))this.withCommander(c.id,()=>{this.tickIncome(dt,[c.team]);this.tickSpecials(dt,[c.team])});this.checkBaseWarning();
+   this.advanceAmmoRefills(dt);this.fireBunkers(dt);this.tickIncome(dt);this.tickSpecials(dt);for(const c of this.commanders.filter(c=>c.slot>0))this.withCommander(c.id,()=>{this.tickIncome(dt,[c.team]);this.tickSpecials(dt,[c.team])});
    this.waveClock-=dt;
    while(this.waveClock<=0){for(const c of this.commanders)this.withCommander(c.id,()=>this.spawnWave(c.team));this.ai.observe();const history=this.ai.snapshot();history.commanders=this.commanders.map(c=>this.commanderSnapshot(c.id));this.waveHistory.push(history);this.waveClock+=WAVE_SECONDS;this.emit('wave')}
    this.drainPendingDeployments();this.botStep(dt);for(const c of this.commanders.filter(c=>c.slot>0))this.withCommander(c.id,()=>c.ai.step(dt));
