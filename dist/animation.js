@@ -8,6 +8,12 @@ const TRACKS=Object.freeze({
  unburrow:['unburrow','burrow','idle'],
  idle:['idle','stand','built']
 });
+// Graphics and selected tracks are both identity keys. Seed entries only
+// proliferate for randomWait tracks; bound them to avoid indefinite growth.
+const TIMELINE_CACHE=new WeakMap();
+const MAX_RANDOM_TIMELINES=256;
+export const ANIMATION_CACHE_METRICS={hits:0,misses:0,maxSeedEntries:0};
+export function timelineCacheSize(g,track){return TIMELINE_CACHE.get(g)?.get(track)?.entries.size||0}
 export function trackFor(g,action,context={}){
  const tracks=g?.tracks||{},candidates=TRACKS[action]||[action];
  const track=(context.trackOverride&&tracks[context.trackOverride])||candidates.map(key=>tracks[key]).find(Boolean)||tracks.idle||tracks.built||null;
@@ -22,7 +28,7 @@ function frameTicks(track){
 export function transitionSeconds(g,action,fallback=.45,seed=0){
  const track=trackFor(g,action);if(!track)return fallback;
  if(Number.isFinite(track.transitionTicks))return Math.max(1,track.transitionTicks)/24;
- const seededTicks=timedFrames(g,track,seed).reduce((sum,item)=>sum+item.duration,0);
+ const seededTicks=timelineData(g,track,seed).total;
  if(track.transitionSignal===4)return Math.max(1,seededTicks)/24;
  const durations=(track.frames||[]).map(item=>Number(item?.[1])).filter(n=>Number.isFinite(n)&&n>0);
  let ticks=frameTicks(track);
@@ -36,8 +42,7 @@ export function transitionSeconds(g,action,fallback=.45,seed=0){
 }
 export function steadyStartSeconds(g,action='idle',context={}){
  const track=trackFor(g,action,context);if(!track?.loop)return 0;
- const timeline=timedFrames(g,track,context.seed),start=Math.max(0,Math.min(timeline.length,track.loopStart||0));
- return timeline.slice(0,start).reduce((sum,item)=>sum+item.duration,0)/24;
+ return timelineData(g,track,context.seed).steadyIntro/24;
 }
 export function layeredActionSeconds(graphics,id,action,fallback=0){
  const visiting=new Set();
@@ -61,12 +66,35 @@ function timedFrames(g,track,seed=0){
   return{frame:item[0]===null?null:Number(item[0]),inheritFrame,duration,hidden:!!item[2]?.hidden};
  }).filter(f=>(Number.isFinite(f.frame)||f.inheritFrame)&&Number.isFinite(f.duration)&&f.duration>0);
 }
+const EMPTY_TIMELINE=Object.freeze({timeline:[],total:0,intro:0,steadyIntro:0,cycle:0});
+function timelineData(g,track,seed=0){
+ if(!g||!track)return EMPTY_TIMELINE;
+ let byTrack=TIMELINE_CACHE.get(g);if(!byTrack)TIMELINE_CACHE.set(g,byTrack=new WeakMap());
+ let record=byTrack.get(track);
+ if(!record){record={randomWait:(track.frames||[]).some(item=>!!item[2]?.randomWait),entries:new Map()};byTrack.set(track,record)}
+ const key=record.randomWait?(seed|0):0,cached=record.entries.get(key);
+ if(cached){
+  // Refresh insertion order for a bounded LRU on randomWait tracks only.
+  if(record.randomWait){record.entries.delete(key);record.entries.set(key,cached)}
+  ANIMATION_CACHE_METRICS.hits++;return cached;
+ }
+ const timeline=timedFrames(g,track,key),total=timeline.reduce((n,item)=>n+item.duration,0);
+ const poseStart=Math.max(0,Math.min(timeline.length-1,track.loopStart||0));
+ const steadyStart=Math.max(0,Math.min(timeline.length,track.loopStart||0));
+ let intro=0,steadyIntro=0;
+ for(let i=0;i<steadyStart;i++){steadyIntro+=timeline[i].duration;if(i<poseStart)intro+=timeline[i].duration}
+ const result={timeline,total,intro,steadyIntro,cycle:total-intro};
+ if(record.randomWait&&record.entries.size>=MAX_RANDOM_TIMELINES)record.entries.delete(record.entries.keys().next().value);
+ record.entries.set(key,result);ANIMATION_CACHE_METRICS.misses++;
+ ANIMATION_CACHE_METRICS.maxSeedEntries=Math.max(ANIMATION_CACHE_METRICS.maxSeedEntries,record.entries.size);
+ return result;
+}
 export function pose(g,action,time,direction,context={}){
  const track=trackFor(g,action,context),frames=Array.isArray(g?.frames)?g.frames:[];
  if(!frames.length)return{frame:0,flip:false};
- const timeline=timedFrames(g,track,context.seed),total=timeline.reduce((n,f)=>n+f.duration,0),elapsed=Math.max(0,Number(time)||0)*24;
+ const {timeline,total,intro,cycle}=timelineData(g,track,context.seed),elapsed=Math.max(0,Number(time)||0)*24;
  let tick=elapsed,frame=Number.isInteger(context.inheritedFrame)?context.inheritedFrame:0,hidden=!!track?.ended&&elapsed>=total;
- if(track?.loop&&total>0){const start=Math.max(0,Math.min(timeline.length-1,track.loopStart||0)),intro=timeline.slice(0,start).reduce((n,f)=>n+f.duration,0),cycle=total-intro;if(context.skipSpawnIntro&&action==='idle')tick=Math.max(tick,intro);if(tick>=intro&&cycle>0)tick=intro+(tick-intro)%cycle}
+ if(track?.loop&&total>0){if(context.skipSpawnIntro&&action==='idle')tick=Math.max(tick,intro);if(tick>=intro&&cycle>0)tick=intro+(tick-intro)%cycle}
  else tick=Math.min(tick,Math.max(0,total-.001));
  for(const item of timeline){if(!item.inheritFrame&&Number.isFinite(item.frame))frame=item.frame;if(tick<item.duration){hidden||=item.hidden;break}tick-=item.duration}
  let facing=Number.isInteger(track?.fixedDirection)?track.fixedDirection:direction;
