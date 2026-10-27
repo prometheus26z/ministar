@@ -76,9 +76,9 @@ async function testBuildingCatalogUI(browser,url){
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  try{
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+': '+r.url())});
-  await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__catalogTest={get battle(){return battle}};'}));
+  await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__catalogTest={get battle(){return battle},get commandPage(){return commandPage}};'}));
   await page.goto(url);await page.locator('#title').waitFor({state:'visible'});
-  const choose=async race=>{await page.locator(`button[data-race=${race}]`).click();await page.locator('#deploy').click();await page.locator('#spaceToggle').waitFor({state:'visible'});assert.ok(await page.evaluate(race=>getComputedStyle(document.body).getPropertyValue('--panel-texture').includes(race),race),race+' player race controls the console skin');await page.locator('#spaceToggle').click();assert.equal(await page.locator('#command-page-basic').getAttribute('aria-selected'),'true')};
+  const choose=async race=>{await page.locator(`button[data-race=${race}]`).click();await page.locator('#deploy').click();await page.locator('#spaceToggle').waitFor({state:'visible'});assert.ok(await page.evaluate(race=>getComputedStyle(document.body).getPropertyValue('--panel-texture').includes(race),race),race+' player race controls the console skin');await page.locator('#spaceToggle').click();assert.equal(await page.evaluate(()=>window.__catalogTest.commandPage),'basic')};
   const inject=async race=>page.evaluate(race=>{
    const b=window.__catalogTest.battle;b.money=10000;const offset=2304,groundX=96,groundY=736,groundWidth=1056,groundHeight=608;
    const put=(type,x,y,unfinished=false)=>{const u=b.create(type,0,x,y);u.productionOnly=true;u.startingBase=false;u.completed=!unfinished;if(unfinished)u.construction={time:0,total:1000,started:true,cost:[...b.buildingCost(type)],original:null};return u.id};
@@ -101,14 +101,22 @@ async function testBuildingCatalogUI(browser,url){
    return out;
   },race);
   const select=async id=>page.evaluate(id=>window.__catalogTest.battle.select([id],false),id);
-  const close=async()=>{const basic=page.locator('#command-page-basic');if(await basic.count()&&await basic.isVisible())await basic.click()};
-  const openBuild=async()=>{await page.locator('#command-page-basic').click()};
-  const openSelected=async()=>{const selected=page.locator('#command-page-selected');await selected.waitFor({state:'visible'});await selected.click()};
+  const openCommand=async destination=>{
+   if(await page.evaluate(()=>window.__catalogTest.commandPage)===destination)return;
+   if(await page.evaluate(()=>window.__catalogTest.commandPage)!=='worker'){
+    const back=page.locator('#commandGrid [aria-label="건설 명령 취소"], #commandGrid [aria-label="건설 메뉴로 돌아가기"]');
+    await back.click();
+   }
+   const name={basic:'기본 건설 명령',advanced:'고급 건설 명령',selected:'선택 건물 명령'}[destination];
+   await page.locator(`#commandGrid [aria-label="${name}"]`).click();
+  };
+  const close=async()=>openCommand('basic'),openBuild=async()=>openCommand('basic'),openSelected=async()=>openCommand('selected');
 
   await choose('terran');let ids=await inject('terran');
   await select(ids.factory);assert.match(await page.locator('#order').innerText(),/골리앗 3기/);
-  assert.equal(await page.locator('#command-page-selected').count(),0,'factory has no allowed selected-building commands');
-  for(const tab of ['basic','advanced']){await page.locator('#command-page-'+tab).click();assert.equal(await page.getByRole('button',{name:/머신샵/}).count(),0,'PUNI-disabled Machine Shop is absent from the build catalog')}await close();
+  await page.locator('#commandGrid [aria-label="건설 명령 취소"]').click();
+  assert.equal(await page.locator('#commandGrid [aria-label="선택 건물 명령"]').count(),0,'factory has no allowed selected-building commands');
+  for(const destination of ['basic','advanced']){await openCommand(destination);assert.equal(await page.getByRole('button',{name:/머신샵/}).count(),0,'PUNI-disabled Machine Shop is absent from the build catalog')}await close();
   await select(ids.facility);await openSelected();
   const covert=page.getByRole('button',{name:/^코버트 옵스/}),physics=page.getByRole('button',{name:/^피직스 랩/});
   assert.equal((await covert.locator('.command-cost').innerText()).trim(),'1000');assert.equal(await covert.locator('.command-cost img').getAttribute('src'),'assets/icons/resource_000.png');assert.match(await covert.getAttribute('title'),/시즈 탱크 3기/);assert.equal(await covert.isDisabled(),false);
@@ -134,7 +142,7 @@ async function testBuildingCatalogUI(browser,url){
   await page.screenshot({path:'/tmp/ministar-building-catalog-zerg.png',fullPage:true});
 
   await page.evaluate(()=>window.__catalogTest.battle.finish(true,'catalog test'));await page.locator('#toTitle').click();await choose('protoss');ids=await inject('protoss');
-  await select(ids.robo);assert.match(await page.locator('#order').innerText(),/옵저버토리·로보틱스 서포트 베이 해금 · 최대 1개/);await page.locator('#command-page-advanced').click();assert.match(await page.getByRole('button',{name:/옵저버토리/}).getAttribute('title'),/옵저버 2기/);assert.match(await page.getByRole('button',{name:/로보틱스 서포트 베이/}).getAttribute('title'),/리버 2기/);await close();
+  await select(ids.robo);assert.match(await page.locator('#order').innerText(),/옵저버토리·로보틱스 서포트 베이 해금 · 최대 1개/);await openCommand('advanced');assert.match(await page.getByRole('button',{name:/옵저버토리/}).getAttribute('title'),/옵저버 2기/);assert.match(await page.getByRole('button',{name:/로보틱스 서포트 베이/}).getAttribute('title'),/리버 2기/);await close();
   await select(ids.pylon);assert.match(await page.locator('#order').innerText(),/기존 보급 건물 · 출격 수량 증가·추가 해금 없음/);
   await select(ids.stargate);assert.match(await page.locator('#order').innerText(),/스카웃 2기 · 커세어 1기/);
   await select(ids.special);assert.match(await page.locator('#order').innerText(),/건설 중.*절반을 아군으로 전환.*자동 발동·소모/);await openSelected();assert.match(await page.locator('#commandGrid').innerText(),/건설 취소/);await close();
@@ -144,7 +152,7 @@ async function testBuildingCatalogUI(browser,url){
   assert.deepEqual(errors,[]);
  }finally{await context.close()}
 }
-(async()=>{const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{browser=await chromium.launch({headless:true});await testLegacyMigration(browser);await testLegacyMigration(browser,true);const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+': '+r.url())});await page.addInitScript(()=>{window.__spriteDraws=new Set();const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(image,...args){if(image?.src)window.__spriteDraws.add(image.__ministarSource||image.src);return draw.call(this,image,...args)}});await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__visualTest={get battle(){return battle},get placement(){return placementPoint},get viewMode(){return viewMode},get camera(){return {x:camera.x,y:camera.y}},centerOn(p){camera.x=p.x;camera.y=p.y;limitCamera();return this.project(p)},findValidBuildPoint(){const type=Number(battle.targeting.split(":")[1]);for(let y=80;y<H-140;y+=8)for(let x=16;x<W-16;x+=8){const point=toWorld(x,y);if(document.elementFromPoint(x,y)===document.getElementById("field")&&!battle.placement(battle.builder,type,point).reason){return{x,y}}}throw new Error("No valid building point in the field viewport")},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));await page.goto('http://127.0.0.1:'+server.address().port+'/ministar/');await page.locator('#title').waitFor({state:'visible'});// Every select uses an overlay: no Android picker, layout shift or viewport overflow.
+(async()=>{const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{browser=await chromium.launch({headless:true});await testLegacyMigration(browser);await testLegacyMigration(browser,true);const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+': '+r.url())});await page.addInitScript(()=>{window.__spriteDraws=new Set();const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(image,...args){if(image?.src)window.__spriteDraws.add(image.__ministarSource||image.src);return draw.call(this,image,...args)}});await page.route('**/app.js?*',route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(require('node:path').join(__dirname,'../dist/app.js'),'utf8')+'\nwindow.__visualTest={get battle(){return battle},get commandPage(){return commandPage},get placement(){return placementPoint},get viewMode(){return viewMode},get camera(){return {x:camera.x,y:camera.y}},centerOn(p){camera.x=p.x;camera.y=p.y;limitCamera();return this.project(p)},findValidBuildPoint(){const type=Number(battle.targeting.split(":")[1]);for(let y=80;y<H-140;y+=8)for(let x=16;x<W-16;x+=8){const point=toWorld(x,y);if(document.elementFromPoint(x,y)===document.getElementById("field")&&!battle.placement(battle.builder,type,point).reason){return{x,y}}}throw new Error("No valid building point in the field viewport")},project(p){return{x:W/2+(p.x-camera.x)*camera.zoom,y:cy()+(p.y-camera.y)*camera.zoom}}};'}));await page.goto('http://127.0.0.1:'+server.address().port+'/ministar/');await page.locator('#title').waitFor({state:'visible'});// Every select uses an overlay: no Android picker, layout shift or viewport overflow.
 for(const viewport of [{width:405,height:594},{width:390,height:600},{width:360,height:640},{width:412,height:740},{width:390,height:844},{width:320,height:568},{width:844,height:390},{width:1280,height:800}]){
  await page.setViewportSize(viewport);
  if(viewport.height>viewport.width){
@@ -182,8 +190,8 @@ await page.screenshot({path:'/tmp/ministar-upright-terrain.png'});
 await page.locator('#spaceToggle').click();
 const productionToggle=await page.locator('#spaceToggle').boundingBox();
 assert.equal(productionToggle.x,390-productionToggle.width);
-assert.equal(await page.locator('#command-page-basic').getAttribute('aria-selected'),'true');
-assert.equal(await page.locator('#commandTabs button').count(),2);
+assert.equal(await page.evaluate(()=>window.__visualTest.commandPage),'basic');
+assert.equal(await page.locator('#commandTabs').count(),0);
 assert.equal(await page.locator('#commandGrid .command-slot').count(),9);
 assert.equal(await page.locator('#commandGrid .command-art').count(),9);
 assert.equal(await page.locator('#commandGrid .command-slot').last().getAttribute('aria-label'),'건설 명령 취소');
@@ -191,7 +199,7 @@ assert.equal(await page.locator('#consoleMinimap').isVisible(),true);
 assert.equal(await page.locator('#slow').isVisible(),false);
 // All five original geyser centers resolve to their own touch target.
 await page.evaluate(()=>{const b=window.__visualTest.battle;b.money=900});
-await page.locator('#command-page-basic').click();await page.getByRole('button',{name:/^리파이너리/}).click();
+await page.getByRole('button',{name:/^리파이너리/}).click();
 for(let slot=0;slot<5;slot++){
  const point=await page.evaluate(slot=>{const t=window.__visualTest;const node=t.battle.nodes.find(n=>n.team===0&&n.slot===slot);return t.centerOn(node)},slot);
  assert.ok(point.x>0&&point.x<390&&point.y>64&&point.y<700);
@@ -200,8 +208,7 @@ for(let slot=0;slot<5;slot++){
 }
 await page.locator('#cancel').click();
 assert.equal(await page.locator('#productionSide').count(),0);
-assert.equal(await page.locator('#command-page-basic').getAttribute('aria-selected'),'true');
-await page.locator('#command-page-basic').click();
+assert.equal(await page.evaluate(()=>window.__visualTest.commandPage),'basic');
 await page.waitForFunction(()=>Number(document.getElementById('money').textContent)>=330);const barracks=page.getByRole('button',{name:/^배럭, 미네랄/});await page.waitForFunction(()=>[...document.querySelectorAll('#commandGrid .building-card')].some(b=>b.textContent.includes('배럭')&&!b.hasAttribute('disabled')));assert.equal(await barracks.isDisabled(),false);assert.equal((await barracks.locator('.command-cost').innerText()).trim(),'330');assert.equal(await barracks.locator('.command-cost img').getAttribute('src'),'assets/icons/resource_000.png');assert.doesNotMatch(await barracks.innerText(),/미네랄|●/);assert.equal((await barracks.locator('.command-name').innerText()).trim(),'배럭');
 assert.match(await barracks.getAttribute('title'),/마린 6기/);assert.doesNotMatch(await barracks.getAttribute('title'),/3초/);assert.match(await page.getByRole('button',{name:/아카데미/}).getAttribute('title'),/파이어뱃 1기.*메딕 1기/);
 await barracks.click();assert.equal(await page.locator('#target').isVisible(),true);
@@ -209,7 +216,7 @@ assert.match(await page.locator('#targetText').innerText(),/배럭/);
 assert.equal(await page.locator('#confirmBuild').isDisabled(),true);
 const buildPoint=await page.evaluate(()=>window.__visualTest.findValidBuildPoint());await page.locator("#field").tap({position:buildPoint});
 const buildDisabled=await page.locator('#confirmBuild').isDisabled();assert.equal(buildDisabled,false,JSON.stringify(await page.evaluate(()=>{const t=window.__visualTest;return{mode:t.viewMode,target:t.battle.targeting,placement:t.placement,result:t.battle.placement(t.battle.builder,Number(t.battle.targeting.split(":")[1]),t.placement),text:document.getElementById('targetText').textContent}})));
-const beforeBuild=Number(await page.locator('#money').innerText());await page.locator('#confirmBuild').click();assert.equal(await page.locator('#target').isVisible(),false);assert.equal(await page.locator('#command-page-basic').getAttribute('aria-selected'),'true','the selected command page is preserved after placement');const afterBuild=Number(await page.locator('#money').innerText());assert.ok(afterBuild>=beforeBuild-330&&afterBuild<=beforeBuild-320);
+const beforeBuild=Number(await page.locator('#money').innerText());await page.locator('#confirmBuild').click();assert.equal(await page.locator('#target').isVisible(),false);assert.equal(await page.evaluate(()=>window.__visualTest.commandPage),'basic','the selected command page is preserved after placement');const afterBuild=Number(await page.locator('#money').innerText());assert.ok(afterBuild>=beforeBuild-330&&afterBuild<=beforeBuild-320);
 await page.keyboard.press('Space');
 const initialConstruction=await page.locator('#field').screenshot();
 await page.keyboard.press('Space');await page.waitForTimeout(950);await page.keyboard.press('Space');
@@ -220,7 +227,7 @@ const finishedConstruction=await page.locator('#field').screenshot();
 assert.notDeepEqual(middleConstruction,finishedConstruction,'completion must replace the construction frames with the finished building');
 await page.keyboard.press('Space');
 await page.evaluate(()=>{const b=window.__visualTest.battle,unit=b.units.find(u=>u.alive&&u.productionOnly&&u.commanderId===0&&u.type===111);if(unit)b.select([unit.id],false)});
-await page.waitForFunction(()=>document.getElementById('order').textContent.includes('마린')&&document.getElementById('order').textContent.includes('6기'));assert.equal(await page.locator('#command-page-basic').isVisible(),true);
+await page.waitForFunction(()=>document.getElementById('order').textContent.includes('마린')&&document.getElementById('order').textContent.includes('6기'));assert.equal(await page.evaluate(()=>window.__visualTest.commandPage),'basic');
 await page.locator('#spaceToggle').click();
 assert.equal((await page.locator('#spaceToggle').boundingBox()).x,0);
 await page.locator('#map').click();const minimap=page.locator('#minimap'),miniBox=await minimap.boundingBox();
