@@ -19,7 +19,8 @@ window.__inspectionTest={
   const enemy=b.create(0,1,890,1640);enemy.order='hold';
   const building=b.create(111,0,520,1770);building.order='hold';
   const zergling=b.create(37,0,410,1580),scout=b.create(70,0,460,1520),marine=b.create(0,0,470,1560),zealot=b.create(65,0,490,1600);
-  return{dragoon:dragoon.id,medic:medic.id,enemy:enemy.id,building:building.id,zergling:zergling.id,scout:scout.id,marine:marine.id,zealot:zealot.id,portrait:dragoon.def.portrait};
+  const goliath=b.create(3,0,540,1540),vessel=b.create(9,0,560,1540),overlord=b.create(42,0,580,1540),observer=b.create(84,0,600,1540);
+  return{dragoon:dragoon.id,medic:medic.id,enemy:enemy.id,building:building.id,zergling:zergling.id,scout:scout.id,marine:marine.id,zealot:zealot.id,goliath:goliath.id,vessel:vessel.id,overlord:overlord.id,observer:observer.id,outpost:b.outpostDefenses[0][0].id,portrait:dragoon.def.portrait};
  },
  startManaBarSpy(id){
   const unit=this.getUnit(id),bar=healthBarLayout(unit,data.graphics[unit.def.image],camera.zoom),energyY=bar.y+(unit.def.shield>0?11:5)+1,original=ctx.fillRect;
@@ -79,9 +80,9 @@ async function testInspection(browser){
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
   await page.waitForFunction(()=>window.__inspectionTest.wireframeCacheSize>0);
-  assert.equal(await page.locator('#shields').innerText(),'실드 51/80');
-  assert.match(await page.locator('#hp').innerText(),/HP 74\/100/,'inspection values use original HP ceiling and shield floor rules');
-  assert.equal(await page.locator('#killCount').innerText(),'처치 3');
+  assert.equal(await page.locator('#shields').innerText(),'51/80');
+  assert.equal(await page.locator('#hp').innerText(),'74/100','inspection values use original HP ceiling and shield floor rules');
+  assert.equal(await page.locator('#killCount').innerText(),'처치: 3');
   assert.ok(await page.locator('#statIcons .stat-icon').count()>=2,'armor and weapon icons appear in the source panel slots');
   assert.equal(await page.locator('#portrait').getAttribute('src'),ids.portrait);
   assert.equal(await page.locator('#portrait').isVisible(),true);
@@ -120,75 +121,101 @@ async function testInspection(browser){
   assert.equal(await page.locator('#portrait').getAttribute('src'),null,'clearing inspection releases the previous portrait');
   assert.equal(await page.locator('#statIcons button').count(),0);
   const emptyFrame=await page.locator('.portrait-frame').boundingBox();
-  assert.ok(emptyFrame?.width>0&&emptyFrame.height<=68,'the portrait has a compact, uncropped window in its independent column');
+  assert.ok(emptyFrame?.width>0&&emptyFrame.height>0,'the portrait has an uncropped window in its independent column');
   for(const race of ['terran','zerg','protoss']){
-   const raceImage=await page.evaluate(race=>{document.body.dataset.race=race;return getComputedStyle(document.querySelector('#portraitArea'),'::after').backgroundImage},race);
-   assert.ok(raceImage.includes(`/original-ui/${race}/console-normalized.webp`),`${race} portrait footer uses its own original race background`);
+   const decoration=await page.evaluate(race=>{document.body.dataset.race=race;return getComputedStyle(document.querySelector('#portraitArea'),'::after').content},race);
+   assert.equal(decoration,'none','removed footer decoration must not reserve height');
   }
   await page.evaluate(()=>{document.body.dataset.race='terran'});
 
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.medic);
-  await page.waitForFunction(()=>document.querySelector('#energy').textContent==='마나 75/250');
+  await page.waitForFunction(()=>document.querySelector('#energy').textContent==='75/250');
   await page.evaluate(id=>window.__inspectionTest.centerOn(id,.6),ids.medic);
   await page.evaluate(id=>window.__inspectionTest.startManaBarSpy(id),ids.medic);
   await page.waitForTimeout(200);
   assert.ok(await page.evaluate(()=>window.__inspectionTest.stopManaBarSpy())>0,'the real renderer draws the mana row below HP');
   await page.evaluate(id=>window.__inspectionTest.centerOn(id,.6),ids.medic);await page.waitForTimeout(80);
   await page.locator('#field').screenshot({path:'/tmp/ministar-mana-bar.png'});
-  for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:544,height:900},{width:600,height:900},{width:844,height:390}]){
+  const viewports=[{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:430,height:780},{width:544,height:900},{width:600,height:900},{width:390,height:480},{width:844,height:390}];
+  for(const viewport of viewports){
    await page.setViewportSize(viewport);
    for(const id of [ids.zergling,ids.dragoon,ids.scout,ids.marine,ids.zealot,ids.building]){
     await page.evaluate(id=>window.__inspectionTest.inspect(id),id);
     const metrics=await page.evaluate(()=>{
      const box=element=>element.getBoundingClientRect().toJSON(),wire=box(document.querySelector('#wireframe')),container=box(document.querySelector('.unit-info')),hp=box(document.querySelector('#inspectionNumbers')),name=box(document.querySelector('#unitName'));
-     return{wire,container,hp,name,items:[...document.querySelectorAll('#statIcons .stat-icon')].map(button=>({button:box(button),image:box(button.querySelector('img'))}))};
+     return{wire,container,hp,name,items:[...document.querySelectorAll('#statIcons .stat-icon')].map(button=>({button:box(button),image:box(button.querySelector('img')),badge:button.querySelector('b')?.textContent}))};
     });
-    const max=viewport.width<=350?20:viewport.width<=599?22:28,iconMax=viewport.width<=350?16:viewport.width<=599?17:22;
-    assert.ok(Math.abs(metrics.wire.width-metrics.wire.height)<.5,'wireframe must be square: '+JSON.stringify(metrics));
+    const scale=Math.min(viewport.width,640)/630;
+    assert.ok(Math.abs(metrics.container.width/metrics.container.height-8/3)<.01,'inspection content aspect ratio: '+JSON.stringify(metrics));
+    assert.ok(Math.abs(metrics.wire.width-80*scale)<.75&&Math.abs(metrics.wire.height-80*scale)<.75,'original wireframe size: '+JSON.stringify(metrics));
     assert.ok(metrics.wire.right<=metrics.container.right+.5,'wireframe fits the inspection column');
+    assert.ok(metrics.wire.bottom<=metrics.hp.top+.5,'wireframe is above the vital values');
+    assert.ok(metrics.name.left>=metrics.wire.right-.5,'name stays to the right of the wireframe');
     for(const item of metrics.items){
      const button=item.button,image=item.image;
-     assert.ok(Math.abs(button.width-button.height)<.5&&button.width<=max+.5,'stat frame square size cap: '+JSON.stringify({viewport,item}));
-     assert.ok(Math.abs(image.width-image.height)<.5&&image.width<=iconMax+.5,'stat glyph size cap: '+JSON.stringify({viewport,item}));
+     assert.ok(Math.abs(button.width-46*scale)<.8&&Math.abs(button.height-44*scale)<.8,'original stat frame: '+JSON.stringify({viewport,item}));
+     assert.ok(Math.abs(image.width-38*scale)<.8&&Math.abs(image.height-36*scale)<.8,'original stat glyph: '+JSON.stringify({viewport,item}));
      assert.ok(image.left>=button.left-.5&&image.right<=button.right+.5&&image.top>=button.top-.5&&image.bottom<=button.bottom+.5,'stat glyph not clipped');
      assert.ok(button.right<=metrics.container.right+.5&&button.left>=metrics.container.left-.5,'stat frame fits inspection');
-     assert.ok(button.bottom<=metrics.hp.top+.5,'stat icons must not overlap the health rows');
-     assert.ok(button.top>=metrics.name.bottom-.5,'stat icons must not overlap unit name');
+     assert.ok(button.left>=metrics.hp.right-.5,'stat icons are to the right of the vital values');
+     assert.ok(button.top>=metrics.name.bottom-.5,'stat icons are below the unit name');
+     assert.ok(item.badge!==undefined&&item.badge!==null,'upgrade level 0 is visible');
     }
     if([320,390,544,600].includes(viewport.width))await page.locator('#inspectionWrap').screenshot({path:`/tmp/ministar-stats-${viewport.width}-${id}.png`});
    }
    await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.medic);
-   const layout=await page.evaluate(()=>{const frame=document.querySelector('.portrait-frame').getBoundingClientRect(),portrait=document.querySelector('#portraitArea').getBoundingClientRect(),menu=document.querySelector('#settings').getBoundingClientRect(),grid=document.querySelector('#commandGrid').getBoundingClientRect(),mini=document.querySelector('#consoleMinimap').getBoundingClientRect(),info=document.querySelector('#inspectionWrap').getBoundingClientRect(),console=document.querySelector('#consoleMain').getBoundingClientRect();return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:info.toJSON(),console:console.toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON(),frame:{top:frame.top,bottom:frame.bottom,height:frame.height},portrait:{left:portrait.left,right:portrait.right,top:portrait.top,bottom:portrait.bottom,width:portrait.width,background:getComputedStyle(document.querySelector('#portraitArea')).backgroundImage},menu:{top:menu.top,bottom:menu.bottom},fit:getComputedStyle(document.querySelector('#portrait')).objectFit,grid:{left:grid.left,right:grid.right,top:grid.top,bottom:grid.bottom},mini:{left:mini.left,right:mini.right,top:mini.top,bottom:mini.bottom,height:mini.height}}});
+   const layout=await page.evaluate(()=>{const box=element=>element.getBoundingClientRect().toJSON(),frame=box(document.querySelector('.portrait-frame')),portrait=box(document.querySelector('#portraitArea')),menu=box(document.querySelector('#settings')),grid=box(document.querySelector('#commandGrid')),mini=box(document.querySelector('#consoleMinimap')),info=box(document.querySelector('#inspectionWrap')),console=box(document.querySelector('#consoleMain'));return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:info,console,footer:box(document.querySelector('#panel')),frame,portrait,menu,fit:getComputedStyle(document.querySelector('#portrait')).objectFit,grid,mini,columns:[box(document.querySelector('#consoleMapWrap')),info,portrait,box(document.querySelector('#inlineCommands'))],buttons:[...document.querySelectorAll('#commandGrid .command-slot')].map(box),removed:document.querySelectorAll('.lane-views button').length}});
    assert.ok(layout.document<=viewport.width,JSON.stringify(layout));
    assert.ok(layout.wrap.left>=0&&layout.wrap.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.footer.left>=0&&layout.footer.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.frame.top>=layout.portrait.top&&layout.frame.bottom<=layout.portrait.bottom+1,JSON.stringify(layout));
    assert.ok(layout.portrait.top>=layout.console.top&&layout.portrait.bottom<=layout.console.bottom+1,'Menu/portrait must stay inside the console after race-skin decoration: '+JSON.stringify(layout));
    assert.ok(layout.menu.bottom<=layout.frame.top+1,JSON.stringify(layout));
-   assert.ok(layout.menu.top-layout.portrait.top>=10,'Menu is recessed below the top of the original console: '+JSON.stringify(layout));
-   assert.ok(layout.portrait.bottom-layout.frame.bottom>=30,'race-specific console texture remains visible beneath the smaller portrait: '+JSON.stringify(layout));
-   assert.ok(layout.portrait.background.includes('/original-ui/'),'portrait backing uses the selected race texture');
    assert.equal(layout.fit,'contain','the original portrait frames are never cropped by cover scaling');
-   assert.ok(layout.frame.height<=68,'portrait window is at least 50px shorter than its former full-height design');
-   if(viewport.width>=390)assert.ok(layout.portrait.width>=85,'the portrait column receives the unit-information width');
    assert.ok(layout.grid.left>=0&&layout.grid.right<=viewport.width+1&&layout.mini.left>=0&&layout.mini.right<=viewport.width+1,JSON.stringify(layout));
-   assert.ok(layout.mini.right<=layout.wrap.left+3&&layout.wrap.right<=layout.portrait.left+3&&layout.portrait.right<=layout.grid.left+3,'map, unit information, Menu/portrait and card occupy separate columns: '+JSON.stringify(layout));
-   assert.ok(Math.abs(layout.mini.height-(layout.grid.bottom-layout.grid.top))<1.5&&layout.mini.bottom<=layout.console.bottom+1&&layout.grid.bottom>=layout.console.bottom-3,'minimap and card stretch inside the console frame: '+JSON.stringify(layout));
+   for(let i=1;i<layout.columns.length;i++)assert.ok(layout.columns[i-1].right<=layout.columns[i].left+.5,'the four columns must never overlap: '+JSON.stringify(layout));
+   assert.ok(Math.abs(layout.console.height-128*Math.min(viewport.width,640)/630)<1,'the console host reserves only its scaled height: '+JSON.stringify(layout));
+   assert.ok(Math.abs(layout.footer.height-layout.console.height-8)<2,'no hidden old toolbar space: '+JSON.stringify(layout));
+   assert.equal(layout.removed,0,'old camera/map button row is removed');
+   assert.ok(layout.buttons.length===9&&layout.buttons.every(b=>b.left>=layout.grid.left-.5&&b.right<=layout.grid.right+.5&&b.top>=layout.grid.top-.5&&b.bottom<=layout.grid.bottom+.5),'all nine command slots fit');
+   const mapping=await page.evaluate(()=>{
+    const canvas=document.querySelector('#consoleMinimap'),rect=canvas.getBoundingClientRect();
+    const actual=minimapPointFromEvent(canvas,{clientX:rect.left+rect.width*.25,clientY:rect.top+rect.height*.75});
+    const expected=minimapWorldPoint(canvas.width*.25,canvas.height*.75,canvas.width,canvas.height,minimapBounds(),0);
+    return{actual,expected};
+   });
+   assert.ok(Math.abs(mapping.actual.x-mapping.expected.x)<1e-8&&Math.abs(mapping.actual.y-mapping.expected.y)<1e-8,'minimap pointer coordinates account for transform and backing size');
   }
   // Inspect the actual lane main at its full five-digit HP, including narrow phones.
   const mainId=await page.evaluate(()=>{const t=window.__inspectionTest;t.battle.main.hp=t.battle.main.maxHp=30000;return t.battle.main.id});
   await page.evaluate(id=>window.__inspectionTest.inspect(id),mainId);
-  await page.waitForFunction(()=>document.querySelector('#hp').textContent==='HP 30000/30000');
-  for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:544,height:900},{width:600,height:900},{width:844,height:390}]){
+  await page.waitForFunction(()=>document.querySelector('#hp').textContent==='30000/30000');
+  assert.equal(await page.locator('#order').innerText(),'은신 감지');
+  for(const id of [ids.outpost,ids.vessel,ids.overlord]){
+   await page.evaluate(id=>window.__inspectionTest.inspect(id),id);
+   assert.equal(await page.locator('#order').innerText(),'은신 감지','all active detectors advertise the actual capability');
+  }
+  await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.observer);
+  assert.equal(await page.locator('#order').innerText(),'은폐');
+  assert.equal(await page.locator('#unitStatus').innerText(),'은신 감지','Observer preserves cloak and detector together');
+  await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.marine);
+  assert.equal(await page.locator('#order').innerText(),'Private');
+  await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.goliath);
+  assert.equal(await page.locator('#order').innerText(),'First Sergeant');
+  await page.locator('#inspectionWrap').screenshot({path:'/tmp/ministar-original-layout-goliath-390.png'});
+  await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.scout);
+  assert.equal(await page.locator('#statIcons .stat-icon').count(),4,'a four-icon unit retains all equipment in one row');
+  for(const viewport of viewports){
+   await page.evaluate(id=>window.__inspectionTest.inspect(id),mainId);
    await page.setViewportSize(viewport);
    const vitals=await page.evaluate(()=>{
     const hp=document.querySelector('#hp'),row=hp.getBoundingClientRect(),info=document.querySelector('.unit-info').getBoundingClientRect(),icons=document.querySelector('#statDetails').getBoundingClientRect(),range=document.createRange();range.selectNodeContents(hp);const text=range.getBoundingClientRect();
     return{width:innerWidth,client:hp.clientWidth,scroll:hp.scrollWidth,text:text.toJSON(),row:row.toJSON(),info:info.toJSON(),icons:icons.toJSON()};
    });
    assert.ok(vitals.scroll<=vitals.client&&vitals.text.right<=vitals.info.right&&vitals.text.left>=vitals.info.left,'five-digit HP is fully visible: '+JSON.stringify(vitals));
-   assert.ok(vitals.icons.bottom<=vitals.row.top,'HP and combat icons occupy separate rows: '+JSON.stringify(vitals));
+   assert.ok(vitals.icons.left>=vitals.row.right,'HP and combat icons occupy separate columns: '+JSON.stringify(vitals));
   }
   await page.screenshot({path:'/tmp/ministar-main-hp.png'});
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);

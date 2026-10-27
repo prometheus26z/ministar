@@ -1,4 +1,4 @@
-import {UNIT_UI,ORIGINAL_STAT_LABELS} from './selection-ui-data.js?v=0.16.25';
+import {UNIT_UI,ORIGINAL_STAT_LABELS} from './selection-ui-data.js?v=0.16.26-inspection';
 import {attackHitCount} from './combat-rules.js?v=0.16.25';
 
 const floorNonNegative=value=>Math.floor(Math.max(0,Number(value)||0));
@@ -56,16 +56,22 @@ export function selectionPanelModel(battle,unit,data,unitUi=UNIT_UI){
  if(unit.buffs?.plague>0)status.push('플레이그');
  if(unit.buffs?.blind>0)status.push('실명');
  if(unit.acidSporeTimers?.length)status.push(`애시드 스포어 ${unit.acidSporeTimers.length}`);
- if(unit.def.building&&!battle.powered?.(unit))status.push('동력 공급 중단');
+ if(unit.def.building&&!unit.isMain&&!unit.isOutpost&&!battle.powered?.(unit))status.push('동력 공급 중단');
  if(unit.construction)status.push('건설 중');
  if(unit.egg)status.push('변태 중');
  if(unit.burrowed)status.push(unit.burrowState==='unburrowing'?'잠복 해제 중':'잠복');
  if(unit.cloaked)status.push('은폐');
  if(hangar)status.push(hangar.kind==='carrier'?`인터셉터 ${hangar.current}/${hangar.max}`:`스캐럽 ${hangar.current}/${hangar.max}`);
+ // Rank sublabels apply to ordinary Terran units only. Their 1-based stat_txt
+ // indices are 1302+sublabel; non-Terran sublabels have different meanings.
+ const rank=unit.type<=34&&!unit.def.building&&!unit.def.hero&&Number.isInteger(unitMap.sublabel)?ORIGINAL_STAT_LABELS.ranks?.[unitMap.sublabel]||'':'';
+ const detector=Boolean(unit.def.detector);
+ const detectorActive=detector&&Boolean(unit.alive)&&!unit.loaded&&!unit.hidden&&!unit.productionOnly&&!(unit.buffs?.stasis>0)&&(!unit.construction||Boolean(battle.ready?.(unit)))&&(!unit.def.building||unit.isMain||unit.isOutpost||!battle.powered||Boolean(battle.powered(unit)));
+ const killCount=floorNonNegative(unit.killCount),showsKills=!unit.hallucination&&![47,50].includes(unit.type)&&(weapons.length>0||killCount>0);
  return {
   id:unit.id,type:unit.type,name:unit.def.name||data.units?.[unit.type]?.name||'',
   hp:{current:ceilNonNegative(unit.hp),max:ceilNonNegative(unit.maxHp||unit.def.hp)},
-  shield,energy,lifespan,status,killCount:unit.def.building?null:floorNonNegative(unit.killCount),
+  shield,energy,lifespan,status,rank,detector,detectorActive,killCount:showsKills?killCount:null,
   armor,weapons,hangar,defenseValue:floorNonNegative(unit.def.armor),shieldArmor:shield?.armor??0,
   supply:unit.def.supply||0
  };

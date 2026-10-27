@@ -71,3 +71,45 @@ test('source labels and multi-hit damage are shown in original form',()=>{
  assert.equal(s.weapons.find(w=>w.kind==='air').baseDamage,28);
  assert.equal(selectionStatItems(z).find(item=>item.key.startsWith('weapon:')).valueText,`공격력: ${z.weapons[0].baseDamage}${z.weapons[0].bonus?'+'+z.weapons[0].bonus:''}`);
 });
+
+test('inspection uses effective detector overrides and original English Terran ranks',()=>{
+ const b=battle();b.phase='title';b.begin();
+ const outpost=b.units.find(unit=>unit.isOutpost&&unit.team===0);
+ for(const unit of [b.main,outpost]){
+  assert.equal(unit.baseDef.detector||false,false,'objective detector is a runtime override');
+  const model=selectionPanelModel(b,unit,data);
+  assert.equal(model.detector,true);assert.equal(model.detectorActive,true);
+  assert.equal(model.rank,'');
+ }
+ for(const type of [9,42,84]){
+  const unit=b.create(type,0,200,200),model=selectionPanelModel(b,unit,data);
+  assert.equal(model.detector,true,`detector type ${type}`);
+  assert.equal(model.detectorActive,true);
+ }
+ const observer=b.create(84,0,200,240);observer.cloaked=true;
+ const cloaked=selectionPanelModel(b,observer,data);
+ assert.equal(cloaked.detector,true);assert.ok(cloaked.status.includes('은폐'));
+ assert.equal(selectionPanelModel(b,b.create(0,0,200,270),data).rank,'Private');
+ assert.equal(selectionPanelModel(b,b.create(3,0,200,300),data).rank,'First Sergeant');
+ assert.equal(selectionPanelModel(b,b.create(34,0,200,330),data).rank,'1st Lieutenant');
+ for(const type of [37,65]){const model=selectionPanelModel(b,b.create(type,0,200,360),data);assert.equal(model.detector,false);assert.equal(model.rank,'')}
+ const unpowered=b.create(9,0,220,380);unpowered.buffs.stasis=2;
+ assert.equal(selectionPanelModel(b,unpowered,data).detector,true);
+ assert.equal(selectionPanelModel(b,unpowered,data).detectorActive,false);
+});
+
+test('kill and stat icon conditions preserve support units, upgrades and split weapons',()=>{
+ const b=battle();
+ const goliath=selectionPanelModel(b,b.create(3,0,100,100),data);
+ const dragoon=selectionPanelModel(b,b.create(66,0,140,100),data);
+ assert.deepEqual(selectionStatItems(goliath).map(item=>item.key.split(':')[0]),['armor','weapon','weapon']);
+ assert.deepEqual(selectionStatItems(dragoon).map(item=>item.key.split(':')[0]),['armor','shieldArmor','weapon']);
+ assert.ok(selectionStatItems(goliath).every(item=>Number.isInteger(item.level)&&item.level>=0));
+ assert.equal(selectionStatItems({armor:{icon:1,level:0,base:1,bonus:0},weapons:[]}).at(0).level,0);
+ assert.equal(selectionPanelModel(b,b.create(34,0,180,100),data).killCount,null);
+ assert.equal(selectionPanelModel(b,b.create(0,0,200,100),data).killCount,0);
+ assert.equal(selectionPanelModel(b,b.create(83,0,220,100),data).killCount,0);
+ const vessel=b.create(9,0,250,100);vessel.energy=0;
+ assert.equal(selectionPanelModel(b,vessel,data).energy.current,0);
+ assert.equal(selectionPanelModel(b,b.create(0,0,260,100),data).shield,null);
+});

@@ -107,6 +107,7 @@ execFileSync('python3',[path.resolve(import.meta.dirname,'pack-original-animatio
  const source=path.join(root,'resources/selection-ui'),ui=JSON.parse(fs.readFileSync(path.join(source,'unit-ui-map.json'),'utf8')),labels=JSON.parse(fs.readFileSync(path.join(source,'original-stat-labels-ko.json'),'utf8'));
  if(Object.keys(ui.units||{}).length!==228||Object.keys(ui.weapons||{}).length!==130)throw Error('Invalid original unit inspection UI map');
  if(Object.keys(labels.weapons||{}).length!==130||Object.keys(labels.upgrades||{}).length!==61||labels.locale!=='koKR')throw Error('Invalid original Korean unit inspection labels');
+ if(labels.tblIndexBase!==1||Object.keys(labels.ranks||{}).length!==23||labels.labels?.['831']!=='Detector')throw Error('Invalid original detector/rank labels');
  const cleanLabel=value=>String(value||'').replace(/\\u000[0-9a-f]/gi,'').replace(/[\u0000-\u001f]/g,'').trim();
  for(const entry of [...Object.values(labels.weapons||{}),...Object.values(labels.upgrades||{})])entry.name=cleanLabel(entry.name);
  fs.writeFileSync(path.join(root,'dist/selection-ui-data.js'),'// Extracted from original Brood War unit UI and Korean stat labels.\nexport const UNIT_UI='+JSON.stringify(ui)+';\nexport const ORIGINAL_STAT_LABELS='+JSON.stringify(labels)+';\n');

@@ -1031,6 +1031,9 @@
     }
   },
   "labels": {
+    "764": "Kills:",
+    "831": "Detector",
+    "1299": "Blind",
     "777": "공격력:",
     "778": "장갑:",
     "779": "보호막:",
@@ -1039,5 +1042,14 @@
     "793": "핵",
     "794": "스파이더 마인",
     "1301": "로켓 당"
-  }
+  },
+  "ranks": {
+    "0": "Recruit", "1": "Private", "2": "Private", "3": "1st Lieutenant",
+    "4": "Corporal", "5": "Specialist", "6": "Sergeant", "7": "First Sergeant",
+    "8": "Master Sergeant", "9": "Warrant Officer", "10": "Captain", "11": "Major",
+    "12": "First Sergeant", "13": "Sergeant Major", "14": "Colonel", "15": "Commodore",
+    "16": "Lt Commander", "17": "Marshall", "18": "Lieutenant", "19": "General",
+    "20": "Captain Raynor", "21": "General Duke", "22": "Admiral"
+  },
+  "rankSource": "PyMS/PyMS/MPQ/rez/stat_txt.tbl @ bfc5d3aad0b5614a5aff72c223f8efa00afddfa4, 1-based stat_txt index 1302 + sublabel (GPTP ce321f0 getUnitRankString); English original only, no inferred Korean ranks"
 }
