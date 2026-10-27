@@ -73,7 +73,7 @@ async function testInspection(browser){
  try{
   const ids=await page.evaluate(()=>window.__inspectionTest.createPanelScene());
   assert.equal(await page.evaluate(()=>document.getElementById('researchButton')),null,'the unused research button is absent');
-  assert.equal(await page.locator('#commandTabs button').count(),0,'building tabs are shown only in the player production space');assert.equal(await page.locator('#commandGrid .command-slot:not(:disabled)').count(),0,'field inspection has no build commands');
+  assert.equal(await page.locator('#commandTabs').count(),0,'the original command card has no separate basic/advanced tabs');assert.equal(await page.locator('#commandGrid .command-slot:not(:disabled)').count(),0,'field inspection has no build commands');
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
   await page.waitForFunction(()=>window.__inspectionTest.wireframeCacheSize>0);
@@ -105,7 +105,7 @@ async function testInspection(browser){
   const enemyPoint=await page.evaluate(id=>window.__inspectionTest.centerOn(id,1.2),ids.enemy);
   await page.locator('#field').tap({position:enemyPoint});
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='마린');
-  assert.equal(await page.locator('#commandTabs button').count(),0,'inspecting an enemy grants no build command');assert.equal(await page.locator('#commandGrid .command-slot:not(:disabled)').count(),0);
+  assert.equal(await page.locator('#commandTabs').count(),0,'the command tab bar stays absent');assert.equal(await page.locator('#commandGrid .command-slot:not(:disabled)').count(),0);
   assert.equal(await page.locator('#portrait').getAttribute('src'),'assets/portraits/0.webm');
 
   const buildingPoint=await page.evaluate(id=>window.__inspectionTest.centerOn(id,1.2),ids.building);
@@ -118,7 +118,7 @@ async function testInspection(browser){
   assert.equal(await page.locator('#portrait').getAttribute('src'),null,'clearing inspection releases the previous portrait');
   assert.equal(await page.locator('#statIcons button').count(),0);
   const emptyFrame=await page.locator('.portrait-frame').boundingBox();
-  assert.ok(emptyFrame?.width>0&&Math.abs(emptyFrame.width/emptyFrame.height-60/56)<.1,'portrait frame keeps the original console frame proportions without an active portrait');
+  assert.ok(emptyFrame?.width>0&&emptyFrame.height>emptyFrame.width,'the portrait stretches to occupy its independent full-height column');
 
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
@@ -132,13 +132,15 @@ async function testInspection(browser){
   await page.locator('#field').screenshot({path:'/tmp/ministar-mana-bar.png'});
   for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:844,height:390}]){
    await page.setViewportSize(viewport);
-   const layout=await page.evaluate(()=>{const frame=document.querySelector('.portrait-frame').getBoundingClientRect(),portrait=document.querySelector('#portraitArea').getBoundingClientRect(),menu=document.querySelector('#settings').getBoundingClientRect(),grid=document.querySelector('#commandGrid').getBoundingClientRect(),mini=document.querySelector('#consoleMinimap').getBoundingClientRect();return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:document.querySelector('#inspectionWrap').getBoundingClientRect().toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON(),frame:{top:frame.top,bottom:frame.bottom,height:frame.height},portrait:{top:portrait.top,bottom:portrait.bottom},menu:{bottom:menu.bottom},grid:{left:grid.left,right:grid.right},mini:{left:mini.left,right:mini.right}}});
+   const layout=await page.evaluate(()=>{const frame=document.querySelector('.portrait-frame').getBoundingClientRect(),portrait=document.querySelector('#portraitArea').getBoundingClientRect(),menu=document.querySelector('#settings').getBoundingClientRect(),grid=document.querySelector('#commandGrid').getBoundingClientRect(),mini=document.querySelector('#consoleMinimap').getBoundingClientRect(),info=document.querySelector('#inspectionWrap').getBoundingClientRect(),console=document.querySelector('#consoleMain').getBoundingClientRect();return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:info.toJSON(),console:console.toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON(),frame:{top:frame.top,bottom:frame.bottom,height:frame.height},portrait:{left:portrait.left,right:portrait.right,top:portrait.top,bottom:portrait.bottom},menu:{bottom:menu.bottom},grid:{left:grid.left,right:grid.right,top:grid.top,bottom:grid.bottom},mini:{left:mini.left,right:mini.right,top:mini.top,bottom:mini.bottom,height:mini.height}}});
    assert.ok(layout.document<=viewport.width,JSON.stringify(layout));
    assert.ok(layout.wrap.left>=0&&layout.wrap.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.footer.left>=0&&layout.footer.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.frame.top>=layout.portrait.top&&layout.frame.bottom<=layout.portrait.bottom+1,JSON.stringify(layout));
    assert.ok(layout.menu.bottom<=layout.frame.top+1,JSON.stringify(layout));
    assert.ok(layout.grid.left>=0&&layout.grid.right<=viewport.width+1&&layout.mini.left>=0&&layout.mini.right<=viewport.width+1,JSON.stringify(layout));
+   assert.ok(layout.mini.right<=layout.wrap.left+3&&layout.wrap.right<=layout.portrait.left+3&&layout.portrait.right<=layout.grid.left+3,'map, unit information, Menu/portrait and card occupy separate columns: '+JSON.stringify(layout));
+   assert.ok(Math.abs(layout.mini.height-layout.console.height)<2&&Math.abs(layout.grid.bottom-layout.console.bottom)<2,'minimap and card stretch to console height: '+JSON.stringify(layout));
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(id=>window.__inspectionTest.centerOn(id,.4),ids.dragoon);await page.waitForTimeout(80);
@@ -153,6 +155,29 @@ async function testInspection(browser){
   assert.equal(consoleLayout.scroll,0,'focusing details must not scroll and clip the unit name');
   assert.ok(consoleLayout.nameTop>=consoleLayout.top&&(consoleLayout.hpRight<=consoleLayout.iconsLeft||consoleLayout.hpTop>=consoleLayout.iconsBottom-1)&&consoleLayout.iconsBottom<=consoleLayout.bottom,JSON.stringify(consoleLayout));
   await page.screenshot({path:'/tmp/ministar-inspection-panel-mobile.png',fullPage:true});
+  await page.locator('#spaceToggle').tap();
+  await page.waitForFunction(()=>document.body.dataset.space==='production');
+  await page.evaluate(()=>{window.__inspectionTest.battle.money=5000});
+  await page.waitForTimeout(250);
+  assert.equal(await page.locator('#commandTabs').count(),0);
+  await page.screenshot({path:'/tmp/ministar-construction-console-mobile.png'});
+  const availableBuilding=page.locator('#commandGrid .building-card:not(.unavailable)').first();
+  assert.ok(await availableBuilding.count(),'the basic 3×3 card displays constructible buildings');
+  await availableBuilding.tap();
+  assert.equal(await page.locator('#target').isVisible(),true);
+  const mineralPrice=await page.locator('#targetCostAmount').innerText();
+  assert.match(mineralPrice,/^[\d,]+$/);
+  assert.equal(await page.locator('#targetCost img').getAttribute('src'),'assets/icons/resource_000.png');
+  const buttonLayout=await page.evaluate(()=>{const a=document.querySelector('#confirmBuild').getBoundingClientRect(),b=document.querySelector('#cancel').getBoundingClientRect(),bar=document.querySelector('#target').getBoundingClientRect();return{build:a.toJSON(),cancel:b.toJSON(),bar:bar.toJSON()}});
+  assert.ok(buttonLayout.build.width>=69&&Math.abs(buttonLayout.build.width-buttonLayout.cancel.width)<1&&buttonLayout.cancel.left-buttonLayout.build.right>=6,'construction buttons have matching larger widths and a gap');
+  assert.ok(buttonLayout.bar.right-buttonLayout.cancel.right<20,'construction/cancel actions align at the far right');
+  await page.screenshot({path:'/tmp/ministar-build-target-mobile.png'});
+  await page.locator('#cancel').tap();
+  await page.locator('#commandGrid [aria-label="건설 명령 취소"]').tap();
+  assert.equal(await page.locator('#commandGrid [aria-label="기본 건설 명령"]').count(),1);
+  assert.equal(await page.locator('#commandGrid [aria-label="고급 건설 명령"]').count(),1);
+  await page.locator('#commandGrid [aria-label="고급 건설 명령"]').tap();
+  assert.ok(await page.locator('#commandGrid .building-card').count()>0,'advanced buildings remain accessible in the 3×3 menu');
   assert.deepEqual(errors,[]);
  }finally{await context.close()}
 }
