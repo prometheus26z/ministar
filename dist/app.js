@@ -100,8 +100,7 @@ function event(e){
 }
 function phaseUI(){
  closeDropdown();closeStatTooltip();closeCommandTooltip();const title=battle.phase==='title';$('title').hidden=!title;
- for(const id of ['hud','mission','panel','camera'])$(id).hidden=title;$('spaceToggle').hidden=battle.phase!=='battle';$('productionSeat').hidden=battle.phase!=='battle'||viewMode!=='production'||battle.teamSize===1;
- $('objective').textContent='적 메인 기지를 먼저 함락하십시오';
+ for(const id of ['hud','panel','camera'])$(id).hidden=title;$('spaceToggle').hidden=battle.phase!=='battle';$('productionSeat').hidden=battle.phase!=='battle'||viewMode!=='production'||battle.teamSize===1;
  if(battle.phase==='battle'){viewMode='field';commandPage='basic';commandPanelSignature='';placementPoint=null;document.body.dataset.space='field';camera.x=640;camera.y=1700;camera.zoom=DEFAULT_FIELD_ZOOM;$('backgroundPause').hidden=!backgroundPauseRequired;syncAudioPause();toast('상대: '+({terran:'테란',zerg:'저그',protoss:'프로토스'}[battle.enemyRace]))}
  if(title){map=false;commandPage='basic';commandPanelSignature='';$('mapWrap').hidden=true}if(battle.phase==='result'){stopMusic();stopTransientSounds();audioContext?.suspend().catch(()=>{})}
  selectionUI();menuUI();hudUI();resize()
@@ -114,7 +113,6 @@ function hudUI(){
   const count=Math.ceil(battle.nextWave),seconds=Math.max(0,count);
   $('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
   $('phase').textContent=battle.paused?'PAUSED':'NEXT WAVE';
-  $('objective').textContent=`적 메인 ${Math.max(0,Math.ceil(battle.core?.hp||0)).toLocaleString()} HP · 아군 메인 ${Math.max(0,Math.ceil(battle.main?.hp||0)).toLocaleString()} HP`;
   $('money').textContent=Math.floor(battle.money).toLocaleString();$('gas').textContent=Math.floor(battle.gas).toLocaleString();$('gas').parentElement.hidden=!!battle.laneMode;if(battle.laneMode)$('incomeStatus').textContent=battle.incomePauseLeft>0?`수입 중단 ${Math.ceil(battle.incomePauseLeft)}초`:`시설 ${battle.completedGasCount(0)}/5 · +${battle.incomeAmount()} / ${INCOME_SECONDS.toFixed(2)}초`;
   $('supply').textContent=formatSupply(battle.supply,battle.maxSupply);$('slow').hidden=true;
   return;
