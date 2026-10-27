@@ -118,7 +118,12 @@ async function testInspection(browser){
   assert.equal(await page.locator('#portrait').getAttribute('src'),null,'clearing inspection releases the previous portrait');
   assert.equal(await page.locator('#statIcons button').count(),0);
   const emptyFrame=await page.locator('.portrait-frame').boundingBox();
-  assert.ok(emptyFrame?.width>0&&emptyFrame.height>emptyFrame.width,'the portrait stretches to occupy its independent full-height column');
+  assert.ok(emptyFrame?.width>0&&emptyFrame.height<=68,'the portrait has a compact, uncropped window in its independent column');
+  for(const race of ['terran','zerg','protoss']){
+   const raceImage=await page.evaluate(race=>{document.body.dataset.race=race;return getComputedStyle(document.querySelector('#portraitArea'),'::after').backgroundImage},race);
+   assert.ok(raceImage.includes(`/original-ui/${race}/console-normalized.webp`),`${race} portrait footer uses its own original race background`);
+  }
+  await page.evaluate(()=>{document.body.dataset.race='terran'});
 
   await page.evaluate(id=>window.__inspectionTest.inspect(id),ids.dragoon);
   await page.waitForFunction(()=>document.querySelector('#unitName').textContent==='드라군');
@@ -132,12 +137,19 @@ async function testInspection(browser){
   await page.locator('#field').screenshot({path:'/tmp/ministar-mana-bar.png'});
   for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:844,height:390}]){
    await page.setViewportSize(viewport);
-   const layout=await page.evaluate(()=>{const frame=document.querySelector('.portrait-frame').getBoundingClientRect(),portrait=document.querySelector('#portraitArea').getBoundingClientRect(),menu=document.querySelector('#settings').getBoundingClientRect(),grid=document.querySelector('#commandGrid').getBoundingClientRect(),mini=document.querySelector('#consoleMinimap').getBoundingClientRect(),info=document.querySelector('#inspectionWrap').getBoundingClientRect(),console=document.querySelector('#consoleMain').getBoundingClientRect();return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:info.toJSON(),console:console.toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON(),frame:{top:frame.top,bottom:frame.bottom,height:frame.height},portrait:{left:portrait.left,right:portrait.right,top:portrait.top,bottom:portrait.bottom},menu:{bottom:menu.bottom},grid:{left:grid.left,right:grid.right,top:grid.top,bottom:grid.bottom},mini:{left:mini.left,right:mini.right,top:mini.top,bottom:mini.bottom,height:mini.height}}});
+   const layout=await page.evaluate(()=>{const frame=document.querySelector('.portrait-frame').getBoundingClientRect(),portrait=document.querySelector('#portraitArea').getBoundingClientRect(),menu=document.querySelector('#settings').getBoundingClientRect(),grid=document.querySelector('#commandGrid').getBoundingClientRect(),mini=document.querySelector('#consoleMinimap').getBoundingClientRect(),info=document.querySelector('#inspectionWrap').getBoundingClientRect(),console=document.querySelector('#consoleMain').getBoundingClientRect();return{viewport:innerWidth,document:document.documentElement.scrollWidth,wrap:info.toJSON(),console:console.toJSON(),footer:document.querySelector('#panel').getBoundingClientRect().toJSON(),frame:{top:frame.top,bottom:frame.bottom,height:frame.height},portrait:{left:portrait.left,right:portrait.right,top:portrait.top,bottom:portrait.bottom,width:portrait.width,background:getComputedStyle(document.querySelector('#portraitArea')).backgroundImage},menu:{top:menu.top,bottom:menu.bottom},fit:getComputedStyle(document.querySelector('#portrait')).objectFit,grid:{left:grid.left,right:grid.right,top:grid.top,bottom:grid.bottom},mini:{left:mini.left,right:mini.right,top:mini.top,bottom:mini.bottom,height:mini.height}}});
    assert.ok(layout.document<=viewport.width,JSON.stringify(layout));
    assert.ok(layout.wrap.left>=0&&layout.wrap.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.footer.left>=0&&layout.footer.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.frame.top>=layout.portrait.top&&layout.frame.bottom<=layout.portrait.bottom+1,JSON.stringify(layout));
+   assert.ok(layout.portrait.top>=layout.console.top&&layout.portrait.bottom<=layout.console.bottom+1,'Menu/portrait must stay inside the console after race-skin decoration: '+JSON.stringify(layout));
    assert.ok(layout.menu.bottom<=layout.frame.top+1,JSON.stringify(layout));
+   assert.ok(layout.menu.top-layout.portrait.top>=10,'Menu is recessed below the top of the original console: '+JSON.stringify(layout));
+   assert.ok(layout.portrait.bottom-layout.frame.bottom>=30,'race-specific console texture remains visible beneath the smaller portrait: '+JSON.stringify(layout));
+   assert.ok(layout.portrait.background.includes('/original-ui/'),'portrait backing uses the selected race texture');
+   assert.equal(layout.fit,'contain','the original portrait frames are never cropped by cover scaling');
+   assert.ok(layout.frame.height<=68,'portrait window is at least 50px shorter than its former full-height design');
+   if(viewport.width>=390)assert.ok(layout.portrait.width>=85,'the portrait column receives the unit-information width');
    assert.ok(layout.grid.left>=0&&layout.grid.right<=viewport.width+1&&layout.mini.left>=0&&layout.mini.right<=viewport.width+1,JSON.stringify(layout));
    assert.ok(layout.mini.right<=layout.wrap.left+3&&layout.wrap.right<=layout.portrait.left+3&&layout.portrait.right<=layout.grid.left+3,'map, unit information, Menu/portrait and card occupy separate columns: '+JSON.stringify(layout));
    assert.ok(Math.abs(layout.mini.height-(layout.grid.bottom-layout.grid.top))<1.5&&layout.mini.bottom<=layout.console.bottom+1&&layout.grid.bottom>=layout.console.bottom-3,'minimap and card stretch inside the console frame: '+JSON.stringify(layout));
