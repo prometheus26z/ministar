@@ -4,6 +4,19 @@ import {inPsionicMatrixRange,footprintTiles} from './build-placement.js?v=0.16.2
 import {CreepField} from './creep.js?v=0.16.25';
 import {DESERT_STRIKE,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_OFFSET} from './lane-rules.js?v=0.16.25';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
+let abilityRequirements=null;
+export function invalidateAbilityRequirements(){abilityRequirements=null}
+function requirementsFor(type,ability){
+ if(!abilityRequirements){
+  abilityRequirements=new Map();
+  for(const [id,spec]of Object.entries(RESEARCH))if(spec?.ability&&Array.isArray(spec.types))for(const unitType of spec.types){
+   let byAbility=abilityRequirements.get(Number(unitType));if(!byAbility)abilityRequirements.set(Number(unitType),byAbility=new Map());
+   let required=byAbility.get(spec.ability);if(!required)byAbility.set(spec.ability,required=[]);
+   required.push(id);
+  }
+ }
+ return abilityRequirements.get(Number(type))?.get(ability)||[];
+}
 export class Battle extends CombatBattle{
  constructor(data,options){super(data,options);this.money=50;this.gas=0;this.maxSupply=0;this.timeLimit=Infinity;this.nodes=[];this.researched=new Set();this.orderSerial=1;this.economyClock=0;this.lastError='';this.produced=0;this.creepFields=new Map();this.creepClock=0;
  this.terrainBlocked=this.map.blocked.bind(this.map);this.map.blocked=(x,y,r=0)=>this.terrainBlocked(x,y,r)||this.buildingObstacles().some(u=>{if(!u.alive||!u.def.building||u.construction&&!u.construction.started)return false;const [w,h]=this.footprint(u.type);return Math.abs(x-u.x)<w/2+r&&Math.abs(y-u.y)<h/2+r});
@@ -73,7 +86,7 @@ export class Battle extends CombatBattle{
  addon(parent,type){type=Number(type);const reason=this.addonReason(parent,type);if(reason)return this.fail(reason);const d=this.data.units[type],point=this.addonPoint(parent,type);this.money-=d.cost[0];this.gas-=d.cost[1];const u=this.create(type,0,point.x,point.y);u.parent=parent.id;u.completed=false;u.hp=d.hp*.1;u.construction={time:0,total:d.buildTime||40,builder:null,started:true,cost:[...d.cost],original:null};this.closeMenu();this.emit('change');return true}
  researchReason(unit,key){const spec=RESEARCH[key];if(!this.ready(unit)||!researchAt(unit.type,key)||unit.team!==0)return '이 건물에서 연구할 수 없습니다.';if(!this.powered(unit))return '파일런의 전력이 필요합니다.';if(this.researched.has(key))return '연구 완료';if(this.allies.some(u=>u.queue.some(q=>q.key===key)))return '이미 연구 중입니다.';if(unit.queue.length)return '생산 또는 연구가 진행 중입니다.';const missing=this.prerequisites(spec.requires);if(missing.length)return '필요: '+missing.join(', ');return this.costReason(spec.cost)}
  research(unit,key){const reason=this.researchReason(unit,key);if(reason)return this.fail(reason);const s=RESEARCH[key];this.money-=s.cost[0];this.gas-=s.cost[1];unit.queue.push({id:this.orderSerial++,kind:'research',key,time:0,total:s.time,cost:s.cost,supply:0});this.closeMenu();this.emit('change');return true}
- availableAbilities(unit){return unit.def.abilities.filter(key=>!Object.entries(RESEARCH).some(([id,s])=>s.ability===key&&s.types.includes(unit.type)&&!this.researched.has(id)))}
+ availableAbilities(unit){return unit.def.abilities.filter(key=>!requirementsFor(unit.type,key).some(id=>!this.researched.has(id)))}
  cast(unit,key,p,target){if(!this.availableAbilities(unit).includes(key))return false;return super.cast(unit,key,p,target)}
  spawnLarva(hatch){const count=this.allies.filter(u=>u.type===35&&!u.egg&&u.hatch===hatch.id).length;if(count>=3)return null;const u=this.create(35,0,hatch.x-48+count*44,hatch.y+70);u.hatch=hatch.id;return u}
  cancel(unit,index=0){if(!unit?.alive||unit.team!==0)return false;if(unit.egg){const q=unit.egg;this.money+=q.cost[0];this.gas+=q.cost[1];if(Array.isArray(q.original)){unit.alive=false;unit.refunded=true;for(const prev of q.original){const u=this.create(prev.type,0,prev.x,prev.y);u.hp=prev.hp;u.shield=prev.shield}}else{unit.egg=null;unit.completed=true;unit.hp=q.original.hp;unit.shield=q.original.shield}this.refreshSupply();this.pruneGroups();this.emit('change');return true}

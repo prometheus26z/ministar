@@ -1,9 +1,10 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {chromium}=require('playwright'),{createServer}=require('../server.cjs');
+const fixtureCount=Math.max(1,Number(process.env.MINISTAR_BROWSER_COUNT||360)),frameSamples=Math.max(8,Number(process.env.MINISTAR_BROWSER_FRAMES||90));
 (async()=>{
  const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
  try{
-  browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true}),errors=[];
+  browser=await chromium.launch({headless:true,...(process.env.MINISTAR_CHROMIUM?{executablePath:process.env.MINISTAR_CHROMIUM}:{})});const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/app.js?*',route=>{
    let source=fs.readFileSync(path.join(__dirname,'../dist/app.js'),'utf8');
@@ -14,25 +15,25 @@ const {chromium}=require('playwright'),{createServer}=require('../server.cjs');
    return route.fulfill({contentType:'application/javascript',body:source});
   });
   await page.goto('http://127.0.0.1:'+server.address().port+'/ministar/');await page.locator('#title').waitFor({state:'visible'});await page.locator('#deploy').click();
-  const fixture=await page.evaluate(()=>{
+  const fixture=await page.evaluate(fixtureCount=>{
    const b=window.__perfTest.battle;b.paused=true;
-   for(let i=0;i<360;i++){const u=b.create([0,65,37,66,39,5][i%6],i%2,100+(i%24)*45,1400+Math.floor(i/24)*30);u.laneArmy=true}
+   for(let i=0;i<fixtureCount;i++){const u=b.create([0,65,37,66,39,5][i%6],i%2,100+(i%24)*45,1400+Math.floor(i/24)*30);u.laneArmy=true}
    const dark=b.create(61,1,500,850);window.__drawnUnitIds=new Set();window.__perfTest.center(640,1000);return {dark:dark.id,name:dark.def.name};
-  });
+  },fixtureCount);
   const frames=()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));await frames();
   assert.equal(await page.evaluate(id=>window.__drawnUnitIds.has(id),fixture.dark),false,'an undetected Dark Templar must not be rendered');
   const point=await page.evaluate(id=>window.__perfTest.project(window.__perfTest.battle.units.find(u=>u.id===id)),fixture.dark);assert.equal(await page.evaluate(p=>document.elementFromPoint(p.x,p.y)?.id,point),'field','detection fixture must remain in the touchable battlefield');await page.locator('#field').tap({position:point});await frames();assert.equal(await page.locator('#unitName').innerText(),'');
   await page.evaluate(()=>window.__perfTest.battle.create(84,0,500,850));await frames();
   assert.equal(await page.evaluate(id=>window.__drawnUnitIds.has(id),fixture.dark),true);await page.locator('#field').tap({position:point});await frames();assert.equal(await page.locator('#unitName').innerText(),fixture.name);
   const refreshes=await page.evaluate(async()=>{window.__panelRefreshes=0;for(let i=0;i<2000;i++)window.__perfTest.battle.emit('selection');await Promise.resolve();return window.__panelRefreshes});assert.equal(refreshes,1,'a simulation notification burst must refresh the DOM once');
-  const timing=await page.evaluate(()=>new Promise(resolve=>{const times=[];let last=performance.now();const sample=now=>{times.push(now-last);last=now;if(times.length<90)requestAnimationFrame(sample);else{times.sort((a,b)=>a-b);resolve({medianFrameMs:times[45],p95FrameMs:times[85],units:window.__perfTest.battle.units.length})}};requestAnimationFrame(sample)}));
+  const timing=await page.evaluate(sampleCount=>new Promise(resolve=>{const times=[];let last=performance.now();const sample=now=>{times.push(now-last);last=now;if(times.length<sampleCount)requestAnimationFrame(sample);else{times.sort((a,b)=>a-b);resolve({medianFrameMs:times[Math.floor((times.length-1)*.5)],p95FrameMs:times[Math.floor((times.length-1)*.95)],units:window.__perfTest.battle.units.length})}};requestAnimationFrame(sample)}),frameSamples);
   assert.ok(Number.isFinite(timing.p95FrameMs));assert.deepEqual(errors,[]);await page.screenshot({path:'/tmp/ministar-performance-mobile.png'});
   for(const type of [173,174,142,111])for(const zoom of [.3,.6,1.2]){
    const target=await page.evaluate(({type,zoom})=>window.__perfTest.focusBar(type,zoom),{type,zoom});await frames();
    const bar=await page.evaluate(()=>window.__lastBar);assert.equal(bar.id,target.id);assert.ok(Math.abs(bar.pixels-target.width*target.zoom*.85)<=.5,JSON.stringify({target,bar}));
    if((type===174||type===142)&&zoom===.6)await page.screenshot({path:`/tmp/ministar-health-bar-${type}.png`});
   }
-  const active=await page.evaluate(async()=>{
+  const active=await page.evaluate(async sampleCount=>{
    const b=window.__perfTest.battle,army=b.units.filter(u=>u.laneArmy&&u.alive&&!u.def.building);
    const teamIndex=[0,0];
    for(const u of army){const n=teamIndex[u.team]++,row=Math.floor(n/12),column=n%12;
@@ -41,15 +42,16 @@ const {chromium}=require('playwright'),{createServer}=require('../server.cjs');
    }
    b.waveClock=1e9;b.botStep=()=>{};b.paused=false;
    const simStart=b.simFrame,frames=[],duration=()=>new Promise(resolve=>{
-    let last=performance.now();const sample=now=>{frames.push(now-last);last=now;if(frames.length<90)requestAnimationFrame(sample);else resolve()};requestAnimationFrame(sample)
+    let last=performance.now();const sample=now=>{frames.push(now-last);last=now;if(frames.length<sampleCount)requestAnimationFrame(sample);else resolve()};requestAnimationFrame(sample)
    });
    await duration();frames.sort((a,c)=>a-c);
-   const result={medianFrameMs:frames[45],p95FrameMs:frames[85],maxFrameMs:frames[89],simTicks:b.simFrame-simStart,backlogSeconds:b.simBacklogSeconds||0,units:army.length};
+   const mid=Math.floor((frames.length-1)*.5),tail=Math.floor((frames.length-1)*.95);
+   const result={medianFrameMs:frames[mid],p95FrameMs:frames[tail],maxFrameMs:frames.at(-1),simTicks:b.simFrame-simStart,backlogSeconds:b.simBacklogSeconds||0,units:army.length};
    b.paused=true;return result;
-  });
+  },frameSamples);
   assert.ok(active.simTicks>0,'the live performance fixture must advance combat');
   assert.ok(Number.isFinite(active.p95FrameMs));
   fs.writeFileSync('/tmp/ministar-browser-performance.json',JSON.stringify({paused:timing,active},null,2));
-  console.log('360-unit DPR-2 paused rendering and active combat profile:',{paused:timing,active});
+  console.log(`${fixtureCount}-unit DPR-2 paused rendering and active combat profile:`,{paused:timing,active});
  }finally{await browser?.close();await new Promise(r=>server.close(r))}
 })().catch(e=>{console.error(e);process.exitCode=1});

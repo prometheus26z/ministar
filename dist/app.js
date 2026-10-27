@@ -3,6 +3,7 @@ import {selectionPanelModel,inspectionEnergyMaximum,selectionStatItems} from './
 import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.25';
 import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.25';
 import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.25';
+import {invalidateAbilityRequirements} from './economy.js?v=0.16.25';
 import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.25';
 import {researchAt} from './tech.js?v=0.16.25';
 import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.25';
@@ -596,7 +597,8 @@ function drawHydraSting(visual,alpha){
 }
 function drawHydraContactFallback(visual){const alpha=Math.max(0,1-visual.age/(visual.fallbackDuration||.1));if(!alpha)return;ctx.save();ctx.globalAlpha*=alpha;ctx.fillStyle='#d7f383';ctx.shadowColor='#d7f383';ctx.shadowBlur=7;ctx.beginPath();ctx.arc(visual.endX,visual.endY,3,0,Math.PI*2);ctx.fill();ctx.restore()}
 function drawProjectileVisuals(){
- const units=new Map(battle.units.map(unit=>[unit.id,unit]));
+ if(!battle.projectileVisuals.length)return;
+ const units=battle.presentationQueries?.byId||new Map(battle.units.map(unit=>[unit.id,unit]));
  for(const visual of battle.projectileVisuals){const source=units.get(visual.sourceId),target=units.get(visual.targetId);if(source&&(source.hidden||source.loaded||source.productionOnly)||source?.team===1&&!battle.canSee(0,source)||target&&(target.hidden||target.loaded||target.productionOnly||target.team===1&&!battle.canSee(0,target)))continue;const color=PROJECTILE_TONES[visual.image]||'#dcecff',alpha=projectileAlpha(visual);
   if(visual.kind==='hitscan'){if(visual.age<visual.duration)drawHydraSting(visual,alpha);else if(!visual.firstRendered)drawProjectileFallback({...visual,image:511,x:visual.endX,y:visual.endY},'#d7f383',.9);battle.markProjectileVisualRendered(visual);continue}
   if(visual.kind==='contact'){const elapsed=visual.visualAge||0,action=visual.image===504?'idle':'death';if(!sprite(visual.image,visual.team,visual.endX,visual.endY,action,elapsed,visual.direction,visual.firstRendered?alpha:1)){if(visual.image===504)drawHydraContactFallback({...visual,age:elapsed});else drawProjectileFallback({...visual,x:visual.endX,y:visual.endY},color,visual.firstRendered?alpha:1)}battle.markProjectileVisualRendered(visual);continue}
@@ -613,7 +615,25 @@ function drawBattleEffects(){
   sprite(f.image,f.team||0,f.x,f.y,'idle',time,f.direction||0,death?1:Math.min(1,f.left*8));
  }
 }
-function renderFrame(now){const realDt=last?Math.max(0,(now-last)/1000):1/60;last=now;const dt=document.hidden||backgroundPauseRequired?0:realDt;battle.update(dt,{maxTicks:3,cpuBudgetMs:16});hudTime+=realDt;if(hudTime>.15){hudTime=0;hudUI();refreshVitals();productionUI()}minimapClock+=realDt;if(minimapClock>=.1){minimapClock=0;drawMinimaps()}ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#10191c';ctx.fillRect(0,0,W,H);limitCamera();ctx.save();ctx.translate(W/2,cy());ctx.scale(camera.zoom,camera.zoom);ctx.translate(-camera.x,-camera.y);if(viewMode==='production'){drawProductionBoard();drawEconomy();drawWrecks();for(const u of battle.units.filter(u=>u.productionOnly&&inProductionView(u)))unit(u);battle.markProjectileVisualsRendered();drawBattleEffects();ctx.restore();requestAnimationFrame(render);return}const a=toWorld(0,0),b=toWorld(W,H),x0=Math.max(0,Math.floor(a.x/32)),x1=Math.min(40,Math.ceil(b.x/32)),y0=Math.max(0,Math.floor(a.y/32)),y1=Math.min(64,Math.ceil(b.y/32));drawRelief();drawEconomy();drawWrecks();const visibleUnits=battle.units.filter(u=>!u.hidden&&!u.loaded&&!u.productionOnly&&(u.def.building||visible(u))).sort((a,b)=>Number(a.def.air)-Number(b.def.air)||a.y-b.y);for(const u of visibleUnits.filter(u=>!u.def.air))unit(u);for(const area of battle.areas)drawSpellArea(area);for(const u of visibleUnits.filter(u=>u.def.air))unit(u);drawProjectileVisuals();drawBattleEffects();if(battle.phase!=='title'&&!battle.laneMode)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(!battle.fog[y*40+x]){ctx.fillStyle=battle.explored[y*40+x]?'#030c10a9':'#030a10e8';ctx.fillRect(x*32,y*32,32.5,32.5)}if(battle.core?.alive){ctx.save();ctx.translate(battle.core.x,battle.core.y-85);ctx.rotate(Math.PI/4);ctx.fillStyle='#e2c587';ctx.fillRect(-5,-5,10,10);ctx.restore()}if(gesture?.kind==='box'){const s=gesture.world,e=toWorld(gesture.current.x,gesture.current.y);ctx.fillStyle='#83e7921c';ctx.strokeStyle='#9ef69a';ctx.lineWidth=1/camera.zoom;ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y)}ctx.restore();if(battle.paused&&battle.phase==='battle'&&$('modal').hidden){ctx.fillStyle='#07151aa9';ctx.fillRect(0,0,W,H);ctx.fillStyle='#deddbb';ctx.font='bold 20px system-ui';ctx.textAlign='center';ctx.fillText('일시 정지',W/2,cy())}requestAnimationFrame(render)}
+function renderFrame(now){
+ const realDt=last?Math.max(0,(now-last)/1000):1/60;last=now;
+ const dt=document.hidden||backgroundPauseRequired?0:realDt;
+ battle.update(dt,{maxTicks:3,cpuBudgetMs:16});
+ return battle.withPresentationQueries(()=>{
+  hudTime+=realDt;if(hudTime>.15){hudTime=0;hudUI();refreshVitals();productionUI()}
+  minimapClock+=realDt;if(minimapClock>=.1){minimapClock=0;drawMinimaps()}
+  ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#10191c';ctx.fillRect(0,0,W,H);limitCamera();ctx.save();ctx.translate(W/2,cy());ctx.scale(camera.zoom,camera.zoom);ctx.translate(-camera.x,-camera.y);
+  if(viewMode==='production'){drawProductionBoard();drawEconomy();drawWrecks();for(const u of battle.units.filter(u=>u.productionOnly&&inProductionView(u)))unit(u);battle.markProjectileVisualsRendered();drawBattleEffects();ctx.restore();requestAnimationFrame(render);return}
+  const a=toWorld(0,0),b=toWorld(W,H),x0=Math.max(0,Math.floor(a.x/32)),x1=Math.min(40,Math.ceil(b.x/32)),y0=Math.max(0,Math.floor(a.y/32)),y1=Math.min(64,Math.ceil(b.y/32));
+  drawRelief();drawEconomy();drawWrecks();const visibleUnits=battle.units.filter(u=>!u.hidden&&!u.loaded&&!u.productionOnly&&(u.def.building||visible(u))).sort((a,b)=>Number(a.def.air)-Number(b.def.air)||a.y-b.y);
+  for(const u of visibleUnits.filter(u=>!u.def.air))unit(u);for(const area of battle.areas)drawSpellArea(area);for(const u of visibleUnits.filter(u=>u.def.air))unit(u);drawProjectileVisuals();drawBattleEffects();
+  if(battle.phase!=='title'&&!battle.laneMode)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(!battle.fog[y*40+x]){ctx.fillStyle=battle.explored[y*40+x]?'#030c10a9':'#030a10e8';ctx.fillRect(x*32,y*32,32.5,32.5)}
+  if(battle.core?.alive){ctx.save();ctx.translate(battle.core.x,battle.core.y-85);ctx.rotate(Math.PI/4);ctx.fillStyle='#e2c587';ctx.fillRect(-5,-5,10,10);ctx.restore()}
+  if(gesture?.kind==='box'){const s=gesture.world,e=toWorld(gesture.current.x,gesture.current.y);ctx.fillStyle='#83e7921c';ctx.strokeStyle='#9ef69a';ctx.lineWidth=1/camera.zoom;ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y)}ctx.restore();
+  if(battle.paused&&battle.phase==='battle'&&$('modal').hidden){ctx.fillStyle='#07151aa9';ctx.fillRect(0,0,W,H);ctx.fillStyle='#deddbb';ctx.font='bold 20px system-ui';ctx.textAlign='center';ctx.fillText('일시 정지',W/2,cy())}
+  requestAnimationFrame(render);
+ },{byId:viewMode!=='production'&&battle.projectileVisuals.length>0});
+}
 function render(now){const started=performance.now();renderFrame(now);resourcePlanner.recordFrameCost(performance.now()-started);markFirstSceneReady()}
 function modal(kind,html){closeStatTooltip();closeDropdown();if(battle?.menuOpen)battle.closeMenu();pausedBefore=battle?.paused||false;if(battle?.phase==='battle')battle.paused=true;syncAudioPause();modalKind=kind;$('modalContent').innerHTML=html;enhanceSelects($('modalContent'));$('modal').hidden=false}
 function closeModal(){closeDropdown();if(modalKind==='result')return;$('modal').hidden=true;if(battle?.phase==='battle')battle.paused=pausedBefore;modalKind='';syncAudioPause()}$('closeModal').onclick=closeModal;
@@ -656,6 +676,7 @@ async function boot(){if(bootInProgress)return;bootInProgress=true;const retry=$
  ]);
  data=base;spellVisualData=spellVisuals;for(const [id,size]of Object.entries(spellVisualData.unitOverlaySizes||{}))if(data.units[id])data.units[id].spellOverlaySize=size;warmupGraphics=[constructionGraphics,turretGraphics,destructionGraphics];clearMediaSession();Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations);
  for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);
+ invalidateAbilityRequirements();
  startupMark('metadata-ready');startupMeasure('boot-to-metadata','boot-start','metadata-ready');
  const [,worldImages]=await Promise.all([warmImageUrls(criticalSceneImageUrls()),Promise.all([terrainPromise,fieldPromise])]);
  [terrain,desertField]=worldImages;if(!desertField)console.warn('Desert field texture unavailable; rendering flat sand field');if(!terrain)throw Error('지형 이미지를 읽을 수 없습니다.');
