@@ -223,11 +223,6 @@ function gasInvestmentDetail(){
  const step=Math.min(5,battle.units.filter(x=>x.alive&&x.team===0&&x.gasNode).length+1),rates=DESERT_STRIKE.income,delay=!battle.gasDelayApplied[0].has(step)?Math.round(DESERT_STRIKE.gasPenaltyCycles[step]*DESERT_STRIKE.hyperCycleSeconds):0;
  return '수입 +'+rates[step]+(delay?' · 중단 '+delay+'초':'');
 }
-function commandTab(page,label){
- const button=document.createElement('button');button.type='button';button.className='command-tab';button.id='command-page-'+page;
- button.textContent=label;button.setAttribute('role','tab');button.setAttribute('aria-selected',String(commandPage===page));button.classList.toggle('active',commandPage===page);
- button.onclick=()=>openCommandPage(page);$('commandTabs').append(button);
-}
 function openCommandPage(page){if(commandPage===page)return;closeCommandTooltip();commandPage=page;commandPanelSignature='';renderCommandPanel(true)}
 function emptyCommandSlot(){
  const button=document.createElement('button');button.type='button';button.className='command-slot command-slot-empty';button.disabled=true;button.tabIndex=-1;button.setAttribute('aria-hidden','true');$('commandGrid').append(button);
@@ -262,26 +257,31 @@ function selectedBuildingCommands(unit){
 }
 function renderCommandPanel(force=false){
  if(!battle||!data)return;
- const grid=$('commandGrid'),tabs=$('commandTabs'),unit=battle.selected[0]||battle.inspectedUnit;
+ const grid=$('commandGrid'),unit=battle.selected[0]||battle.inspectedUnit;
  const ownProduction=battle.phase==='battle'&&viewMode==='production'&&productionSeat===0;
  const ownBuilding=ownProduction&&unit?.alive&&unit.productionOnly&&unit.team===0&&unit.commanderId===viewCommanderId()&&unit.def.building;
  const selectedActions=ownBuilding?selectedBuildingCommands(unit):[];
  const hasSelectedTab=!!ownBuilding&&(selectedActions.length>0);
- if(commandPage==='selected'&&!hasSelectedTab)commandPage='basic';
+ if(commandPage.startsWith('selected')&&!hasSelectedTab)commandPage='basic';
+ else if(commandPage.startsWith('selected:')&&Number(commandPage.split(':')[1])*7>=selectedActions.length)commandPage='selected';
  const productionState=battle.units.filter(item=>item.alive&&item.productionOnly&&item.commanderId===0&&item.def.building).map(item=>item.id+','+item.type+','+Number(item.completed)+','+(item.construction?.nextType||'')).sort().join(';');
  const unitState=unit?[unit.id,unit.type,Number(unit.alive),Number(unit.completed),unit.construction?.nextType||'',unit.egg?.type||'',(unit.queue||[]).length].join(','):'';
  const signature=[battle.phase,viewMode,productionSeat,race,commandPage,battle.targeting||'',Math.floor(battle.money),Math.floor(battle.gas),productionState,unitState].join('|');
  if(!force&&signature===commandPanelSignature)return;
- commandPanelSignature=signature;closeCommandTooltip();grid.replaceChildren();tabs.replaceChildren();
+ commandPanelSignature=signature;closeCommandTooltip();grid.replaceChildren();
  if(ownProduction){
-  commandTab('basic','기본');commandTab('advanced','고급');if(hasSelectedTab)commandTab('selected','선택 건물');
   if(commandPage==='worker'){
-   for(let i=0;i<6;i++)emptyCommandSlot();
+   for(let i=0;i<5;i++)emptyCommandSlot();
+   if(hasSelectedTab)actionCommandSlot({name:'선택 건물 명령',id:unit.type,click:()=>openCommandPage('selected')});else emptyCommandSlot();
    actionCommandSlot({name:'기본 건설 명령',id:'basic',click:()=>openCommandPage('basic')});
    actionCommandSlot({name:'고급 건설 명령',id:'advanced',click:()=>openCommandPage('advanced')});
    emptyCommandSlot();
-  }else if(commandPage==='selected'){
-   for(const action of selectedActions.slice(0,9))actionCommandSlot(action);
+  }else if(commandPage.startsWith('selected')){
+   const page=Number(commandPage.split(':')[1]||0),remaining=selectedActions.slice(page*7),hasMore=remaining.length>8;
+   for(const action of remaining.slice(0,hasMore?7:8))actionCommandSlot(action);
+   if(hasMore){while(grid.children.length<7)emptyCommandSlot();actionCommandSlot({name:'다음 명령',id:'advanced',click:()=>openCommandPage('selected:'+(page+1))})}
+   while(grid.children.length<8)emptyCommandSlot();
+   actionCommandSlot({name:'건설 메뉴로 돌아가기',id:'cancel',click:()=>openCommandPage('worker')});
   }else{
    const available=battle.buildingOptions(battle.builder),slots=commandSlots(BUILD_COMMAND_LAYOUT,race,commandPage,available);
    for(const type of slots){
@@ -291,10 +291,8 @@ function renderCommandPanel(force=false){
    }
   }
  }else{
-  tabs.hidden=true;for(let i=0;i<9;i++)emptyCommandSlot();
+  for(let i=0;i<9;i++)emptyCommandSlot();
  }
- if(ownProduction&&commandPage==='selected')while(grid.children.length<9)emptyCommandSlot();
- tabs.hidden=!ownProduction;
 }
 function startBuildTarget(type){
  if(!battle||viewMode!=='production'||productionSeat!==0)return false;
@@ -304,6 +302,8 @@ function startBuildTarget(type){
 function menuUI(){
  if(!battle)return;const key=battle.targeting,type=key?.startsWith('build:')?Number(key.split(':')[1]):null;
  $('target').hidden=!key;$('slow').hidden=true;
+ $('targetCost').hidden=!type;
+ if(type)$('targetCostAmount').textContent=battle.buildingCost(type)[0].toLocaleString();
  if(key){$('targetText').textContent=type?data.units[type].name+' · 지도에서 위치를 선택하세요':key==='irradiate'?'이레디에이트 대상을 선택하세요':'';$('confirmBuild').hidden=!type;$('confirmBuild').disabled=!type||!placementPoint}
  else placementPoint=null;
  commandPanelSignature='';renderCommandPanel(true);
@@ -503,7 +503,7 @@ function minimapBounds(){
 }
 function drawMinimapTo(target){
  if(!battle||!target)return;
- const context=target.getContext('2d'),width=target.width,height=target.height,bounds=minimapBounds(),layout=minimapTransform(width,height,bounds,3);
+ const context=target.getContext('2d'),width=target.width,height=target.height,bounds=minimapBounds(),layout=minimapTransform(width,height,bounds,target===consoleMini?0:3);
  context.setTransform(1,0,0,1,0,0);context.clearRect(0,0,width,height);context.fillStyle='#010504';context.fillRect(0,0,width,height);
  context.save();context.beginPath();context.rect(layout.offsetX,layout.offsetY,layout.drawnWidth,layout.drawnHeight);context.clip();
  context.translate(layout.offsetX,layout.offsetY);context.scale(layout.scale,layout.scale);context.translate(-bounds.x,-bounds.y);
@@ -532,7 +532,7 @@ let miniDragCanvas=null;
 function minimapPointFromEvent(target,event){
  const rect=target.getBoundingClientRect();if(!rect.width||!rect.height)return null;
  const x=(event.clientX-rect.left)*target.width/rect.width,y=(event.clientY-rect.top)*target.height/rect.height;
- return minimapWorldPoint(x,y,target.width,target.height,minimapBounds(),3);
+ return minimapWorldPoint(x,y,target.width,target.height,minimapBounds(),target===consoleMini?0:3);
 }
 function moveCameraFromMinimap(target,event){
  const point=minimapPointFromEvent(target,event);if(!point)return;

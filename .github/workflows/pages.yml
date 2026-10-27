@@ -61,6 +61,8 @@ jobs:
             /tmp/ministar-browser-performance.json
             /tmp/ministar-resource-cache.json
             /tmp/ministar-inspection-panel-mobile.png
+            /tmp/ministar-construction-console-mobile.png
+            /tmp/ministar-build-target-mobile.png
             /tmp/ministar-elapsed-time-mobile.png
             /tmp/ministar-health-bar-zoom-04.png
             /tmp/ministar-health-bar-zoom-14.png

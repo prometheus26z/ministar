@@ -55,3 +55,11 @@ test('square minimaps contain the world and reverse taps through centered letter
  assert.deepEqual(minimapWorldPoint(64,64,128,128,production,3),{x:640,y:6144});
  assert.throws(()=>minimapTransform(0,128,bounds),RangeError);
 });
+
+test('full-height console minimap fits the world without black side padding',()=>{
+ const bounds={x:0,y:0,width:1280,height:2048};
+ const layout=minimapTransform(96,154,bounds,0);
+ assert.equal(layout.drawnWidth,96);
+ assert.ok(layout.offsetY<.3&&layout.offsetX===0);
+ assert.deepEqual(minimapWorldPoint(48,77,96,154,bounds,0),{x:640,y:1024});
+});
