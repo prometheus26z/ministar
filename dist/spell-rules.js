@@ -1,4 +1,4 @@
-import {COMBAT_SOURCE} from './broodwar-combat-data.js?v=0.16.24';
+import {COMBAT_SOURCE} from './broodwar-combat-data.js?v=0.16.25';
 
 // Brood War values shared by lane spell selection and combat resolution.
 // Times are in simulation seconds (24 frames/second).

@@ -1,4 +1,4 @@
-import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.24';
+import {DESERT_STRIKE} from './desert-strike-data.js?v=0.16.25';
 
 export function formatElapsedTime(value){
  const seconds=Number.isFinite(value)?Math.max(0,Math.floor(value+1e-9)):0;

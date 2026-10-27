@@ -1,10 +1,10 @@
-import {UnitGrid} from './spatial.js?v=0.16.24';
-import {layeredActionSeconds,transitionSeconds} from './animation.js?v=0.16.24';
-import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellCastTargetValid,spellAffectedTargetValid,spellAreaContains,unitBoundsDistance,spellEdgeInRange} from './spell-rules.js?v=0.16.24';
-import {resolveUnitDefinition,resolveWeapon,acquisitionRange,attackHitCount,cooldownFrames,movementSpeed,movementProfile,scriptProgramForImage,healthDamageAfterArmor,shieldDamageAfterArmor,unitBoundsGap,inNoExpandRect as unitInNoExpandRect} from './combat-rules.js?v=0.16.24';
-import {ensureMotion,clearMovementControl,aimUnit,advanceUnitMovement,brakeUnitMovement} from './action-control.js?v=0.16.24';
-import {octileDistance,segmentAabbEntry,sweptCircleEntry,MOVEMENT_EPSILON,isFullyBurrowed} from './movement.js?v=0.16.24';
-export const VERSION='0.16.24';
+import {UnitGrid} from './spatial.js?v=0.16.25';
+import {layeredActionSeconds,transitionSeconds} from './animation.js?v=0.16.25';
+import {SPELL_RULES,broodlingsTargetValid,feedbackTargetValid,mindTargetValid,pointInSpellArea,spellCastTargetValid,spellAffectedTargetValid,spellAreaContains,unitBoundsDistance,spellEdgeInRange} from './spell-rules.js?v=0.16.25';
+import {resolveUnitDefinition,resolveWeapon,acquisitionRange,attackHitCount,cooldownFrames,movementSpeed,movementProfile,scriptProgramForImage,healthDamageAfterArmor,shieldDamageAfterArmor,unitBoundsGap,inNoExpandRect as unitInNoExpandRect} from './combat-rules.js?v=0.16.25';
+import {ensureMotion,clearMovementControl,aimUnit,advanceUnitMovement,brakeUnitMovement} from './action-control.js?v=0.16.25';
+import {octileDistance,segmentAabbEntry,sweptCircleEntry,MOVEMENT_EPSILON,isFullyBurrowed} from './movement.js?v=0.16.25';
+export const VERSION='0.16.25';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Brood War's 8-bit uphill roll misses on 0..119: 120 of 256 outcomes.
@@ -47,7 +47,7 @@ export class Battlefield{
  }
 }
 export class Battle{
- constructor(data,{race='terran',difficulty='normal'}={}){this.data=data;this.race=race;this.difficulty=difficulty;this.phase='title';this.money=1200;this.gas=600;this.maxSupply=30;this.prepLeft=60;this.timeLeft=300;this.time=0;this.simAccumulator=0;this.simFrame=0;this.paused=false;this.menuOpen=false;this.targeting=null;this.selection=[];this.groups=Array.from({length:10},()=>[]);this.units=[];this.projectiles=[];this.pendingProjectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.map=new Battlefield();this.fog=new Uint8Array(2560);this.explored=new Uint8Array(2560);this.nextId=1;this.listeners=[];this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.visionTimer=0;this.result=null;}
+ constructor(data,{race='terran',difficulty='normal'}={}){this.data=data;this.race=race;this.difficulty=difficulty;this.phase='title';this.money=1200;this.gas=600;this.maxSupply=30;this.prepLeft=60;this.timeLeft=300;this.time=0;this.simAccumulator=0;this.simFrame=0;this.paused=false;this.menuOpen=false;this.targeting=null;this.selection=[];this.groups=Array.from({length:10},()=>[]);this.units=[];this.projectiles=[];this.pendingProjectiles=[];this.projectileVisuals=[];this.nextProjectileVisualId=1;this.areas=[];this.effects=[];this.map=new Battlefield();this.fog=new Uint8Array(2560);this.explored=new Uint8Array(2560);this.nextId=1;this.listeners=[];this.produced=0;this.kills=0;this.losses=0;this.damageDone=0;this.visionTimer=0;this.result=null;this.attackReservations=new Map();}
  on(fn){this.listeners.push(fn);return()=>this.listeners=this.listeners.filter(x=>x!==fn)}emit(type,rest={}){for(const fn of this.listeners)fn({type,...rest})}
  get allies(){return this.units.filter(u=>u.team===0&&u.alive&&!u.refunded)}get selected(){return this.selection.map(id=>this.units.find(u=>u.id===id)).filter(u=>u?.alive&&!u.loaded)}get supply(){return this.allies.reduce((n,u)=>n+u.def.supply,0)}get battleTimeScale(){return this.phase==='battle'&&this.menuOpen?.5:1}get timeScale(){return this.battleTimeScale}
  create(type,team,x,y){const baseDef=this.data.units[type];if(!baseDef)return null;const u={id:this.nextId++,type:Number(type),baseDef,mapDefOverride:null,def:baseDef,sourceCombatPlayer:null,team,x,y,r:baseDef.radius||10,hp:baseDef.hp,maxHp:baseDef.hp,shield:baseDef.shield,energy:baseDef.energy?Math.min(200,baseDef.energy):0,alive:true,loaded:null,passengers:[],cooldown:0,action:'idle',animTime:0,visualTime:0,direction:0,order:'stop',goal:null,path:[],anchor:{x,y},buffs:{},cloaked:!!baseDef.cloak,cloakRequested:!!baseDef.cloak,cloakLevel:baseDef.cloak?8:0,cloakTimer:3,cloakFrameAccumulator:0,cloakFadeTeams:[],killCount:0,acidSporeTimers:[],burrowed:false,burrowState:'ground',burrowTransitionLeft:0,burrowTransitionCount:0,burrowTransitionSeed:0,burrowPoseTime:0,lurkerState:type===103?'ground':null,lurkerTransition:0,lurkerTransitionCount:0,lurkerSpines:[],sieged:false,matrix:0,mines:3,aiClock:0,target:null,hangar:null,fighter:null,maxEnergy:baseDef.energy||0,motion:null,attackControl:null,attackGeneration:0,attackRepeatReady:false,attackVisualTrack:null,turretDirection256:0,turretAction:null,turretAnimTime:0,irradiateCycleFrames:0,plagueCycleFrames:0,statusCycleFrames:0,stormBlockedCycles:0};u.motion={speedRaw:0,heading256:u.direction*8,velocityDirection256:u.direction*8,desiredDirection256:u.direction*8,walkTick:0,walkSpeedRaw:0,walkStarted:false,walkImage:null};u.def=resolveUnitDefinition(this,u,baseDef);this.units.push(u);this.spatial?.add(u);return u;}
@@ -56,13 +56,12 @@ export class Battle{
  nearby(point,radius){return this.spatial?this.spatial.query(point,radius,this.units):this.units}
  staticBlocked(x,y,r,ignore=null){
   if(this.map.blocked(x,y,r))return true;
-  return this.nearby({x,y},r+(this.spatial?.maxExtent||64)).some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&u.def.building&&(!u.construction||u.construction.started)&&Math.abs(x-u.x)<=(u.def.footprint?.[0]||64)/2+r&&Math.abs(y-u.y)<=(u.def.footprint?.[1]||64)/2+r);
+  return (this.spatial?.buildings||this.units).some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&u.def.building&&(!u.construction||u.construction.started)&&Math.abs(x-u.x)<=(u.def.footprint?.[0]||64)/2+r&&Math.abs(y-u.y)<=(u.def.footprint?.[1]||64)/2+r);
  }
  clearGroundSegment(from,to,r,ignore=null){
   if(this.map.blocked(from.x,from.y,r)||this.map.blocked(to.x,to.y,r))return false;
   for(const box of [...this.map.water,...this.map.rocks])if(segmentAabbEntry(from,to,{left:box.x-r,top:box.y-r,right:box.x+box.w+r,bottom:box.y+box.h+r})!==null)return false;
-  const length=dist(from,to),mid={x:(from.x+to.x)/2,y:(from.y+to.y)/2},extent=length/2+r+(this.spatial?.maxExtent||64);
-  for(const u of this.nearby(mid,extent))if(u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&u.def.building&&(!u.construction||u.construction.started)){
+  for(const u of this.spatial?.buildings||this.units)if(u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&u.def.building&&(!u.construction||u.construction.started)){
    const w=(u.def.footprint||[64,64])[0]/2+r,h=(u.def.footprint||[64,64])[1]/2+r;
    if(segmentAabbEntry(from,to,{left:u.x-w,top:u.y-h,right:u.x+w,bottom:u.y+h})!==null)return false;
   }
@@ -73,8 +72,9 @@ export class Battle{
   const length=dist(from,to);if(length<MOVEMENT_EPSILON)return 0;let first=1;const clearance=u.r*.55;
   const boundary=(start,end,min,max)=>{const delta=end-start;if(end<min&&delta<0)return (min-start)/delta;if(end>max&&delta>0)return (max-start)/delta;return 1};
   for(const t of [boundary(from.x,to.x,clearance,1280-clearance),boundary(from.y,to.y,clearance,2048-clearance)])if(t>=0&&t<first)first=t;
-  const boxes=[...this.map.water,...this.map.rocks],mid={x:(from.x+to.x)/2,y:(from.y+to.y)/2},radius=length/2+u.r+(this.spatial?.maxExtent||64);
-  for(const other of candidates||this.nearby(mid,radius)){
+  const boxes=[...this.map.water,...this.map.rocks];
+  const nearby=candidates||(this.spatial?.collisionCandidates(u,from,to)||this.units);
+  for(const other of nearby){
    if(other===u||!other.alive||other.loaded||other.productionOnly||other.fighter)continue;
    if(isFullyBurrowed(other))continue;
    if(other.def.building){if(other.construction&&!other.construction.started)continue;const [w,h]=other.def.footprint||[64,64];boxes.push({x:other.x-w/2,y:other.y-h/2,w,h});continue}
@@ -87,13 +87,26 @@ export class Battle{
  moveSafely(u,goal,dt,finalWaypoint=true){
   const from={x:u.x,y:u.y},dx=goal.x-u.x,dy=goal.y-u.y,d=Math.hypot(dx,dy);if(d<MOVEMENT_EPSILON)return false;
   const travel=Math.min(d,movementSpeed(this,u)*dt);if(travel<=0)return false;
-  const collisionCandidates=this.spatial?.queryLocal?.(from,this.spatialRange(travel+u.r,true))||null;
+  // In open ground a straight approach wins the steering score. Test it once
+  // and leave turning/acceleration and the final swept collision to BW control.
+  const straight={x:from.x+dx/d*travel,y:from.y+dy/d*travel};
+  const straightCandidates=this.spatial?.collisionCandidates(u,from,straight)||null;
+  if(this.movementLimit(u,from,straight,straightCandidates)>=travel-MOVEMENT_EPSILON){
+   const moved=advanceUnitMovement(this,u,goal,dt,{finalWaypoint});
+   if(moved&&u.avoidSideUntil<=this.time){u.avoidSide=0;u.avoidSideUntil=0}
+   return moved;
+  }
+  const collisionCandidates=this.spatial?.collisionCandidates(u,from,{x:from.x+travel,y:from.y},true)||null;
   const base=Math.atan2(dy,dx),side=u.avoidSideUntil>this.time?u.avoidSide:((u.id&1)?1:-1),offsets=[0,side*Math.PI/8,-side*Math.PI/8,side*Math.PI/4,-side*Math.PI/4,side*3*Math.PI/8,-side*3*Math.PI/8,side*Math.PI/2,-side*Math.PI/2,side*5*Math.PI/8,-side*5*Math.PI/8,side*3*Math.PI/4,-side*3*Math.PI/4,side*7*Math.PI/8,-side*7*Math.PI/8,Math.PI];
   let best=null,bestScore=Infinity;
-  for(const offset of offsets){const angle=base+offset,to={x:from.x+Math.cos(angle)*travel,y:from.y+Math.sin(angle)*travel};const moved=this.movementLimit(u,from,to,collisionCandidates);if(moved<.01)continue;
+  for(let i=0;i<offsets.length;i++){const offset=offsets[i],angle=base+offset,to={x:from.x+Math.cos(angle)*travel,y:from.y+Math.sin(angle)*travel};const moved=this.movementLimit(u,from,to,collisionCandidates);if(moved<.01){if(i===4&&best?.moved>=travel*.9)break;continue}
    const ratio=moved/travel,p={x:from.x+(to.x-from.x)*ratio,y:from.y+(to.y-from.y)*ratio};
    const score=dist(p,goal)+(travel-moved)*2+Math.abs(offset)*2+(u.avoidSideUntil>this.time&&Math.sign(offset||side)!==side ? travel*2+4 : 0);
    if(score<bestScore){bestScore=score;best={point:p,offset,moved}}
+   // The first five directions are low-turn maneuvers. A nearly clear one
+   // already has a better steering score than a wide reversal; only expand
+   // the search if this local group cannot advance.
+   if(i===4&&best?.moved>=travel*.9)break;
   }
   if(!best)return false;
   const moved=advanceUnitMovement(this,u,Math.abs(best.offset)<1e-9?goal:best.point,dt,{finalWaypoint:finalWaypoint&&Math.abs(best.offset)<1e-9});
@@ -115,7 +128,7 @@ export class Battle{
  start(){if(this.phase!=='prep')return false;this.phase='battle';this.simAccumulator=0;this.simFrame=0;this.closeMenu();this.emit('phase');if(!this.allies.length)this.finish(false,'투입된 병력이 없습니다.');return true}
  openMenu(){if(this.phase!=='battle'||!this.selected.length)return false;this.menuOpen=true;this.targeting=null;this.emit('menu');return true}closeMenu(){this.menuOpen=false;this.targeting=null;this.emit('menu');}
  chooseCommand(key){if(!this.menuOpen)return false;if(['move','attack','patrol'].includes(key)||SPELLS[key]&&SPELLS[key][3]!=='instant'){this.targeting=key;this.emit('menu');return true}return this.execute(key)}
- setGoal(u,point,order){if(u.type===34&&order==='move'){if(u.healTarget)u.healTarget=null;this.stopMedicHealing(u)}u.goal={x:clamp(point.x,20,1260),y:clamp(point.y,20,2028)};u.path=this.path(u,u.goal,u.def.air,u.def.air?0:u.r*.55,u);u.order=order;u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.attackProgress=null;u.failedAttackApproaches=[];u.aiClock=0;}
+ setGoal(u,point,order){if(u.type===34&&order==='move'){if(u.healTarget)u.healTarget=null;this.stopMedicHealing(u)}this.releaseAttackSlot(u);u.goal={x:clamp(point.x,20,1260),y:clamp(point.y,20,2028)};u.path=this.path(u,u.goal,u.def.air,u.def.air?0:u.r*.55,u);u.order=order;u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.attackProgress=null;u.failedAttackApproaches=[];u.aiClock=0;}
  execute(command,point=null,target=null){if(this.phase!=='battle'||!this.menuOpen||!this.selected.length)return false;let applied=0;const list=[...this.selected];if(['move','attack','patrol'].includes(command)&&!point)return false;
  for(const [i,u]of list.entries()){
   if(['move','attack','patrol'].includes(command)){if(u.def.building||u.burrowed||u.sieged)continue;this.clearActionControl(u,command);const p={x:point.x+(i%5-2)*u.r*2.3,y:point.y+(Math.floor(i/5)-Math.floor(list.length/10))*u.r*2.3};u.anchor={x:u.x,y:u.y};this.setGoal(u,p,command==='attack'?(target?.team!==undefined&&target.team!==u.team?'focus':'attackmove'):command);if(u.order==='focus')u.target=target;applied++}
@@ -156,7 +169,8 @@ export class Battle{
   u.energy=Math.max(0,u.energy-s[2]);if(!['burrow','siege','cloak'].includes(key)){u.action='cast';u.animTime=0}const spellPoint=p??(target?{x:target.x,y:target.y}:null);if(spellPoint){const imageSpec=SPELL_IMPACT_IMAGES[key],overlaySize=clamp(target?.def?.spellOverlaySize??((target?.def?.size||0)>=3?2:(target?.def?.size||0)===2?1:0),0,2),image=Array.isArray(imageSpec)?imageSpec[overlaySize]:imageSpec,track=image&&this.data.graphics?.[image]?.tracks?.idle,duration=Math.max(0.12,(track?.ticks||12)/24);if(Number.isInteger(image))this.effects.push({kind:'spell',spell:key,image,x:spellPoint.x,y:spellPoint.y,team:u.team,left:duration,duration,age:0,visualAge:0,firstRendered:false})}this.emit('spell',{casterId:u.id,commanderId:u.commanderId,team:u.team,key,targetId:target?.id??null,point:spellPoint,energyAfter:u.energy});this.emit('change');return true;
  }
  detectedBy(team,u){
-  for(const detector of this.nearby(u,(this.spatial?.maxSight||0)+u.r)){
+  const detectors=this.spatial?.detectors||this.units;
+  for(const detector of detectors){
    if(!detector.alive||detector.team!==team||!detector.def.detector||detector.loaded||detector.hidden||detector.productionOnly||detector.buffs?.stasis>0)continue;
    if(detector.construction&&!this.ready(detector))continue;
    if(detector.def.building&&typeof this.powered==='function'&&!this.powered(detector)&&!detector.isMain&&!detector.isOutpost)continue;
@@ -168,7 +182,7 @@ export class Battle{
  }
  // Burrowing locks movement immediately, but concealment starts after the last transition frame.
  isHiddenByBurrow(u){if(!u?.burrowed)return false;return u.type===103?u.lurkerState!=='burrowing':u.burrowState!=='burrowing'}
- hasArbiterAura(u){if(!u?.alive||u.team===undefined||u.def?.building||[71,86,14].includes(u.type)||u.def?.powerup||u.hallucination||u.hidden||u.loaded||u.productionOnly||u.construction||u.egg)return false;return this.nearbyAny(u,this.spatialRange(160*Math.SQRT2,true),a=>{if(!a.alive||![71,86].includes(a.type)||a.team!==u.team||a===u||a.hallucination||a.hidden||a.loaded||a.productionOnly||a.buffs?.stasis>0||a.buffs?.lockdown>0||a.buffs?.maelstrom>0||a.construction||a.egg||!this.inNoExpandRect(u,a,160))return false;const weapon=resolveWeapon(this.data,this,a,true),range=weapon?.range??this.data.weapons?.[77]?.range??160;return this.edgeDistance(a,u)<=range});}
+ hasArbiterAura(u){if(!u?.alive||u.team===undefined||u.def?.building||[71,86,14].includes(u.type)||u.def?.powerup||u.hallucination||u.hidden||u.loaded||u.productionOnly||u.construction||u.egg)return false;const arbiters=this.spatial?.arbiters;if(arbiters&&!arbiters.size)return false;for(const a of arbiters||this.units){if(!a.alive||![71,86].includes(a.type)||a.team!==u.team||a===u||a.hallucination||a.hidden||a.loaded||a.productionOnly||a.buffs?.stasis>0||a.buffs?.lockdown>0||a.buffs?.maelstrom>0||a.construction||a.egg||!this.inNoExpandRect(u,a,160))continue;const weapon=resolveWeapon(this.data,this,a,true),range=weapon?.range??this.data.weapons?.[77]?.range??160;if(this.edgeDistance(a,u)<=range)return true}return false;}
  isEffectivelyCloaked(u){return !!(u?.cloaked||this.hasArbiterAura(u))}
  inVision(team,u){if(u?.team===team)return true;if(this.laneMode)return true;const friends=this.units.filter(a=>a.alive&&!a.loaded&&a.team===team),canObserve=a=>(a.def.air||u.def.air||this.map.heightAt(a.x,a.y)>=this.map.heightAt(u.x,u.y))&&dist(a,u)<(a.buffs.blind>0?64:a.def.sight)+u.r;return friends.some(canObserve)||u.parasite===team}
  canSee(team,u){if(u.team===team)return true;if(!this.inVision(team,u))return false;const burrowHidden=this.isHiddenByBurrow(u),revealed=!burrowHidden&&(u.buffs.ensnare>0||u.buffs.maelstrom>0||u.buffs.plague>0);if((this.isEffectivelyCloaked(u)||burrowHidden)&&!revealed&&!this.detectedBy(team,u))return false;return true;}
@@ -191,26 +205,82 @@ export class Battle{
   const weapon=this.weapon(u,t),edge=this.edgeDistance(u,t);
   return edge<=weapon.range&&edge>=(weapon.minRange||0)||!(u.unreachableTargets?.[t.id]>this.time);
  }
- approachPath(u,t,edgeRange,{avoidPoints=[]}={}){
-  const [w,h]=t.def.building?(t.def.footprint||this.data.units[t.type]?.footprint||[64,64]):[0,0],baseAngles=[0,Math.PI/4,Math.PI/2,Math.PI*3/4,Math.PI,-Math.PI*3/4,-Math.PI/2,-Math.PI/4],angles=avoidPoints.length?baseAngles.flatMap((angle,index)=>[angle,angle+Math.PI/8]).map(angle=>((angle+Math.PI*2)%(Math.PI*2))):baseAngles,direct=[],crowdAt=p=>this.nearby(p,this.spatialRange(u.r+10)).reduce((n,a)=>n+(a!==u&&a.alive&&!a.hidden&&!a.productionOnly&&!a.loaded&&!a.def.building&&a.def.air===u.def.air&&dist(a,p)<u.r+a.r+10?Math.max(0,u.r+a.r+10-dist(a,p))*2:0),0),points=[],isAvoided=p=>avoidPoints.some(a=>dist(p,a)<Math.max(8,u.r));
-  for(const angle of angles){const dx=Math.cos(angle),dy=Math.sin(angle),boundary=t.def.building?Math.min(Math.abs(dx)>1e-4?w/2/Math.abs(dx):Infinity,Math.abs(dy)>1e-4?h/2/Math.abs(dy):Infinity):t.r,p={x:clamp(t.x+dx*(boundary+u.r+edgeRange),20,1260),y:clamp(t.y+dy*(boundary+u.r+edgeRange),20,2028)};if(isAvoided(p)||!u.def.air&&this.staticBlocked(p.x,p.y,u.r*.55,u))continue;points.push(p);if(u.def.air||this.clearGroundSegment(u,p,u.r*.55,u))direct.push({path:[p],point:p,score:dist(u,p)+crowdAt(p)})}
-  if(direct.length)return direct.sort((a,b)=>a.score-b.score)[0];const routed=[];for(const p of points){const path=this.path(u,p,u.def.air,u.def.air?0:u.r*.55,u);if(!path.length||dist(path[path.length-1],p)>36)continue;if(dist(path[path.length-1],p)>4){if(!u.def.air&&!this.clearGroundSegment(path[path.length-1],p,u.r*.55,u))continue;path.push(p)}let length=dist(u,path[0]);for(let i=1;i<path.length;i++)length+=dist(path[i-1],path[i]);routed.push({path,point:p,score:length+crowdAt(p)})}return routed.sort((a,b)=>a.score-b.score)[0]||null;
+ inAcquisitionRange(u,t,scanRange){
+  return !!t&&t.alive&&t.team!==u.team&&!t.hidden&&!t.productionOnly&&!t.loaded&&!t.fighter?.docked&&!t.def.invincible&&dist(u,t)<=acquisitionRange(this,u,t.def.air)+u.r+t.r;
  }
- resetAttackPursuit(u,{resetRetries=true}={}){u.attackPath=[];u.attackPathTarget=null;u.attackTargetPoint=null;u.attackProgress=null;u.failedAttackApproaches=[];u.attackStall=0;if(resetRetries)u.attackRetries=0;}
+ releaseAttackSlot(u){
+  const targetId=u.attackSlotTargetId;if(targetId===undefined)return;
+  const slots=this.attackReservations.get(targetId);
+  if(slots){const index=slots.findIndex(slot=>slot.unit===u);if(index>=0)slots.splice(index,1);if(!slots.length)this.attackReservations.delete(targetId)}
+  u.attackSlotTargetId=undefined;
+ }
+ activeAttackSlots(target){
+  const slots=this.attackReservations.get(target.id)||[];
+  const active=slots.filter(slot=>slot.expiresAt>this.time&&slot.unit.alive&&!slot.unit.loaded&&!slot.unit.hidden&&slot.unit.team===slot.team&&slot.unit.target===target&&dist(slot.targetPoint,target)<=20);
+  if(active.length!==slots.length){if(active.length)this.attackReservations.set(target.id,active);else this.attackReservations.delete(target.id)}
+  return active;
+ }
+ reserveAttackSlot(u,target,point){
+  if(!point)return;this.releaseAttackSlot(u);
+  const slots=this.activeAttackSlots(target);
+  slots.push({unit:u,team:u.team,point:{...point},r:u.r,targetPoint:{x:target.x,y:target.y},expiresAt:this.time+.75});
+  this.attackReservations.set(target.id,slots);u.attackSlotTargetId=target.id;
+ }
+ renewAttackSlot(u){
+  if(u.attackSlotTargetId===undefined)return;
+  const slots=this.attackReservations.get(u.attackSlotTargetId),slot=slots?.find(slot=>slot.unit===u);
+  if(!slot||!u.alive||u.loaded||u.hidden||u.team!==slot.team||u.target?.id!==u.attackSlotTargetId||dist(slot.targetPoint,u.target)>20){this.releaseAttackSlot(u);return}
+  slot.expiresAt=this.time+.75;
+ }
+ approachPath(u,t,edgeRange,{avoidPoints=[],reserve=false}={}){
+  const [w,h]=t.def.building?(t.def.footprint||this.data.units[t.type]?.footprint||[64,64]):[0,0];
+  const count=t.def.building?Math.min(48,Math.max(8,Math.ceil((2*(w+h)+8*edgeRange)/(Math.max(16,2*u.r+8))))):avoidPoints.length?16:8;
+  const slots=reserve?this.activeAttackSlots(t):[],direct=[],points=[];
+  const isAvoided=p=>avoidPoints.some(a=>dist(p,a)<Math.max(8,u.r));
+  const reserved=p=>slots.some(slot=>slot.unit!==u&&slot.team===u.team&&dist(p,slot.point)<u.r+slot.r+4);
+  const crowdAt=p=>this.nearby(p,this.spatialRange(u.r+10)).reduce((n,a)=>n+(a!==u&&a.alive&&!a.hidden&&!a.productionOnly&&!a.loaded&&!a.def.building&&a.def.air===u.def.air&&dist(a,p)<u.r+a.r+10?Math.max(0,u.r+a.r+10-dist(a,p))*2:0),0);
+  let occupied=0;
+  for(let i=0;i<count;i++){
+   const angle=i*Math.PI*2/count,dx=Math.cos(angle),dy=Math.sin(angle);
+   const boundary=t.def.building?Math.min(Math.abs(dx)>1e-4?w/2/Math.abs(dx):Infinity,Math.abs(dy)>1e-4?h/2/Math.abs(dy):Infinity):t.r;
+   const p={x:clamp(t.x+dx*(boundary+u.r+edgeRange),20,1260),y:clamp(t.y+dy*(boundary+u.r+edgeRange),20,2028)};
+   if(isAvoided(p)||!u.def.air&&this.staticBlocked(p.x,p.y,u.r*.55,u))continue;
+   // A reservation is real even while the owner is still approaching.
+   if(reserved(p)){occupied++;continue}
+   points.push(p);
+   if(u.def.air||this.clearGroundSegment(u,p,u.r*.55,u))direct.push({path:[p],point:p,score:dist(u,p)+crowdAt(p)});
+  }
+  if(direct.length)return direct.sort((a,b)=>a.score-b.score)[0];
+  // Pathfind only the promising static approach points, not every point on a
+  // large perimeter. A unit whose slots are taken waits for them to free up.
+  points.sort((a,b)=>dist(u,a)-dist(u,b));
+  const routed=[];
+  const pathCandidates=points.slice(0,12);
+  // Probe distant sectors as well when the closest positions are blocked.
+  for(const fraction of [.25,.5,.75,1]){const p=points[Math.floor((points.length-1)*fraction)];if(p&&!pathCandidates.includes(p))pathCandidates.push(p)}
+  for(const p of pathCandidates){
+   const path=this.path(u,p,u.def.air,u.def.air?0:u.r*.55,u);
+   if(!path.length||dist(path[path.length-1],p)>36)continue;
+   if(dist(path[path.length-1],p)>4){if(!u.def.air&&!this.clearGroundSegment(path[path.length-1],p,u.r*.55,u))continue;path.push(p)}
+   let length=dist(u,path[0]);for(let i=1;i<path.length;i++)length+=dist(path[i-1],path[i]);routed.push({path,point:p,score:length+crowdAt(p)});
+  }
+  return routed.sort((a,b)=>a.score-b.score)[0]||(reserve&&occupied?{path:[],point:null,wait:true}:null);
+ }
+ resetAttackPursuit(u,{resetRetries=true}={}){this.releaseAttackSlot(u);u.waitingAttackSlot=false;u.attackPath=[];u.attackPathTarget=null;u.attackTargetPoint=null;u.attackProgress=null;u.failedAttackApproaches=[];u.attackStall=0;if(resetRetries)u.attackRetries=0;}
  recoverAttackPursuit(u,target,weapon){
   u.attackRetries=(u.attackRetries||0)+1;
   const failedPoint=u.attackPath?.at(-1)||u.attackProgress?.waypoint||{x:u.x,y:u.y};
   u.failedAttackApproaches=(u.failedAttackApproaches||[]).filter(point=>point.expiresAt>this.time);
   u.failedAttackApproaches.push({...failedPoint,expiresAt:this.time+FAILED_APPROACH_TTL});
-  u.attackStall=0;u.attackProgress=null;u.attackPath=[];u.aiClock=0;
+  this.releaseAttackSlot(u);u.waitingAttackSlot=false;u.attackStall=0;u.attackProgress=null;u.attackPath=[];u.aiClock=0;
   if(u.attackRetries>=MAX_ATTACK_RETRIES){
    u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.5;
    this.resetAttackPursuit(u);if(u.target===target)u.target=null;
    if(u.goal)u.path=this.path(u,u.goal,u.def.air,u.def.air?0:u.r*.55,u);
    u.combatMoving=false;return false;
   }
-  const avoided=u.failedAttackApproaches.filter(point=>point.expiresAt>this.time),approach=this.approachPath(u,target,Math.max(weapon.minRange||0,weapon.range-Math.max(8,u.r*.25)),{avoidPoints:avoided});
-  if(approach){u.attackPath=approach.path;u.attackPathTarget=target.id;u.attackTargetPoint={x:target.x,y:target.y};u.aiClock=.55;return true}
+  const avoided=u.failedAttackApproaches.filter(point=>point.expiresAt>this.time),approach=this.approachPath(u,target,Math.max(weapon.minRange||0,weapon.range-Math.max(8,u.r*.25)),{avoidPoints:avoided,reserve:true});
+  if(approach){u.attackPath=approach.path;u.waitingAttackSlot=!!approach.wait;u.movementState=u.waitingAttackSlot?'WAITING_SLOT':'MOVING';u.attackPathTarget=target.id;u.attackTargetPoint={x:target.x,y:target.y};u.aiClock=.55;if(approach.point)this.reserveAttackSlot(u,target,approach.point);return true}
   if(u.attackRetries>=MAX_ATTACK_RETRIES-1){u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.5;this.resetAttackPursuit(u);if(u.target===target)u.target=null;u.combatMoving=false;return false}
   u.aiClock=.4;return true;
  }
@@ -223,8 +293,16 @@ export class Battle{
   // An original BW unit may need several frames to rotate before advancing.
   // Treating that legitimate turn as a failed route repeatedly swaps flanks.
   const heading=u.motion?.heading256,desired=u.motion?.desiredDirection256;
-  if(Number.isFinite(heading)&&Number.isFinite(desired)&&Math.abs(((desired-heading+384)%256)-128)>16&&state.elapsed<1.2)return false;
+  if(Number.isFinite(heading)&&Number.isFinite(desired)&&Math.abs(((desired-heading+384)%256)-128)>16&&state.elapsed<1.2){u.movementState='TURNING';return false}
+  if(this.allyBlocksMovement(u,waypoint)&&state.elapsed<1.5){u.movementState='WAITING_ALLY';return false}
   u.attackStall=ATTACK_STALL_WINDOW;return true;
+ }
+ allyBlocksMovement(u,goal){
+  if(u.def.air||!goal)return false;
+  const d=dist(u,goal);if(d<.1)return false;
+  const step=Math.min(48,d),to={x:u.x+(goal.x-u.x)/d*step,y:u.y+(goal.y-u.y)/d*step};
+  const neighbors=this.spatial?.collisionCandidates(u,u,to)||this.units;
+  return neighbors.some(other=>other!==u&&other.alive&&other.team===u.team&&!other.def.air&&!other.def.building&&!other.loaded&&!other.hidden&&!other.productionOnly&&!isFullyBurrowed(other)&&sweptCircleEntry(u,to,other,u.r+other.r+2)!==null);
  }
  targetScore(u,t,w=this.weapon(u,t)){const edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge),threat=this.unitThreatens(t,u)?1:0,passive=t.def.building&&!threat?1:0;return((gap>0||minGap>0)?240:0)+gap*2+minGap*3+dist(u,t)*.18-threat*90+passive*45}
  unitThreatens(attacker,target){if(!attacker?.alive||attacker.hidden||attacker.productionOnly||attacker.loaded||attacker.buffs.stasis>0||attacker.buffs.lockdown>0||attacker.buffs.maelstrom>0)return false;if(attacker.def.building&&typeof this.powered==='function'&&!this.powered(attacker))return false;if(attacker.garrison?.length)return attacker.garrison.some(id=>{const d=this.data.units[id],w=this.data.weapons[target.def.air?d?.airWeapon:d?.groundWeapon];return !!w?.damage&&(target.def.air?w.air:w.ground)});return !!this.weapon(attacker,target)}
@@ -232,12 +310,20 @@ export class Battle{
  betterTarget(u,current){
   const aggro=[this.findUnit(u.aggroTarget)].find(t=>this.canPursueTarget(u,t));
   if(u.order!=='focus'&&aggro&&u.aggroUntil>this.time){if(current===aggro)return aggro;if(this.activelyAttacking(current,u))return current;return aggro}
-  const cw=this.weapon(u,current),base=this.targetScore(u,current,cw),scanRange=acquisitionRange(this,u),threats=this.nearby(u,this.spatialRange(scanRange+u.r)).filter(t=>t!==current&&this.canPursueTarget(u,t)&&dist(u,t)<=acquisitionRange(this,u,t.def.air)+u.r+t.r).map(t=>({t,w:this.weapon(u,t),edge:this.edgeDistance(u,t)})).filter(a=>a.edge<=a.w.range&&a.edge>=(a.w.minRange||0)).sort((a,b)=>this.targetScore(u,a.t,a.w)-this.targetScore(u,b.t,b.w));
-  return threats.length&&base-this.targetScore(u,threats[0].t,threats[0].w)>80?threats[0].t:current;
+  const cw=this.weapon(u,current),base=this.targetScore(u,current,cw),scanRange=acquisitionRange(this,u);let best=null,bestScore=Infinity;
+  // nearby() retains authoritative unit order, so the first equal-score
+  // candidate wins without allocating and sorting every in-range threat.
+  for(const t of this.nearby(u,this.spatialRange(scanRange+u.r))){
+   if(t===current||!this.inAcquisitionRange(u,t,scanRange)||!this.canPursueTarget(u,t))continue;
+   const w=this.weapon(u,t),edge=this.edgeDistance(u,t);
+   if(edge>w.range||edge<(w.minRange||0))continue;
+   const score=this.targetScore(u,t,w);if(score<bestScore){bestScore=score;best=t}
+  }
+  return best&&base-bestScore>80?best:current;
  }
- acquireTarget(u,approachResult=null){const scanRange=acquisitionRange(this,u),candidates=this.nearby(u,this.spatialRange(scanRange+u.r)).filter(t=>this.canPursueTarget(u,t)&&dist(u,t)<=acquisitionRange(this,u,t.def.air)+u.r+t.r);const source=[this.findUnit(u.aggroTarget)].find(t=>this.canPursueTarget(u,t));if(source&&u.aggroUntil>this.time&&dist(u,source)<=acquisitionRange(this,u,source.def.air)+u.r+source.r){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
+ acquireTarget(u,approachResult=null){const scanRange=acquisitionRange(this,u),candidates=this.nearby(u,this.spatialRange(scanRange+u.r)).filter(t=>this.inAcquisitionRange(u,t,scanRange)&&this.canPursueTarget(u,t));const source=this.findUnit(u.aggroTarget);if(this.inAcquisitionRange(u,source,scanRange)&&this.canPursueTarget(u,source)&&u.aggroUntil>this.time){const w=this.weapon(u,source),edge=this.edgeDistance(u,source);if(u.order!=='hold'||edge<=w.range&&edge>=(w.minRange||0))if(edge<=w.range&&edge>=(w.minRange||0)||u.order!=='hold')return source;}
   const scored=candidates.map(t=>{const w=this.weapon(u,t),edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge);return{t,w,edge,gap,minGap,score:this.targetScore(u,t,w)}}).sort((a,b)=>a.score-b.score);
-  for(const c of scored){if(c.gap<=0&&c.minGap<=0)return c.t;if(u.order==='hold')continue;const edgeRange=Math.max(c.w.minRange||0,c.w.range-Math.max(8,u.r*.25)),approach=this.approachPath(u,c.t,edgeRange);if(approach){if(approachResult)Object.assign(approachResult,{targetId:c.t.id,fromX:u.x,fromY:u.y,targetX:c.t.x,targetY:c.t.y,edgeRange,approach});return c.t}u.unreachableTargets||={};u.unreachableTargets[c.t.id]=this.time+1.5}
+  for(const c of scored){if(c.gap<=0&&c.minGap<=0)return c.t;if(u.order==='hold')continue;const edgeRange=Math.max(c.w.minRange||0,c.w.range-Math.max(8,u.r*.25)),approach=this.approachPath(u,c.t,edgeRange,{reserve:true});if(approach){if(approachResult)Object.assign(approachResult,{targetId:c.t.id,fromX:u.x,fromY:u.y,targetX:c.t.x,targetY:c.t.y,edgeRange,approach});return c.t}u.unreachableTargets||={};u.unreachableTargets[c.t.id]=this.time+1.5}
   return null;
  }
  moveCombat(u,p,dt,finalWaypoint=true){return !!p&&this.move(u,p,dt,finalWaypoint);
@@ -269,7 +355,7 @@ export class Battle{
   const graphics=this.data.graphics[u.def.image],deathTrack=graphics?.tracks?.death||graphics?.tracks?.dead,death=deathTrack?.sounds||[];
   if(death.length)this.emit('sfx',{id:death[Math.floor(Math.random()*death.length)]});
   const trackSeconds=layeredActionSeconds(this.data.graphics,u.def.image,'death',1.8);
-  u.deathDuration=Math.max(.2,Math.min(MAX_DEATH_VISUAL_SECONDS,trackSeconds));this.clearActionControl(u,'death',true);
+  u.deathDuration=Math.max(.2,Math.min(MAX_DEATH_VISUAL_SECONDS,trackSeconds));this.releaseAttackSlot(u);this.attackReservations.delete(u.id);this.clearActionControl(u,'death',true);
   this.onUnitDeath?.(u,team);u.alive=false;u.hp=0;u.deathTime=this.time;u.action='death';u.animTime=0;
   if(u.team===0)this.losses++;else if(team===0&&!u.def.building)this.kills++;
   for(const id of u.passengers||[]){const a=this.units.find(a=>a.id===id);if(a)this.die(a,team)}
@@ -467,6 +553,7 @@ export class Battle{
  }
  tickUnit(u,dt){
   if(!u.alive){this.stopMedicHealing(u);u.animTime+=dt;u.visualTime=(u.visualTime||0)+dt;return}
+  if(u.attackSlotTargetId!==undefined)this.renewAttackSlot(u);
   if(u.acidSporeTimers?.length)u.acidSporeTimers=u.acidSporeTimers.map(left=>left-dt).filter(left=>left>1e-9);
   const loaded=!!u.loaded;if(loaded){const transport=this.units.find(a=>a.id===u.loaded);if(transport){u.x=transport.x;u.y=transport.y}}
   const oldIrradiate=u.buffs.irradiate||0,oldPlague=u.buffs.plague||0,irradiateOwner=u.irradiateOwner,plagueOwner=u.plagueOwner;
@@ -502,13 +589,14 @@ export class Battle{
   const mayAttack=u.order!=='move';let target=null,acquiredApproach=null;
   if(mayAttack){const w=u.target&&this.weapon(u,u.target),edge=u.target&&this.edgeDistance(u,u.target),holdValid=u.order!=='hold'||w&&edge<=w.range&&edge>=(w.minRange||0);if(this.canPursueTarget(u,u.target)&&holdValid&&(u.order==='focus'||dist(u,u.target)<=u.def.sight+u.r+u.target.r)){target=u.target;u.targetReviewClock=(u.targetReviewClock||0)-dt;if(u.order!=='focus'&&u.targetReviewClock<=0){target=this.betterTarget(u,target);u.targetReviewClock=.45}}else{u.target=null;const result={};target=this.acquireTarget(u,result);if(result.targetId===target?.id)acquiredApproach=result}if(target&&target!==u.target){u.target=target;this.resetAttackPursuit(u);}}
   if(target&&mayAttack){const w=this.weapon(u,target),edge=this.edgeDistance(u,target),inRange=edge<=w.range&&edge>=(w.minRange||0),inWeb=this.areas.some(a=>a.kind==='web'&&!u.def.air&&Math.abs(u.x-a.x)<=a.halfWidth+u.r&&Math.abs(u.y-a.y)<=a.halfHeight+u.r),inSwarm=!target.def.air&&this.areas.some(a=>a.kind==='swarm'&&Math.abs(target.x-a.x)<=a.halfWidth+target.r&&Math.abs(target.y-a.y)<=a.halfHeight+target.r);
-   if(inRange){u.combatMoving=true;u.attackPath=[];u.attackPathTarget=target.id;u.attackStall=0;u.attackRetries=0;u.attackProgress=null;u.failedAttackApproaches=[];if(brakeUnitMovement(this,u,dt))return;const facing=this.aimTarget(u,target,u.attackControl?0:dt);if(facing&&u.cooldown===0&&!u.attackControl&&!inWeb&&!(inSwarm&&w.range>40&&!(u.type===103&&w.id===109)))this.attack(u,target,w);return}
+   if(inRange){u.combatMoving=true;u.waitingAttackSlot=false;u.movementState='MOVING';u.attackPath=[];u.attackPathTarget=target.id;u.attackStall=0;u.attackRetries=0;u.attackProgress=null;u.failedAttackApproaches=[];if(brakeUnitMovement(this,u,dt))return;const facing=this.aimTarget(u,target,u.attackControl?0:dt);if(facing&&u.cooldown===0&&!u.attackControl&&!inWeb&&!(inSwarm&&w.range>40&&!(u.type===103&&w.id===109)))this.attack(u,target,w);return}
    if(u.order!=='hold'){
     u.combatMoving=true;u.aiClock-=dt;
-    if(u.attackPathTarget!==target.id||!u.attackPath?.length&&u.aiClock<=0||u.attackTargetPoint&&dist(u.attackTargetPoint,target)>20){const edgeRange=Math.max(w.minRange||0,w.range-Math.max(8,u.r*.25)),reuse=acquiredApproach?.targetId===target.id&&acquiredApproach.fromX===u.x&&acquiredApproach.fromY===u.y&&acquiredApproach.targetX===target.x&&acquiredApproach.targetY===target.y&&acquiredApproach.edgeRange===edgeRange,approach=reuse?acquiredApproach.approach:this.approachPath(u,target,edgeRange,{avoidPoints:(u.failedAttackApproaches||[]).filter(point=>point.expiresAt>this.time)});u.attackTargetPoint={x:target.x,y:target.y};u.attackPathTarget=target.id;u.attackPath=(approach?.path||[]).slice();u.aiClock=.55;if(!approach){u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.25;this.resetAttackPursuit(u);if(u.target===target)u.target=null;u.combatMoving=false}}
+    if(u.attackPathTarget!==target.id||!u.attackPath?.length&&u.aiClock<=0||u.attackTargetPoint&&dist(u.attackTargetPoint,target)>20){const edgeRange=Math.max(w.minRange||0,w.range-Math.max(8,u.r*.25)),reuse=acquiredApproach?.targetId===target.id&&acquiredApproach.fromX===u.x&&acquiredApproach.fromY===u.y&&acquiredApproach.targetX===target.x&&acquiredApproach.targetY===target.y&&acquiredApproach.edgeRange===edgeRange,approach=reuse?acquiredApproach.approach:this.approachPath(u,target,edgeRange,{avoidPoints:(u.failedAttackApproaches||[]).filter(point=>point.expiresAt>this.time),reserve:true});u.attackTargetPoint={x:target.x,y:target.y};u.attackPathTarget=target.id;u.attackPath=(approach?.path||[]).slice();u.waitingAttackSlot=!!approach?.wait;u.movementState=u.waitingAttackSlot?'WAITING_SLOT':'MOVING';u.aiClock=.55;if(approach?.point)this.reserveAttackSlot(u,target,approach.point);if(!approach){u.unreachableTargets||={};u.unreachableTargets[target.id]=this.time+1.25;this.resetAttackPursuit(u);if(u.target===target)u.target=null;u.combatMoving=false}}
     if(u.target===target){
      if(u.attackPath?.length){const p=u.attackPath[0],wasFinal=u.attackPath.length===1,moved=this.moveCombat(u,p,dt,wasFinal),edgeAfter=this.edgeDistance(u,target),reached=dist(u,p)<5&&(!wasFinal||edgeAfter<=w.range&&edgeAfter>=(w.minRange||0)||moved);if(reached){u.attackPath.shift();if(!u.attackPath.length)u.attackProgress=null}}
      if(u.attackTargetPoint&&dist(u.attackTargetPoint,target)>20){u.attackTargetPoint={x:target.x,y:target.y};u.attackPath=[];u.attackProgress=null;u.aiClock=0}
+     if(u.waitingAttackSlot){u.attackProgress=null;return}
      if(this.updateAttackProgress(u,target,dt)){this.recoverAttackPursuit(u,target,w);return}
      if(u.attackPath?.length)return;
      if(u.aiClock>0)return;
@@ -520,7 +608,23 @@ export class Battle{
   if(!u.target&&u.combatMoving){u.combatMoving=false;if(u.goal)u.path=this.path(u,u.goal,u.def.air,u.def.air?0:u.r*.55,u)}
   if(u.goal){if(u.path.length){const p=u.path[0];this.move(u,p,dt,u.path.length<=1);if(dist(u,p)<5)u.path.shift()}else if(u.order==='patrol'){const goal=u.goal;this.setGoal(u,u.anchor,'patrol');u.anchor=goal}else{u.goal=null;if(u.order!=='hold')u.order='stop';u.action='idle';this.clearActionControl(u,'stop',true)}}else if(u.animTime>.5){u.action=u.burrowed?'burrow':'idle';this.clearActionControl(u,'idle')}
  }
- update(realDt){if(this.paused||!Number.isFinite(realDt)||realDt<=0)return;if(this.phase==='prep'){this.prepLeft=Math.max(0,this.prepLeft-realDt);if(!this.prepLeft)this.start();return}if(this.phase!=='battle')return;this.simAccumulator=(this.simAccumulator||0)+realDt*this.battleTimeScale;const frame=1/24;while(this.simAccumulator+1e-9>=frame&&this.phase==='battle'){this.simAccumulator-=frame;this.step(frame)}}
+ update(realDt,{maxTicks=Infinity,cpuBudgetMs=Infinity}={}){
+  if(this.paused||!Number.isFinite(realDt)||realDt<=0)return;
+  if(this.phase==='prep'){this.prepLeft=Math.max(0,this.prepLeft-realDt);if(!this.prepLeft)this.start();return}
+  if(this.phase!=='battle')return;
+  this.simAccumulator=(this.simAccumulator||0)+realDt*this.battleTimeScale;
+  const frame=1/24,start=Number.isFinite(cpuBudgetMs)?performance.now():0;
+  let ticks=0;
+  while(this.simAccumulator+1e-9>=frame&&this.phase==='battle'){
+   this.simAccumulator-=frame;this.step(frame);ticks++;
+   if(ticks>=maxTicks||Number.isFinite(cpuBudgetMs)&&performance.now()-start>=cpuBudgetMs)break;
+  }
+  // Backlog is retained, not silently advanced/dropped. A sustained overload
+  // slows game time while preserving all combat and economic simulation ticks.
+  this.simBacklogSeconds=Math.max(0,this.simAccumulator);
+  if(this.simBacklogSeconds>.15)this.simOverloadFrames=(this.simOverloadFrames||0)+1;
+  else this.simOverloadFrames=0;
+ }
  step(dt){this.spatial=new UnitGrid(this.units);try{this.simulateStep(dt)}finally{this.spatial=null}}
  simulateStep(dt){this.time+=dt;this.simFrame=Math.floor(this.time*24+1e-9);this.timeLeft=Math.max(0,(this.timeLimit??300)-this.time);for(const u of [...this.units]){this.tickUnit(u,dt);this.spatial?.update(u)};this.hangarAccumulator=(this.hangarAccumulator||0)+dt;while(this.hangarAccumulator>=1/24){this.hangarAccumulator-=1/24;this.tickHangarFrame?.(1/24)}this.tickLurkerSpines(dt);
 
