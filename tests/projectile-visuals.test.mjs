@@ -25,8 +25,8 @@ test('Dragoon fires on its source animation tick and keeps the projectile visibl
  assert.equal(b.projectiles.length,0,'the simulation projectile is removed at its normal arrival time');
  const damage=weapon.damage*(target.def.size===1?.5:target.def.size===2?.75:1);assert.equal(target.hp,hp-damage,'damage is applied once at impact with the original size multiplier');
  assert.equal(b.projectileVisuals.length,1,'the visual record survives until a renderer consumes it');
- b.markProjectileVisualsRendered();b.simulateStep(1/30);assert.equal(b.projectileVisuals.length,1,'arrival trail remains visible for a short fade');
- b.simulateStep(1/30);assert.equal(b.projectileVisuals.length,0,'the completed trail is cleaned up');
+ b.markProjectileVisualsRendered();b.simulateStep(1/30);assert.equal(b.projectileVisuals.length,1,'the impact visual remains visible for a short fade');
+ b.simulateStep(1/30);assert.equal(b.projectileVisuals.length,0,'the completed visual is cleaned up');
 });
 
 test('Yamato spell shots use the same visual lifecycle and retain their normal impact',()=>{
@@ -53,8 +53,18 @@ test('Hydralisk sting applies hitscan damage on its source animation event and a
  assert.equal(target.hp,hp,'damage waits until the Hydralisk attack event');for(let i=0;i<4;i++)b.step(1/24);assert.equal(target.hp,hp);b.step(1/24);
  assert.equal(b.projectiles.length,0);assert.ok(target.hp<hp,'the hitscan damage occurs at the source animation event');
  assert.deepEqual(b.projectileVisuals.map(v=>v.kind),['hitscan','contact']);
+ assert.ok(b.projectileVisuals.every(v=>!('trail' in v)),'the hitscan and contact records carry no unused canvas trail');
  assert.equal(b.projectileVisuals[0].duration,.1);assert.equal(b.projectileVisuals[1].image,504);
  const afterAttack=target.hp;b.update(.15);assert.equal(target.hp,afterAttack,'visual expiry never applies another hit');
+});
+
+test('projectile positions still advance and resolve once without retaining trail arrays',()=>{
+ const b=combat(),a=b.create(66,0,500,700),t=b.create(0,1,620,700);t.hp=t.maxHp=30000;t.order='move';face(a,t);
+ b.attack(a,t,b.weapon(a,t));for(let i=0;i<8;i++)b.step(1/24);
+ const shot=b.projectileVisuals[0],start=shot.x,hp=t.hp;
+ assert.ok(shot&&!('trail' in shot));b.step(1/24);assert.ok(shot.x>start,'visual follows the original projectile');
+ for(let i=0;i<20&&b.projectiles.length;i++)b.step(1/24);
+ assert.ok(t.hp<hp);const once=t.hp;b.markProjectileVisualRendered(shot);b.tickProjectileVisuals(.2);assert.equal(t.hp,once);
 });
 
 test('Hydralisk keeps the resolved miss point at its source animation event',()=>{
