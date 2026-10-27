@@ -120,7 +120,7 @@ async function testInspection(browser){
   await page.evaluate(()=>{const id=window.__inspectionTest.activePointerIds[0];if(id!==undefined)document.getElementById('field').dispatchEvent(new PointerEvent('pointercancel',{pointerId:id,bubbles:true,clientX:50,clientY:220}))});
   await page.mouse.up();
   assert.equal(await page.locator('#unitName').innerText(),'드라군','pointercancel preserves inspection');
-  assert.equal(await page.locator('#portrait').getAttribute('src'),'assets/portraits/0.webm');
+  assert.equal(await page.locator('#portrait').getAttribute('src'),ids.portrait,'pointercancel retains the selected Dragoon portrait');
   await page.locator('#field').tap({position:vacant});
   await page.waitForFunction(()=>!document.getElementById('unitName').textContent);
   assert.equal(await page.evaluate(()=>window.__inspectionTest.battle.inspectedUnit),null,'a real vacant ground tap clears allied inspection');
