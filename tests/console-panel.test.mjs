@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {commandSlots,creepEdgeFrameIndex,creepNeighborMask,minimapTransform,minimapWorldPoint} from '../dist/console-panel.js';
+import {commandSlots,selectedBuildingSlotTypes,creepEdgeFrameIndex,creepNeighborMask,minimapTransform,minimapWorldPoint} from '../dist/console-panel.js';
+import {BUILDINGS} from '../dist/tech.js';
+
+test('selected building direct commands keep stable slots 7 and 8 even for source-disabled add-ons',()=>{
+ const expected={131:[132],132:[133],133:[],106:[107,108],113:[120],114:[115],116:[117,118],141:[137],143:[144,146]};
+ for(const [id,types]of Object.entries(expected))assert.deepEqual(selectedBuildingSlotTypes(BUILDINGS,Number(id)),types,`parent ${id}`);
+});
 
 const layout=JSON.parse(await readFile(new URL('../resources/original-ui/build-command-layout.json',import.meta.url),'utf8'));
 const icons=JSON.parse(await readFile(new URL('../resources/original-ui/command-icon-map.json',import.meta.url),'utf8'));

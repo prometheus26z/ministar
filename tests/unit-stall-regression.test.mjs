@@ -13,6 +13,28 @@ const combat=()=>{const b=new CombatBattle(data);b.phase='battle';b.map.rocks=[]
 const advance=(b,u,seconds)=>{const dt=1/24;for(let i=0;i<Math.round(seconds/dt);i++){b.time+=dt;b.tickUnit(u,dt)}};
 const diagnostics=(b,u)=>({id:u.id,type:u.type,team:u.team,x:u.x,y:u.y,order:u.order,action:u.action,goal:u.goal,pathFirst:u.path?.[0],pathLast:u.path?.at(-1),target:u.target?.id,targetAlive:u.target?.alive,targetDistance:u.target&&b.edgeDistance(u,u.target),targetRange:u.target&&b.weapon(u,u.target)?.range,combatMoving:u.combatMoving,waitingAttackSlot:u.waitingAttackSlot,attackControl:!!u.attackControl,nonInterruptible:u.attackControl?.nonInterruptible,laneStall:u.laneStall,attackProgress:u.attackProgress,attackRetries:u.attackRetries,heading:u.motion?.heading256,desired:u.motion?.desiredDirection256});
 
+test('a safe real Lurker origin connects to A* although its grid center intersects a temple',()=>{
+ const b=new LaneBattle(data,{race:'zerg',enemyRace:'protoss',difficulty:'easy'});b.begin();b.units=[];b.map.rocks=[];
+ const temple=b.create(174,0,640,1280);assert.deepEqual(temple.def.footprint,[224,96]);
+ for(const x of [528,560,592,624,656,688,720,752]){
+  const lurker=b.create(103,0,x,1337.5),clearance=lurker.r*.55;
+  if(b.staticBlocked(x,1337.5,clearance,lurker)){b.units=b.units.filter(unit=>unit!==lurker);continue}
+  const route=b.path(lurker,{x,y:1472},false,clearance,lurker);
+  assert.ok(route.length,`x=${x}: a safe actual start must have an outgoing path`);
+  let previous=lurker;
+  for(const waypoint of route){assert.ok(b.clearGroundSegment(previous,waypoint,clearance,lurker),`x=${x}: every waypoint must be collision safe`);previous=waypoint}
+  b.units=b.units.filter(unit=>unit!==lurker);
+ }
+ const lurker=b.create(103,0,592,1337.5),clearance=lurker.r*.55;
+ assert.equal(b.staticBlocked(lurker.x,lurker.y,clearance,lurker),false);
+ assert.equal(b.staticBlocked(592,1328,clearance,lurker),true);
+ lurker.laneArmy=true;lurker.laneOffset=0;const objective=b.laneObjective(0);b.setAdvanceGoal(lurker,objective);
+ assert.ok(lurker.path.length,'advance goal must connect to a valid departure waypoint');
+ const initial={x:lurker.x,y:lurker.y};advance(b,lurker,6);
+ assert.ok(distFrom(lurker,initial)>8,`the Lurker must move in six seconds: ${JSON.stringify(diagnostics(b,lurker))}`);
+});
+const distFrom=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+
 test('stale attack, airAttack and cast poses do not suppress route recovery or resumed movement',()=>{
  for(const action of ['attack','airAttack','cast']){
   const b=lane();b.units=[];const u=b.create(66,0,640,1700),objective=b.laneObjective(0);

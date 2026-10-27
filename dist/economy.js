@@ -1,4 +1,4 @@
-import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.25-stall-ui34';
+import {Battle as CombatBattle,dist,clamp} from './core.js?v=0.16.26-pr35';
 import {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,SATISFIES,researchAt} from './tech.js?v=0.16.25';
 import {inPsionicMatrixRange,footprintTiles} from './build-placement.js?v=0.16.25';
 import {CreepField} from './creep.js?v=0.16.25';

@@ -6,7 +6,7 @@ import {UnitGrid} from '../dist/spatial.js';
 import {advanceUnitMovement} from '../dist/action-control.js';
 import {resolveWeapon,WEAPON_CACHE_METRICS} from '../dist/combat-rules.js';
 // Match autobattle's versioned module identity (two URLs yield two caches).
-import {RESEARCH,invalidateAbilityRequirements} from '../dist/economy.js?v=0.16.25-stall-ui34';
+import {RESEARCH,invalidateAbilityRequirements} from '../dist/economy.js?v=0.16.26-pr35';
 
 const read=path=>JSON.parse(fs.readFileSync(new URL(path,import.meta.url)));
 const data=read('../dist/assets/data.json'),extra=read('../dist/rts-data.json');
