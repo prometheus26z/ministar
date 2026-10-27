@@ -97,8 +97,8 @@ export class Battle{
   }
   if(!best)return false;
   const moved=advanceUnitMovement(this,u,Math.abs(best.offset)<1e-9?goal:best.point,dt,{finalWaypoint:finalWaypoint&&Math.abs(best.offset)<1e-9});
-  if(!moved){if(Math.abs(best.offset)>Math.PI/32){u.avoidSide=Math.sign(best.offset);u.avoidSideUntil=this.time+.5}return false}
-  if(Math.abs(best.offset)>Math.PI/32){u.avoidSide=Math.sign(best.offset);u.avoidSideUntil=this.time+.5}else if(u.avoidSideUntil<=this.time){u.avoidSide=0;u.avoidSideUntil=0}
+  if(!moved){if(Math.abs(best.offset)>Math.PI/32){u.avoidSide=Math.sign(best.offset);u.avoidSideUntil=this.time+1}return false}
+  if(Math.abs(best.offset)>Math.PI/32){u.avoidSide=Math.sign(best.offset);u.avoidSideUntil=this.time+1}else if(u.avoidSideUntil<=this.time){u.avoidSide=0;u.avoidSideUntil=0}
   return true;
  }
  nearbyAny(point,radius,predicate){return this.spatial?this.spatial.queryAny(point,radius,predicate,this.units):this.units.some(predicate)}
@@ -220,6 +220,10 @@ export class Battle{
   state.elapsed+=dt;
   if(remaining<state.remaining-ATTACK_PROGRESS_EPSILON){state.remaining=remaining;state.elapsed=0;u.attackStall=0;return false}
   if(state.elapsed<ATTACK_STALL_WINDOW)return false;
+  // An original BW unit may need several frames to rotate before advancing.
+  // Treating that legitimate turn as a failed route repeatedly swaps flanks.
+  const heading=u.motion?.heading256,desired=u.motion?.desiredDirection256;
+  if(Number.isFinite(heading)&&Number.isFinite(desired)&&Math.abs(((desired-heading+384)%256)-128)>16&&state.elapsed<1.2)return false;
   u.attackStall=ATTACK_STALL_WINDOW;return true;
  }
  targetScore(u,t,w=this.weapon(u,t)){const edge=this.edgeDistance(u,t),gap=Math.max(0,edge-w.range),minGap=Math.max(0,(w.minRange||0)-edge),threat=this.unitThreatens(t,u)?1:0,passive=t.def.building&&!threat?1:0;return((gap>0||minGap>0)?240:0)+gap*2+minGap*3+dist(u,t)*.18-threat*90+passive*45}
