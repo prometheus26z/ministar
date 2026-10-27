@@ -32,6 +32,24 @@ const {chromium}=require('playwright'),{createServer}=require('../server.cjs');
    const bar=await page.evaluate(()=>window.__lastBar);assert.equal(bar.id,target.id);assert.ok(Math.abs(bar.pixels-target.width*target.zoom*.85)<=.5,JSON.stringify({target,bar}));
    if((type===174||type===142)&&zoom===.6)await page.screenshot({path:`/tmp/ministar-health-bar-${type}.png`});
   }
-  fs.writeFileSync('/tmp/ministar-browser-performance.json',JSON.stringify(timing,null,2));console.log('360-unit DPR-2 render profile, detection touch selection and batched panel updates:',timing);
+  const active=await page.evaluate(async()=>{
+   const b=window.__perfTest.battle,army=b.units.filter(u=>u.laneArmy&&u.alive&&!u.def.building);
+   const teamIndex=[0,0];
+   for(const u of army){const n=teamIndex[u.team]++,row=Math.floor(n/12),column=n%12;
+    u.x=372+column*47;u.y=u.team?330+row*38:1718-row*38;
+    b.setAdvanceGoal(u,b.laneObjective(u.team));u.laneObjectiveId=b.laneObjective(u.team).id;
+   }
+   b.waveClock=1e9;b.botStep=()=>{};b.paused=false;
+   const simStart=b.simFrame,frames=[],duration=()=>new Promise(resolve=>{
+    let last=performance.now();const sample=now=>{frames.push(now-last);last=now;if(frames.length<90)requestAnimationFrame(sample);else resolve()};requestAnimationFrame(sample)
+   });
+   await duration();frames.sort((a,c)=>a-c);
+   const result={medianFrameMs:frames[45],p95FrameMs:frames[85],maxFrameMs:frames[89],simTicks:b.simFrame-simStart,backlogSeconds:b.simBacklogSeconds||0,units:army.length};
+   b.paused=true;return result;
+  });
+  assert.ok(active.simTicks>0,'the live performance fixture must advance combat');
+  assert.ok(Number.isFinite(active.p95FrameMs));
+  fs.writeFileSync('/tmp/ministar-browser-performance.json',JSON.stringify({paused:timing,active},null,2));
+  console.log('360-unit DPR-2 paused rendering and active combat profile:',{paused:timing,active});
  }finally{await browser?.close();await new Promise(r=>server.close(r))}
 })().catch(e=>{console.error(e);process.exitCode=1});

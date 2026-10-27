@@ -1,18 +1,18 @@
-import {constructionVisual,healthBarLayout,healthBarFillWidth,waveDescription,formatSupply,formatElapsedTime} from './presentation.js?v=0.16.24';
-import {selectionPanelModel,inspectionEnergyMaximum,selectionStatItems} from './selection-panel.js?v=0.16.24';
-import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.24';
-import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.24';
-import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.24';
-import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.24';
-import {researchAt} from './tech.js?v=0.16.24';
-import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.24';
-import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.24';
-import {psiFieldTiles} from './build-placement.js?v=0.16.24';
-import {resolveWeapon,attackHitCount} from './combat-rules.js?v=0.16.24';
-import {createResourceStore,ResourceVersionError} from './resource-cache.js?v=0.16.24';
-import {createResourcePlanner} from './resource-planner.js?v=0.16.24';
-import {commandSlots,creepEdgeFrameIndex,minimapTransform,minimapWorldPoint} from './console-panel.js?v=0.16.24';
-import {CREEP_EDGE_MAP,CREEP_EDGE_FRAMES,BUILD_COMMAND_LAYOUT,BUILD_COMMAND_ICONS} from './original-ui-data.js?v=0.16.24';
+import {constructionVisual,healthBarLayout,healthBarFillWidth,waveDescription,formatSupply,formatElapsedTime} from './presentation.js?v=0.16.25';
+import {selectionPanelModel,inspectionEnergyMaximum,selectionStatItems} from './selection-panel.js?v=0.16.25';
+import {enhanceSelects,closeDropdown} from './ui.js?v=0.16.25';
+import {SPELLS,VERSION,dist,clamp} from './core.js?v=0.16.25';
+import {Battle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y} from './autobattle.js?v=0.16.25';
+import {DESERT_STRIKE,GAS_BUILDING,INCOME_SECONDS,spawningPoolYield} from './lane-rules.js?v=0.16.25';
+import {researchAt} from './tech.js?v=0.16.25';
+import {pose,teamImage,trackFor,transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.25';
+import {DEFAULT_FIELD_ZOOM,DEFAULT_FRONT_ZOOM,defaultProductionZoom} from './camera.js?v=0.16.25';
+import {psiFieldTiles} from './build-placement.js?v=0.16.25';
+import {resolveWeapon,attackHitCount} from './combat-rules.js?v=0.16.25';
+import {createResourceStore,ResourceVersionError} from './resource-cache.js?v=0.16.25';
+import {createResourcePlanner} from './resource-planner.js?v=0.16.25';
+import {commandSlots,creepEdgeFrameIndex,minimapTransform,minimapWorldPoint} from './console-panel.js?v=0.16.25';
+import {CREEP_EDGE_MAP,CREEP_EDGE_FRAMES,BUILD_COMMAND_LAYOUT,BUILD_COMMAND_ICONS} from './original-ui-data.js?v=0.16.25';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),mini=$('minimap'),consoleMini=$('consoleMinimap');
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem('ministar.'+k))??f}catch{return f}},save=(k,v)=>{try{localStorage.setItem('ministar.'+k,JSON.stringify(v))}catch{}};
 const labels={terran:'테란',zerg:'저그',protoss:'프로토스'},icon=n=>'assets/icons/'+String(n).padStart(3,'0')+'.png';
@@ -42,7 +42,7 @@ function criticalSceneImageUrls(){const urls=new Set();for(const id of new Set([
 function dependencyImageUrls(imageIds){const urls=new Set(),visited=new Set(),queue=[...imageIds].filter(Number.isInteger).map(id=>({id,depth:0}));while(queue.length&&visited.size<2048){const {id,depth}=queue.shift();if(depth>8||visited.has(id))continue;visited.add(id);const graphic=data.graphics[id];if(!graphic)continue;for(const url of graphicUrls(graphic))urls.add(url);for(const track of Object.values(graphic.tracks||{})){const events=track?.overlayEvents||(track?.overlays||[]).map(image=>({image}));for(const event of events)if(Number.isInteger(event?.image))queue.push({id:event.image,depth:depth+1})}for(const overlay of graphic.persistentOverlays||[])if(Number.isInteger(overlay?.image))queue.push({id:overlay.image,depth:depth+1});for(const shadow of graphic.shadowLayers||[])if(Number.isInteger(shadow.image))queue.push({id:shadow.image,depth:depth+1})}return urls}
 function selectedRaceImageUrls(selectedRace,constructionGraphics,turretGraphics,destructionGraphics){const types=new Set(data.races[selectedRace]||[]),images=[...types].map(type=>data.units[type]?.image).filter(Number.isInteger),urls=dependencyImageUrls(images);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const [type,graphic]of Object.entries(graphics))if(types.has(Number(type)))for(const url of graphicUrls(graphic))urls.add(url);for(const id of Object.values(BASE))for(const url of graphicUrls(data.graphics[data.units[id]?.image]))urls.add(url);return urls}
 function optionalImageUrls(constructionGraphics,turretGraphics,destructionGraphics){
- const optional=new Set(['ds-assets/production.webp?v=0.16.24']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
+ const optional=new Set(['ds-assets/production.webp?v=0.16.25']);for(const graphics of [constructionGraphics,turretGraphics,destructionGraphics])for(const graphic of Object.values(graphics))for(const url of graphicUrls(graphic))optional.add(url);
  for(const url of graphicUrls(data.graphics[215]))optional.add(url);
  for(const id of [210,211])for(const url of graphicUrls(data.graphics[id]))optional.add(url);
  const images=new Set([523,504,524,503,536,337,364,383,387,951,998]);for(const value of Object.values(spellVisualData?.images||{}))for(const id of Array.isArray(value)?value:[value])if(Number.isInteger(id))images.add(id);for(const weapon of Object.values(data.weapons||{}))if(weapon?.damage&&Number.isInteger(weapon.image))images.add(weapon.image);
@@ -490,7 +490,7 @@ function drawRelief(){
 }
 function drawProductionBoard(){
  ctx.fillStyle='#1c100a';ctx.fillRect(0,PRODUCTION_OFFSET,1280,PRODUCTION_HEIGHT);
- if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.24');
+ if(!desertProduction)desertProduction=getImage('ds-assets/production.webp?v=0.16.25');
  ctx.save();if(productionTeam){ctx.translate(1280,0);ctx.scale(-1,1)}
  if(desertProduction)ctx.drawImage(desertProduction,PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
  ctx.restore();ctx.strokeStyle='#c49b61';ctx.lineWidth=2;ctx.strokeRect(productionTeam?1280-PRODUCTION_GROUND_X-PRODUCTION_GROUND_WIDTH:PRODUCTION_GROUND_X,PRODUCTION_OFFSET+PRODUCTION_GROUND_Y,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT);
@@ -615,7 +615,7 @@ function drawBattleEffects(){
   sprite(f.image,f.team||0,f.x,f.y,'idle',time,f.direction||0,death?1:Math.min(1,f.left*8));
  }
 }
-function renderFrame(now){const realDt=last?Math.min(.15,(now-last)/1000):1/60;last=now;const dt=document.hidden||backgroundPauseRequired?0:realDt;battle.update(dt);hudTime+=realDt;if(hudTime>.15){hudTime=0;hudUI();refreshVitals();productionUI()}minimapClock+=realDt;if(minimapClock>=.1){minimapClock=0;drawMinimaps()}ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#10191c';ctx.fillRect(0,0,W,H);limitCamera();ctx.save();ctx.translate(W/2,cy());ctx.scale(camera.zoom,camera.zoom);ctx.translate(-camera.x,-camera.y);if(viewMode==='production'){drawProductionBoard();drawEconomy();drawWrecks();for(const u of battle.units.filter(u=>u.productionOnly&&inProductionView(u)))unit(u);battle.markProjectileVisualsRendered();drawBattleEffects();ctx.restore();requestAnimationFrame(render);return}const a=toWorld(0,0),b=toWorld(W,H),x0=Math.max(0,Math.floor(a.x/32)),x1=Math.min(40,Math.ceil(b.x/32)),y0=Math.max(0,Math.floor(a.y/32)),y1=Math.min(64,Math.ceil(b.y/32));drawRelief();drawEconomy();drawWrecks();const visibleUnits=battle.units.filter(u=>!u.hidden&&!u.loaded&&!u.productionOnly&&(u.def.building||visible(u))).sort((a,b)=>Number(a.def.air)-Number(b.def.air)||a.y-b.y);for(const u of visibleUnits.filter(u=>!u.def.air))unit(u);for(const area of battle.areas)drawSpellArea(area);for(const u of visibleUnits.filter(u=>u.def.air))unit(u);drawProjectileVisuals();drawBattleEffects();if(battle.phase!=='title'&&!battle.laneMode)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(!battle.fog[y*40+x]){ctx.fillStyle=battle.explored[y*40+x]?'#030c10a9':'#030a10e8';ctx.fillRect(x*32,y*32,32.5,32.5)}if(battle.core?.alive){ctx.save();ctx.translate(battle.core.x,battle.core.y-85);ctx.rotate(Math.PI/4);ctx.fillStyle='#e2c587';ctx.fillRect(-5,-5,10,10);ctx.restore()}if(gesture?.kind==='box'){const s=gesture.world,e=toWorld(gesture.current.x,gesture.current.y);ctx.fillStyle='#83e7921c';ctx.strokeStyle='#9ef69a';ctx.lineWidth=1/camera.zoom;ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y)}ctx.restore();if(battle.paused&&battle.phase==='battle'&&$('modal').hidden){ctx.fillStyle='#07151aa9';ctx.fillRect(0,0,W,H);ctx.fillStyle='#deddbb';ctx.font='bold 20px system-ui';ctx.textAlign='center';ctx.fillText('일시 정지',W/2,cy())}requestAnimationFrame(render)}
+function renderFrame(now){const realDt=last?Math.max(0,(now-last)/1000):1/60;last=now;const dt=document.hidden||backgroundPauseRequired?0:realDt;battle.update(dt,{maxTicks:3,cpuBudgetMs:16});hudTime+=realDt;if(hudTime>.15){hudTime=0;hudUI();refreshVitals();productionUI()}minimapClock+=realDt;if(minimapClock>=.1){minimapClock=0;drawMinimaps()}ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#10191c';ctx.fillRect(0,0,W,H);limitCamera();ctx.save();ctx.translate(W/2,cy());ctx.scale(camera.zoom,camera.zoom);ctx.translate(-camera.x,-camera.y);if(viewMode==='production'){drawProductionBoard();drawEconomy();drawWrecks();for(const u of battle.units.filter(u=>u.productionOnly&&inProductionView(u)))unit(u);battle.markProjectileVisualsRendered();drawBattleEffects();ctx.restore();requestAnimationFrame(render);return}const a=toWorld(0,0),b=toWorld(W,H),x0=Math.max(0,Math.floor(a.x/32)),x1=Math.min(40,Math.ceil(b.x/32)),y0=Math.max(0,Math.floor(a.y/32)),y1=Math.min(64,Math.ceil(b.y/32));drawRelief();drawEconomy();drawWrecks();const visibleUnits=battle.units.filter(u=>!u.hidden&&!u.loaded&&!u.productionOnly&&(u.def.building||visible(u))).sort((a,b)=>Number(a.def.air)-Number(b.def.air)||a.y-b.y);for(const u of visibleUnits.filter(u=>!u.def.air))unit(u);for(const area of battle.areas)drawSpellArea(area);for(const u of visibleUnits.filter(u=>u.def.air))unit(u);drawProjectileVisuals();drawBattleEffects();if(battle.phase!=='title'&&!battle.laneMode)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(!battle.fog[y*40+x]){ctx.fillStyle=battle.explored[y*40+x]?'#030c10a9':'#030a10e8';ctx.fillRect(x*32,y*32,32.5,32.5)}if(battle.core?.alive){ctx.save();ctx.translate(battle.core.x,battle.core.y-85);ctx.rotate(Math.PI/4);ctx.fillStyle='#e2c587';ctx.fillRect(-5,-5,10,10);ctx.restore()}if(gesture?.kind==='box'){const s=gesture.world,e=toWorld(gesture.current.x,gesture.current.y);ctx.fillStyle='#83e7921c';ctx.strokeStyle='#9ef69a';ctx.lineWidth=1/camera.zoom;ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y)}ctx.restore();if(battle.paused&&battle.phase==='battle'&&$('modal').hidden){ctx.fillStyle='#07151aa9';ctx.fillRect(0,0,W,H);ctx.fillStyle='#deddbb';ctx.font='bold 20px system-ui';ctx.textAlign='center';ctx.fillText('일시 정지',W/2,cy())}requestAnimationFrame(render)}
 function render(now){const started=performance.now();renderFrame(now);resourcePlanner.recordFrameCost(performance.now()-started);markFirstSceneReady()}
 function modal(kind,html){closeStatTooltip();closeDropdown();if(battle?.menuOpen)battle.closeMenu();pausedBefore=battle?.paused||false;if(battle?.phase==='battle')battle.paused=true;syncAudioPause();modalKind=kind;$('modalContent').innerHTML=html;enhanceSelects($('modalContent'));$('modal').hidden=false}
 function closeModal(){closeDropdown();if(modalKind==='result')return;$('modal').hidden=true;if(battle?.phase==='battle')battle.paused=pausedBefore;modalKind='';syncAudioPause()}$('closeModal').onclick=closeModal;
@@ -646,15 +646,15 @@ async function boot(){if(bootInProgress)return;bootInProgress=true;const retry=$
  if(!await retireOfflineStorage())return;
  const cacheState=await resourceStore.init();if(!cacheState.manifest)console.warn('Resource manifest unavailable; continuing with online requests only');
  if(!uiEnhanced){enhanceSelects();uiEnhanced=true}
- const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.24');
+ const terrainPromise=loadImage('assets/terrain.webp'),fieldPromise=loadImage('ds-assets/battlefield.webp?v=0.16.25');
  const [base,extra,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations,spellVisuals]=await Promise.all([
   fetchJson('assets/data.json','전투 데이터를 읽을 수 없습니다.'),
-  fetchJson('rts-data.json?v=0.16.24','생산 데이터를 읽을 수 없습니다.'),
-  fetchJson('construction-data.json?v=0.16.24','건설 그래픽을 읽을 수 없습니다.'),
-  fetchJson('turret-data.json?v=0.16.24','포탑 그래픽을 읽을 수 없습니다.'),
-  fetchJson('destruction-data.json?v=0.16.24','건물 파괴 그래픽을 읽을 수 없습니다.'),
-  fetchJson('original-animation-data.json?v=0.16.24','원본 애니메이션을 읽을 수 없습니다.'),
-  fetchJson('spell-visual-data.json?v=0.16.24','원본 주문 효과 데이터를 읽을 수 없습니다.')
+  fetchJson('rts-data.json?v=0.16.25','생산 데이터를 읽을 수 없습니다.'),
+  fetchJson('construction-data.json?v=0.16.25','건설 그래픽을 읽을 수 없습니다.'),
+  fetchJson('turret-data.json?v=0.16.25','포탑 그래픽을 읽을 수 없습니다.'),
+  fetchJson('destruction-data.json?v=0.16.25','건물 파괴 그래픽을 읽을 수 없습니다.'),
+  fetchJson('original-animation-data.json?v=0.16.25','원본 애니메이션을 읽을 수 없습니다.'),
+  fetchJson('spell-visual-data.json?v=0.16.25','원본 주문 효과 데이터를 읽을 수 없습니다.')
  ]);
  data=base;spellVisualData=spellVisuals;for(const [id,size]of Object.entries(spellVisualData.unitOverlaySizes||{}))if(data.units[id])data.units[id].spellOverlaySize=size;warmupGraphics=[constructionGraphics,turretGraphics,destructionGraphics];clearMediaSession();Object.assign(data.units,extra.units);Object.assign(data.graphics,extra.graphics,constructionGraphics,turretGraphics,destructionGraphics,originalAnimations);
  for(const [key,spec]of Object.entries(extra.research))Object.assign(RESEARCH[key],spec);

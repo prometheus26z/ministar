@@ -1,15 +1,16 @@
-import {LaneAI} from './lane-ai.js?v=0.16.24';
-import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.24';
-import {SATISFIES} from './tech.js?v=0.16.24';
-import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.24';
-import {buildingDestruction} from './presentation.js?v=0.16.24';
-import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.24';
-import {clamp,dist} from './core.js?v=0.16.24';
-import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.24';
-import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.24';
-import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.24';
-import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.24';
-import {isFullyBurrowed} from './movement.js?v=0.16.24';
+import {LaneAI} from './lane-ai.js?v=0.16.25';
+import {transitionSeconds,steadyStartSeconds} from './animation.js?v=0.16.25';
+import {SATISFIES} from './tech.js?v=0.16.25';
+import {gasSlots,productionTileAllowed,isLaneBuildingAvailable} from './lane-rules.js?v=0.16.25';
+import {buildingDestruction} from './presentation.js?v=0.16.25';
+import {Battle as EconomyBattle,BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH} from './economy.js?v=0.16.25';
+import {clamp,dist} from './core.js?v=0.16.25';
+import {DESERT_STRIKE,TECH_IDS,INCOME_SECONDS,BUILDING_WAVES,GAS_BUILDING,GAS_SLOT_X,GAS_SLOT_Y,WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y,constructionSeconds,buildingCost} from './lane-rules.js?v=0.16.25';
+import {chooseAutomatedSpell} from './spell-ai.js?v=0.16.25';
+import {COMBAT_SOURCE,resolveUnitDefinition,sourcePlayerForUnit} from './combat-rules.js?v=0.16.25';
+import {initializeHangar as initializeHangarRuntime,tickHangarFrame as runHangarFrame,refillCarrier as refillCarrierRuntime,refillReaver as refillReaverRuntime,refillAllCarriers,refillAllReavers,hangarSnapshot as hangarSnapshotRuntime,onHangarUnitDeath,transferHangarOwnership,carrierChildren,clearHangar} from './hangar.js?v=0.16.25';
+import {isFullyBurrowed} from './movement.js?v=0.16.25';
+import {UnitGrid} from './spatial.js?v=0.16.25';
 export {BASE,WORKER,BUILDINGS,PRODUCTION,RESEARCH};
 export {WAVE_SECONDS,PRODUCTION_OFFSET,PRODUCTION_HEIGHT,PRODUCTION_GROUND_WIDTH,PRODUCTION_GROUND_HEIGHT,PRODUCTION_GROUND_X,PRODUCTION_GROUND_Y};
 export const ENEMY_RACES=Object.freeze(['terran','zerg','protoss']);
@@ -236,6 +237,7 @@ export class Battle extends EconomyBattle{
  research(unit,key){return this.fail(this.researchReason(unit,key))}
  formationGoal(u,objective){return{x:clamp(objective.x+(u.laneOffset||0),352,928),y:objective.y}}
  setAdvanceGoal(u,objective){
+  this.releaseAttackSlot(u);
   const goal=this.formationGoal(u,objective),direction=u.team?1:-1,end={x:goal.x,y:goal.y-direction*128};
   const route=!u.def.air&&this.clearGroundSegment(u,end,u.r*.55,u)?[end]:this.path(u,end,u.def.air,u.def.air?0:u.r*.55,u);
   u.goal=goal;u.path=route;u.order='attackmove';u.target=null;u.combatMoving=false;u.attackPathTarget=null;u.attackPath=[];u.attackRetries=0;u.aiClock=0;u.stuck=0;
@@ -270,7 +272,7 @@ export class Battle extends EconomyBattle{
   const free=p=>{
    if(p.x<clearance||p.x>1280-clearance||p.y<clearance||p.y>2048-clearance)return false;
    if(!def.air&&(this.staticBlocked(p.x,p.y,clearance,ignore)||this.staticBlocked(Math.floor(p.x/32)*32+16,Math.floor(p.y/32)*32+16,clearance,ignore)))return false;
-   if(def.air)return true;const radius=def.radius||10;return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&!isFullyBurrowed(u)&&dist(u,p)<u.r+radius+2);
+   if(def.air)return true;const radius=def.radius||10,neighbors=this.spatial?.queryLocal(p,radius+this.spatial.maxMobileRadius+2)||this.units;return !neighbors.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&!isFullyBurrowed(u)&&dist(u,p)<u.r+radius+2);
   };
   // Preserve each column, moving its spawn forward out of the HQ/tower footprints.
   for(let offset=0;offset<=2048;offset+=Math.max(32,spacing)){const p={x:point.x,y:point.y+direction*offset};if(free(p))return p}
@@ -283,7 +285,8 @@ export class Battle extends EconomyBattle{
    if(p.x<zone.left+clearance||p.x>zone.right-clearance||p.y<zone.top+clearance||p.y>zone.bottom-clearance)return false;
    const cell={x:Math.floor(p.x/32)*32+16,y:Math.floor(p.y/32)*32+16};
    if(def.air)return true;if(this.staticBlocked(p.x,p.y,clearance,ignore)||this.staticBlocked(cell.x,cell.y,clearance,ignore))return false;
-   return !this.units.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&!isFullyBurrowed(u)&&dist(u,p)<u.r+radius+2);
+   const neighbors=this.spatial?.queryLocal(p,radius+this.spatial.maxMobileRadius+2)||this.units;
+   return !neighbors.some(u=>u!==ignore&&u.alive&&!u.hidden&&!u.loaded&&!u.productionOnly&&!u.fighter&&!u.def.building&&!u.def.air&&!isFullyBurrowed(u)&&dist(u,p)<u.r+radius+2);
   };
   if(preferred&&free(preferred))return preferred;
   spacing=Math.max(32,spacing);const columns=Math.floor((zone.right-zone.left)/spacing)+1,rows=Math.floor((zone.bottom-zone.top)/spacing)+1,center=640,xOrder=[];
@@ -311,7 +314,12 @@ export class Battle extends EconomyBattle{
   });
  }
  drainPendingDeployments(limit=8){
+  if(!this.pendingDeployments.some(queue=>queue.length))return[];
+  // super.step() releases its index before the wave queue drains. Keep a
+  // short-lived index for placement and register each new unit immediately.
+  const ownIndex=!this.spatial;if(ownIndex)this.spatial=new UnitGrid(this.units);
   const spawned=[];
+  try{
   for(const team of [0,1]){
    let budget=Math.min(limit,this.deploymentBudget[team]);const queue=this.pendingDeployments[team];
    while(queue.length&&budget>0){
@@ -323,6 +331,7 @@ export class Battle extends EconomyBattle{
     spawned.push(unit);budget--;this.deploymentBudget[team]--;
    }
   }
+  }finally{if(ownIndex)this.spatial=null}
   return spawned;
  }
  spawnUnit(type,team,index,total,origin,spacing=32){
@@ -374,18 +383,32 @@ export class Battle extends EconomyBattle{
  checkBaseWarning(){for(const team of [0,1]){const base=team?this.core:this.main,enemyDirection=team?-1:1,near=!!base&&this.units.some(u=>u.alive&&u.team!==team&&u.laneArmy&&!u.productionOnly&&enemyDirection*(u.y-base.y)>=-640);if(near&&!this.baseWarnings[team]&&team===0)this.emit('notice',{text:'경고: 적 병력이 기지에 접근합니다.'});this.baseWarnings[team]=near}}
 
  maintainAdvance(u,dt){
-  const objective=this.laneObjective(u.team),previous=u.laneCheckpoint;
-  u.laneStall=previous&&dist(u,previous)<Math.max(.1,u.def.speed*dt*.1)?(u.laneStall||0)+dt:0;u.laneCheckpoint={x:u.x,y:u.y};
+  const objective=this.laneObjective(u.team),path=u.path||[],last=path.at(-1)||u.goal||objective;
+  let remaining=path.length?dist(u,path[0]):dist(u,last);
+  for(let i=1;i<path.length;i++)remaining+=dist(path[i-1],path[i]);
+  const previous=u.laneProgress,samePath=previous?.last===last&&previous?.objectiveId===objective?.id;
+  if(!samePath||remaining<previous.remaining-1)u.laneStall=0;
+  else u.laneStall=(u.laneStall||0)+dt;
+  u.laneProgress={last,remaining,objectiveId:objective?.id};
   const immobilized=u.sieged||u.burrowed||u.buffs.lockdown>0||u.buffs.stasis>0||u.buffs.maelstrom>0;
   if(immobilized)return;
   const idle=!u.goal&&!u.combatMoving&&!u.target&&!u.healTarget&&dist(u,objective)>120,stalled=u.laneStall>.9&&!u.combatMoving&&!u.target&&!u.healTarget&&!['attack','airAttack','cast'].includes(u.action)&&dist(u,objective)>120;
   if(objective?.id!==u.laneObjectiveId||idle||stalled){
+   if(stalled&&this.allyBlocksMovement(u,path[0]||last)){
+    u.laneAllyWaitSince??=this.time;u.movementState='WAITING_ALLY';
+    if(this.time-u.laneAllyWaitSince<1.5)return;
+   }else u.laneAllyWaitSince=null;
+   const heading=u.motion?.heading256,desired=u.motion?.desiredDirection256;
+   if(stalled&&Number.isFinite(heading)&&Number.isFinite(desired)&&Math.abs(((desired-heading+384)%256)-128)>16&&u.laneStall<1.5){u.movementState='TURNING';return}
    if(!u.def.air&&this.map.blocked(u.x,u.y,u.r*.55)){const p=this.deploymentPoint(u.def,u.team,u,32,u);if(p){u.x=p.x;u.y=p.y}}
    const needsNewGoal=objective?.id!==u.laneObjectiveId||idle;
    u.laneObjectiveId=objective.id;
    if(needsNewGoal)this.setAdvanceGoal(u,objective);
    else if(this.time>=(u.laneDetourUntil||0)&&!this.recoverLaneRoute(u,objective))this.setAdvanceGoal(u,objective);
    u.laneStall=0;
+   u.movementState='MOVING';
+  }else if(!u.target&&!u.combatMoving&&u.movementState!=='WAITING_SLOT'){
+   u.movementState='MOVING';u.laneAllyWaitSince=null;
   }
  }
  tickUnit(u,dt){
